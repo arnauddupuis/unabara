@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file alias="main.qml">src/ui/qml/main.qml</file>
+        <file alias="TimelineView.qml">src/ui/qml/TimelineView.qml</file>
+        <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
+        <file>resources/styles/style.qss</file>
+        <file>resources/templates/default_overlay.png</file>
+    </qresource>
+</RCC>

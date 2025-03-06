@@ -107,7 +107,9 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     
     qDebug() << "Data point for overlay - depth:" << dataPoint.depth 
              << "temp:" << dataPoint.temperature
-             << "time:" << dataPoint.timestamp;
+             << "time:" << dataPoint.timestamp
+             << "ndl:" << dataPoint.ndl
+             << "tts:" << dataPoint.tts;
     
     // Set up the painter
     QPainter painter(&result);
@@ -120,11 +122,15 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     int width = result.width();
     int height = result.height();
     
+    // Determine if we're in decompression
+    bool inDeco = (dataPoint.ndl <= 0);
+    
     // Simple layout with evenly spaced sections
     int numSections = 0;
     if (m_showDepth) numSections++;
     if (m_showTemperature) numSections++;
-    if (m_showNDL) numSections++;
+    if (m_showNDL && !inDeco) numSections++; // Show NDL only if not in deco
+    if (inDeco) numSections++; // Show TTS when in deco
     if (m_showPressure) numSections++;
     if (m_showTime) numSections++;
     
@@ -147,7 +153,13 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         currentX += sectionWidth;
     }
     
-    if (m_showNDL) {
+    // Show either NDL or TTS based on decompression status
+    if (inDeco) {
+        // In decompression, show TTS
+        drawTTS(painter, dataPoint.tts, QRect(currentX, 0, sectionWidth, height));
+        currentX += sectionWidth;
+    } else if (m_showNDL) {
+        // Not in decompression, show NDL
         drawNDL(painter, dataPoint.ndl, QRect(currentX, 0, sectionWidth, height));
         currentX += sectionWidth;
     }
@@ -303,6 +315,38 @@ void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect
     painter.setFont(m_font);
     QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
     painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, timeStr);
+    
+    painter.restore();
+}
+
+void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect)
+{
+    // Format TTS as minutes
+    QString ttsStr = QString::number(qRound(tts)) + " min";
+    
+    QFontMetrics fm = painter.fontMetrics();
+    
+    // Draw label
+    painter.save();
+    QFont labelFont = painter.font();
+    labelFont.setPointSize(labelFont.pointSize() * 0.8);
+    painter.setFont(labelFont);
+    
+    QString label = tr("TTS");
+    QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
+    painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
+    
+    // Draw value
+    painter.setFont(m_font);
+    QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
+    painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, ttsStr);
+    
+    // Add a small "DECO" indicator
+    QFont decoFont = m_font;
+    decoFont.setPointSize(decoFont.pointSize() * 0.7);
+    painter.setFont(decoFont);
+    QRect decoRect = rect.adjusted(10, rect.height() * 2/3, -10, -5);
+    painter.drawText(decoRect, Qt::AlignLeft | Qt::AlignBottom, tr("DECO"));
     
     painter.restore();
 }

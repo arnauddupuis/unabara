@@ -391,6 +391,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
     
     DiveDataPoint point;
     bool hasData = false;
+    bool inDeco = false;
     
     // Get time - Subsurface uses format "mm:ss min"
     if (attrs.hasAttribute("time")) {
@@ -482,6 +483,34 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         }
     }
     
+    // Check for in_deco flag
+    if (attrs.hasAttribute("in_deco")) {
+        QString decoStr = attrs.value("in_deco").toString();
+        inDeco = (decoStr == "1" || decoStr.toLower() == "true");
+    }
+    
+    // Get TTS (Time To Surface) - Subsurface uses format "mm:ss min"
+    if (attrs.hasAttribute("tts")) {
+        QString ttsStr = attrs.value("tts").toString();
+        QRegularExpression ttsRe("(\\d+):(\\d+)\\s+min");
+        QRegularExpressionMatch match = ttsRe.match(ttsStr);
+        
+        if (match.hasMatch()) {
+            int minutes = match.captured(1).toInt();
+            int seconds = match.captured(2).toInt();
+            point.tts = minutes + seconds / 60.0;
+            hasData = true;
+        } else {
+            // Try direct numeric parsing as fallback
+            bool ok;
+            double tts = ttsStr.toDouble(&ok);
+            if (ok) {
+                point.tts = tts;
+                hasData = true;
+            }
+        }
+    }
+    
     // Get NDL - Subsurface uses format "xx:xx min"
     if (attrs.hasAttribute("ndl")) {
         QString ndlStr = attrs.value("ndl").toString();
@@ -511,16 +540,10 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         }
     }
     
-    // Check for in_deco flag
-    if (attrs.hasAttribute("in_deco")) {
-        QString decoStr = attrs.value("in_deco").toString();
-        bool inDeco = (decoStr == "1" || decoStr.toLower() == "true");
-        
-        // When in deco, NDL should be 0
-        if (inDeco) {
-            point.ndl = 0.0;
-            lastNDL = 0.0;
-        }
+    // When in deco, NDL should be 0
+    if (inDeco) {
+        point.ndl = 0.0;
+        lastNDL = 0.0;
     }
     
     // If we have any valid data, add the point to the dive
@@ -534,7 +557,9 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
                      << "time=" << point.timestamp 
                      << "depth=" << point.depth
                      << "temp=" << point.temperature
-                     << "ndl=" << point.ndl;
+                     << "ndl=" << point.ndl
+                     << "tts=" << point.tts
+                     << "in_deco=" << inDeco;
         }
         
         dive->addDataPoint(point);

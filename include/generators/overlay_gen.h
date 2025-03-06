@@ -74,6 +74,7 @@ private:
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
     void drawTemperature(QPainter &painter, double temp, const QRect &rect);
     void drawNDL(QPainter &painter, double ndl, const QRect &rect);
+    void drawTTS(QPainter &painter, double tts, const QRect &rect);
     void drawPressure(QPainter &painter, double pressure, const QRect &rect);
     void drawTime(QPainter &painter, double timestamp, const QRect &rect);
 };

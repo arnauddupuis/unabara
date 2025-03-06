@@ -17,13 +17,14 @@ struct DiveDataPoint {
     double ndl;           // No Decompression Limit in minutes
     double ceiling;       // Decompression ceiling in meters
     double o2percent;     // O2 percentage
+    double tts;           // Time To Surface in minutes
     
     // Constructor with default values
     DiveDataPoint(double time = 0.0, double d = 0.0, double temp = 0.0, 
                   double press = 0.0, double n = 0.0, double ceil = 0.0, 
-                  double o2 = 21.0)
+                  double o2 = 21.0, double t = 0.0)
         : timestamp(time), depth(d), temperature(temp),
-          pressure(press), ndl(n), ceiling(ceil), o2percent(o2) {}
+          pressure(press), ndl(n), ceiling(ceil), o2percent(o2), tts(t) {}
 };
 
 class DiveData : public QObject

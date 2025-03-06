@@ -225,12 +225,14 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
 
 void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect)
 {
-    // Format NDL as minutes
+    // Format NDL as minutes or show DECO if in decompression
     QString ndlStr;
-    if (ndl >= 0) {
-        ndlStr = QString::number(qRound(ndl)) + " min";
+    
+    if (ndl <= 0) {
+        // If NDL is 0 or negative, the diver is in decompression
+        ndlStr = "DECO";
     } else {
-        ndlStr = "--";
+        ndlStr = QString::number(qRound(ndl)) + " min";
     }
     
     QFontMetrics fm = painter.fontMetrics();

@@ -339,6 +339,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     
     // Variables to remember the last known values
     double lastTemperature = 0.0;
+    double lastNDL = 0.0;
     
     // Process all elements within the divecomputer element
     while (!xml.atEnd()) {
@@ -353,7 +354,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
             
             if (elementName == "sample") {
                 // Process this sample
-                parseSampleElement(xml, dive, lastTemperature);
+                parseSampleElement(xml, dive, lastTemperature, lastNDL);
                 sampleCount++;
                 
                 // Log every 10th sample for debugging
@@ -384,7 +385,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
 
-void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature)
+void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL)
 {
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -491,6 +492,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             int minutes = match.captured(1).toInt();
             int seconds = match.captured(2).toInt();
             point.ndl = minutes + seconds / 60.0;
+            lastNDL = point.ndl;  // Update last known NDL
             hasData = true;
         } else {
             // Try direct numeric parsing as fallback
@@ -498,8 +500,26 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             double ndl = ndlStr.toDouble(&ok);
             if (ok) {
                 point.ndl = ndl;
+                lastNDL = ndl;  // Update last known NDL
                 hasData = true;
             }
+        }
+    } else {
+        // Use the last known NDL if available
+        if (lastNDL >= 0.0) {
+            point.ndl = lastNDL;
+        }
+    }
+    
+    // Check for in_deco flag
+    if (attrs.hasAttribute("in_deco")) {
+        QString decoStr = attrs.value("in_deco").toString();
+        bool inDeco = (decoStr == "1" || decoStr.toLower() == "true");
+        
+        // When in deco, NDL should be 0
+        if (inDeco) {
+            point.ndl = 0.0;
+            lastNDL = 0.0;
         }
     }
     
@@ -513,7 +533,8 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             qDebug() << "Sample #" << sampleCount 
                      << "time=" << point.timestamp 
                      << "depth=" << point.depth
-                     << "temp=" << point.temperature;
+                     << "temp=" << point.temperature
+                     << "ndl=" << point.ndl;
         }
         
         dive->addDataPoint(point);

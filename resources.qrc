@@ -5,6 +5,6 @@
         <file alias="TimelineView.qml">src/ui/qml/TimelineView.qml</file>
         <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
         <file>resources/styles/style.qss</file>
-        <file>resources/templates/default_overlay.png</file>
+        <file alias="default_overlay.png">resources/templates/default_overlay.png</file>
     </qresource>
 </RCC>

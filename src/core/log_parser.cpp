@@ -337,6 +337,9 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
 {
     qDebug() << "Parsing divecomputer element";
     
+    // Variables to remember the last known values
+    double lastTemperature = 0.0;
+    
     // Process all elements within the divecomputer element
     while (!xml.atEnd()) {
         xml.readNext();
@@ -350,12 +353,29 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
             
             if (elementName == "sample") {
                 // Process this sample
-                parseSampleElement(xml, dive);
+                parseSampleElement(xml, dive, lastTemperature);
                 sampleCount++;
                 
                 // Log every 10th sample for debugging
                 if (sampleCount % 10 == 0) {
                     qDebug() << "Parsed" << sampleCount << "samples";
+                }
+            } else if (elementName == "temperature") {
+                // Handle temperature element at divecomputer level
+                QXmlStreamAttributes attrs = xml.attributes();
+                if (attrs.hasAttribute("water")) {
+                    QString tempStr = attrs.value("water").toString();
+                    QRegularExpression tempRe("(\\d+\\.?\\d*)\\s+C");
+                    QRegularExpressionMatch match = tempRe.match(tempStr);
+                    
+                    if (match.hasMatch()) {
+                        lastTemperature = match.captured(1).toDouble();
+                    }
+                }
+                // Skip to the end of this element
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "temperature")) {
+                    xml.readNext();
+                    if (xml.atEnd()) break;
                 }
             }
         }
@@ -364,7 +384,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
 
-void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive)
+void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature)
 {
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -422,6 +442,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive)
         
         if (match.hasMatch()) {
             point.temperature = match.captured(1).toDouble();
+            lastTemperature = point.temperature;  // Update last known temperature
             hasData = true;
         } else {
             // Try direct numeric parsing as fallback
@@ -429,8 +450,14 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive)
             double temp = tempStr.toDouble(&ok);
             if (ok) {
                 point.temperature = temp;
+                lastTemperature = temp;  // Update last known temperature
                 hasData = true;
             }
+        }
+    } else {
+        // Use the last known temperature if available
+        if (lastTemperature > 0.0) {
+            point.temperature = lastTemperature;
         }
     }
     

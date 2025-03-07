@@ -340,6 +340,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     // Variables to remember the last known values
     double lastTemperature = 0.0;
     double lastNDL = 0.0;
+    double lastTTS = 0.0;
     
     // Process all elements within the divecomputer element
     while (!xml.atEnd()) {
@@ -354,7 +355,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
             
             if (elementName == "sample") {
                 // Process this sample
-                parseSampleElement(xml, dive, lastTemperature, lastNDL);
+                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS);
                 sampleCount++;
                 
                 // Log every 10th sample for debugging
@@ -385,7 +386,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
 
-void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL)
+void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS)
 {
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -499,6 +500,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             int minutes = match.captured(1).toInt();
             int seconds = match.captured(2).toInt();
             point.tts = minutes + seconds / 60.0;
+            lastTTS = point.tts;  // Update last known TTS
             hasData = true;
         } else {
             // Try direct numeric parsing as fallback
@@ -506,8 +508,14 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             double tts = ttsStr.toDouble(&ok);
             if (ok) {
                 point.tts = tts;
+                lastTTS = tts;  // Update last known TTS
                 hasData = true;
             }
+        }
+    } else {
+        // Use the last known TTS if available
+        if (lastTTS > 0.0) {
+            point.tts = lastTTS;
         }
     }
     
@@ -540,10 +548,19 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         }
     }
     
-    // When in deco, NDL should be 0
+    // When in deco, NDL should be 0 and TTS should be positive
     if (inDeco) {
         point.ndl = 0.0;
         lastNDL = 0.0;
+        
+        // Ensure TTS is set when in deco
+        if (point.tts <= 0.0 && lastTTS > 0.0) {
+            point.tts = lastTTS;
+        } else if (point.tts <= 0.0) {
+            // If we don't have a lastTTS, set a minimum value
+            point.tts = 1.0;
+            lastTTS = 1.0;
+        }
     }
     
     // If we have any valid data, add the point to the dive
@@ -556,9 +573,9 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             qDebug() << "Sample #" << sampleCount 
                      << "time=" << point.timestamp 
                      << "depth=" << point.depth
-                     << "temp=" << point.temperature
-                     << "ndl=" << point.ndl
-                     << "tts=" << point.tts
+                     << "temp=" << point.temperature << "(lastTemp=" << lastTemperature << ")"
+                     << "ndl=" << point.ndl << "(lastNDL=" << lastNDL << ")"
+                     << "tts=" << point.tts << "(lastTTS=" << lastTTS << ")"
                      << "in_deco=" << inDeco;
         }
         

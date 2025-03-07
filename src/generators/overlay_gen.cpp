@@ -111,6 +111,18 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
              << "ndl:" << dataPoint.ndl
              << "tts:" << dataPoint.tts;
     
+    // Determine if we're in decompression
+    bool inDeco = (dataPoint.ndl <= 0);
+    
+    // Ensure TTS is reasonable when in deco mode
+    if (inDeco && dataPoint.tts <= 0.0) {
+        qDebug() << "Warning: In decompression but TTS is" << dataPoint.tts 
+                 << "- This might indicate a parsing issue";
+        // Set a minimum value to ensure display makes sense
+        dataPoint.tts = 1.0;
+    }
+
+
     // Set up the painter
     QPainter painter(&result);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -121,9 +133,6 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     // Define layout areas based on template size
     int width = result.width();
     int height = result.height();
-    
-    // Determine if we're in decompression
-    bool inDeco = (dataPoint.ndl <= 0);
     
     // Simple layout with evenly spaced sections
     int numSections = 0;
@@ -321,8 +330,17 @@ void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect
 
 void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect)
 {
-    // Format TTS as minutes
-    QString ttsStr = QString::number(qRound(tts)) + " min";
+    // Format TTS as minutes (ensure it's positive)
+    QString ttsStr;
+    if (tts <= 0.0) {
+        // Use a non-zero minimum value if TTS is invalid or zero
+        ttsStr = "1 min";
+        
+        // Add warning in debug
+        qDebug() << "Warning: TTS value is" << tts << "- displaying minimum value";
+    } else {
+        ttsStr = QString::number(qRound(tts)) + " min";
+    }
     
     QFontMetrics fm = painter.fontMetrics();
     

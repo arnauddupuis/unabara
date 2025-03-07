@@ -134,6 +134,7 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     result.ndl = prev.ndl + factor * (next.ndl - prev.ndl);
     result.ceiling = prev.ceiling + factor * (next.ceiling - prev.ceiling);
     result.o2percent = prev.o2percent + factor * (next.o2percent - prev.o2percent);
+    result.tts = prev.tts + factor * (next.tts - prev.tts);
     
     return result;
 }

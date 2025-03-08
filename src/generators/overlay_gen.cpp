@@ -174,8 +174,23 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     }
     
     if (m_showPressure) {
-        drawPressure(painter, dataPoint.pressure, QRect(currentX, 0, sectionWidth, height));
-        currentX += sectionWidth;
+        // Show pressure for each tank if multiple tanks exist
+        int tankCount = dataPoint.tankCount();
+        if (tankCount > 0) {
+            // If we have multiple tanks, divide the section width
+            int tankSectionWidth = sectionWidth / qMax(1, tankCount);
+            
+            for (int i = 0; i < tankCount; i++) {
+                QRect tankRect(currentX + (i * tankSectionWidth), 0, tankSectionWidth, height);
+                drawPressure(painter, dataPoint.getPressure(i), tankRect, i);
+            }
+            
+            currentX += sectionWidth;
+        } else {
+            // No pressure data available, but section was allocated
+            drawPressure(painter, 0.0, QRect(currentX, 0, sectionWidth, height), -1);
+            currentX += sectionWidth;
+        }
     }
     
     if (m_showTime) {
@@ -276,7 +291,7 @@ void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect)
     painter.restore();
 }
 
-void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect)
+void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex)
 {
     QString pressureStr = QString::number(qRound(pressure)) + " bar";
     QFontMetrics fm = painter.fontMetrics();
@@ -287,7 +302,14 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     labelFont.setPointSize(labelFont.pointSize() * 0.8);
     painter.setFont(labelFont);
     
-    QString label = tr("PRESSURE");
+    // Adjust label based on tank index
+    QString label;
+    if (tankIndex >= 0) {
+        label = tr("TANK %1").arg(tankIndex + 1);
+    } else {
+        label = tr("PRESSURE");
+    }
+    
     QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
     painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
     
@@ -368,3 +390,4 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect)
     
     painter.restore();
 }
+

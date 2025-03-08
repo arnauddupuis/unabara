@@ -275,6 +275,102 @@ Item {
                     }
                 }
             }
+            // Data panel to show details at current time
+            Rectangle {
+                id: dataPanel
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+                height: 30
+                color: "#000000cc"
+                
+                Label {
+                    id: detailsText
+                    anchors.fill: parent
+                    anchors.margins: 5
+                    color: "#ffffff"
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                    
+                    // Define the function first
+                    function updateDetailsText() {
+                        var dataPoint = timeline.getCurrentDataPoint();
+                        if (!dataPoint) return;
+                        
+                        var infoText = "";
+                        
+                        // Add depth
+                        infoText += "Depth: " + dataPoint.depth.toFixed(1) + "m  ";
+                        
+                        // Add temperature if available
+                        if (dataPoint.temperature > 0) {
+                            infoText += "Temp: " + dataPoint.temperature.toFixed(1) + "°C  ";
+                        }
+                        
+                        // Add NDL or TTS based on decompression status
+                        if (dataPoint.ndl <= 0) {
+                            infoText += "TTS: " + Math.round(dataPoint.tts) + "min (DECO)  ";
+                        } else {
+                            infoText += "NDL: " + Math.round(dataPoint.ndl) + "min  ";
+                        }
+                        
+                        // Add tank pressures
+                        var tankCount = dataPoint.tankCount;
+                        if (tankCount > 0) {
+                            // Check if pressures array exists
+                            if (dataPoint.pressures) {
+                                // Use the pressures array
+                                for (var i = 0; i < tankCount; i++) {
+                                    if (i < dataPoint.pressures.length) {
+                                        var pressure = dataPoint.pressures[i];
+                                        infoText += "Tank " + (i+1) + ": " + Math.round(pressure) + "bar  ";
+                                    }
+                                }
+                            } else {
+                                // Fallback: use getPressure method or individual pressure properties
+                                for (var i = 0; i < tankCount; i++) {
+                                    // Try different ways to get the pressure value
+                                    var pressure;
+                                    if (typeof dataPoint.getPressure === 'function') {
+                                        pressure = dataPoint.getPressure(i);
+                                    } else if (i === 0 && dataPoint.pressure !== undefined) {
+                                        pressure = dataPoint.pressure;
+                                    } else {
+                                        // Try using indexed properties
+                                        var propName = "pressure" + i;
+                                        pressure = dataPoint[propName];
+                                    }
+                                    
+                                    if (pressure !== undefined) {
+                                        infoText += "Tank " + (i+1) + ": " + Math.round(pressure) + "bar  ";
+                                    }
+                                }
+                            }
+                        }
+                        
+                        detailsText.text = infoText;
+                    }
+                    
+                    // Then set up the connections to call it
+                    Connections {
+                        target: timeline
+                        function onCurrentTimeChanged() {
+                            detailsText.updateDetailsText();  // Use detailsText. prefix
+                        }
+                        function onDiveDataChanged() {
+                            detailsText.updateDetailsText();  // Use detailsText. prefix
+                        }
+                    }
+                    
+                    Component.onCompleted: {
+                        updateDetailsText();  // This should work since it's in the same scope
+                    }
+                }
+            }
         }
     }
 }

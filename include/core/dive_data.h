@@ -8,23 +8,57 @@
 #include <QMap>
 #include <QString>
 
-// Represents a single data point in a dive
+
 struct DiveDataPoint {
-    double timestamp;     // Time in seconds from dive start
-    double depth;         // Depth in meters
-    double temperature;   // Temperature in Celsius
-    double pressure;      // Tank pressure in bar
-    double ndl;           // No Decompression Limit in minutes
-    double ceiling;       // Decompression ceiling in meters
-    double o2percent;     // O2 percentage
-    double tts;           // Time To Surface in minutes
+    double timestamp;           // Time in seconds from dive start
+    double depth;               // Depth in meters
+    double temperature;         // Temperature in Celsius
+    QVector<double> pressures;  // Tank pressures in bar (multiple cylinders)
+    double ndl;                 // No Decompression Limit in minutes
+    double ceiling;             // Decompression ceiling in meters
+    double o2percent;           // O2 percentage
+    double tts;                 // Time To Surface in minutes
     
     // Constructor with default values
     DiveDataPoint(double time = 0.0, double d = 0.0, double temp = 0.0, 
-                  double press = 0.0, double n = 0.0, double ceil = 0.0, 
+                  double n = 0.0, double ceil = 0.0, 
                   double o2 = 21.0, double t = 0.0)
         : timestamp(time), depth(d), temperature(temp),
-          pressure(press), ndl(n), ceiling(ceil), o2percent(o2), tts(t) {}
+          ndl(n), ceiling(ceil), o2percent(o2), tts(t) {}
+          
+    // Get the pressure for a specific tank (returns 0 if tank doesn't exist)
+    Q_INVOKABLE double getPressure(int tankIndex = 0) const {
+        return (tankIndex >= 0 && tankIndex < pressures.size()) ? pressures[tankIndex] : 0.0;
+    }
+    
+    // Add a pressure value for a tank
+    void addPressure(double pressure, int tankIndex = 0) {
+        // Resize the vector if necessary
+        if (tankIndex >= pressures.size()) {
+            pressures.resize(tankIndex + 1, 0.0);
+        }
+        pressures[tankIndex] = pressure;
+    }
+    
+    // Get the number of tanks with pressure data
+    Q_INVOKABLE int tankCount() const {
+        return pressures.size();
+    }
+};
+
+// Represents a cylinder (tank) used in a dive
+struct CylinderInfo {
+    QString description;    // Cylinder description (e.g., "AL80")
+    double size;            // Cylinder size in liters
+    double workPressure;    // Working pressure in bar
+    double o2Percent;       // O2 percentage
+    double hePercent;       // Helium percentage (for trimix)
+    double startPressure;   // Starting pressure in bar
+    double endPressure;     // Ending pressure in bar
+    
+    CylinderInfo() 
+        : size(0.0), workPressure(0.0), o2Percent(21.0), hePercent(0.0),
+          startPressure(0.0), endPressure(0.0) {}
 };
 
 class DiveData : public QObject
@@ -37,6 +71,7 @@ class DiveData : public QObject
     Q_PROPERTY(double maxDepth READ maxDepth NOTIFY dataChanged)
     Q_PROPERTY(double minTemperature READ minTemperature NOTIFY dataChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
+    Q_PROPERTY(int cylinderCount READ cylinderCount NOTIFY dataChanged)
     
 public:
     explicit DiveData(QObject *parent = nullptr);
@@ -53,6 +88,15 @@ public:
     void setDiveName(const QString &name);
     void setStartTime(const QDateTime &time);
     void setLocation(const QString &location);
+
+    // Cylinder management
+    int cylinderCount() const { return m_cylinders.size(); }
+    void addCylinder(const CylinderInfo &cylinder);
+    const CylinderInfo& cylinderInfo(int index) const;
+    QVector<CylinderInfo> cylinders() const { return m_cylinders; }
+
+    // Get a descriptive string for a cylinder
+    QString cylinderDescription(int index) const;
     
     // Data management
     void addDataPoint(const DiveDataPoint &point);
@@ -79,6 +123,7 @@ private:
     QDateTime m_startTime;
     QString m_location;
     QVector<DiveDataPoint> m_dataPoints;
+    QVector<CylinderInfo> m_cylinders;
 };
 
 #endif // DIVE_DATA_H

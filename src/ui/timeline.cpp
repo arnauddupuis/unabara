@@ -200,7 +200,8 @@ QVariantList Timeline::getTimelineData(int numPoints)
             pointMap["timestamp"] = point.timestamp;
             pointMap["depth"] = point.depth;
             pointMap["temperature"] = point.temperature;
-            pointMap["pressure"] = point.pressure;
+            // Use first tank's pressure (index 0) if available
+            pointMap["pressure"] = point.getPressure(0);
             pointMap["ndl"] = point.ndl;
             pointMap["ceiling"] = point.ceiling;
             pointMap["o2percent"] = point.o2percent;
@@ -221,7 +222,8 @@ QVariantList Timeline::getTimelineData(int numPoints)
             pointMap["timestamp"] = point.timestamp;
             pointMap["depth"] = point.depth;
             pointMap["temperature"] = point.temperature;
-            pointMap["pressure"] = point.pressure;
+            // Use first tank's pressure (index 0) if available
+            pointMap["pressure"] = point.getPressure(0);
             pointMap["ndl"] = point.ndl;
             pointMap["ceiling"] = point.ceiling;
             pointMap["o2percent"] = point.o2percent;
@@ -247,12 +249,30 @@ QVariantList Timeline::getTimelineData(int numPoints)
     return result;
 }
 
-DiveDataPoint Timeline::getCurrentDataPoint() const
+QVariantMap Timeline::getCurrentDataPoint() const
 {
+    QVariantMap result;
+    
     if (m_diveData) {
-        return m_diveData->dataAtTime(m_currentTime);
+        DiveDataPoint point = m_diveData->dataAtTime(m_currentTime);
+        
+        // Add all basic data
+        result["timestamp"] = point.timestamp;
+        result["depth"] = point.depth;
+        result["temperature"] = point.temperature;
+        result["ndl"] = point.ndl;
+        result["ceiling"] = point.ceiling;
+        result["o2percent"] = point.o2percent;
+        result["tts"] = point.tts;
+        
+        // Add tank count
+        result["tankCount"] = point.tankCount();
+        
+        // For backward compatibility, include the first tank's pressure as "pressure"
+        result["pressure"] = point.getPressure(0);
     }
-    return DiveDataPoint();
+    
+    return result;
 }
 
 void Timeline::updateViewRange()

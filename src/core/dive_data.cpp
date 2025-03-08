@@ -74,6 +74,47 @@ double DiveData::minTemperature() const
     return min;
 }
 
+void DiveData::addCylinder(const CylinderInfo &cylinder)
+{
+    m_cylinders.append(cylinder);
+    emit dataChanged();
+}
+
+const CylinderInfo& DiveData::cylinderInfo(int index) const
+{
+    static CylinderInfo defaultCylinder;
+    if (index >= 0 && index < m_cylinders.size()) {
+        return m_cylinders[index];
+    }
+    return defaultCylinder;
+}
+
+QString DiveData::cylinderDescription(int index) const
+{
+    if (index >= 0 && index < m_cylinders.size()) {
+        const CylinderInfo &cyl = m_cylinders[index];
+        
+        QString desc;
+        if (!cyl.description.isEmpty()) {
+            desc = cyl.description;
+        } else {
+            desc = QString("Tank %1").arg(index + 1);
+        }
+        
+        // Add gas mix if available
+        if (cyl.hePercent > 0.0) {
+            // Trimix
+            desc += QString(" (Trimix %1/%2)").arg(qRound(cyl.o2Percent)).arg(qRound(cyl.hePercent));
+        } else if (cyl.o2Percent != 21.0) {
+            // Non-air (Nitrox or O2)
+            desc += QString(" (EAN%1)").arg(qRound(cyl.o2Percent));
+        }
+        
+        return desc;
+    }
+    return QString("Unknown");
+}
+
 void DiveData::addDataPoint(const DiveDataPoint &point)
 {
     // Insert the point in the right position to maintain chronological order
@@ -130,11 +171,20 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     result.timestamp = time;
     result.depth = prev.depth + factor * (next.depth - prev.depth);
     result.temperature = prev.temperature + factor * (next.temperature - prev.temperature);
-    result.pressure = prev.pressure + factor * (next.pressure - prev.pressure);
     result.ndl = prev.ndl + factor * (next.ndl - prev.ndl);
     result.ceiling = prev.ceiling + factor * (next.ceiling - prev.ceiling);
     result.o2percent = prev.o2percent + factor * (next.o2percent - prev.o2percent);
     result.tts = prev.tts + factor * (next.tts - prev.tts);
+
+    // Interpolate all tank pressures
+    // Get the maximum number of tanks between both points
+    int maxTanks = qMax(prev.tankCount(), next.tankCount());
+    for (int i = 0; i < maxTanks; i++) {
+        double prevPressure = prev.getPressure(i);
+        double nextPressure = next.getPressure(i);
+        double interpolatedPressure = prevPressure + factor * (nextPressure - prevPressure);
+        result.addPressure(interpolatedPressure, i);
+    }
     
     return result;
 }

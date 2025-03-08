@@ -321,6 +321,9 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
             
             if (elementName == "location") {
                 dive->setLocation(xml.readElementText());
+            } else if (elementName == "cylinder") {
+                // Parse cylinder information
+                parseCylinderElement(xml, dive);
             } else if (elementName == "divecomputer") {
                 // In Subsurface, samples are inside the divecomputer element
                 // We need to process the divecomputer element without consuming its end tag
@@ -333,6 +336,98 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     return dive;
 }
 
+void LogParser::parseCylinderElement(QXmlStreamReader &xml, DiveData* dive)
+{
+    // Get cylinder attributes
+    QXmlStreamAttributes attrs = xml.attributes();
+    CylinderInfo cylinder;
+    
+    // Parse cylinder size
+    if (attrs.hasAttribute("size")) {
+        QString sizeStr = attrs.value("size").toString();
+        QRegularExpression sizeRe("(\\d+\\.?\\d*)\\s+l");
+        QRegularExpressionMatch match = sizeRe.match(sizeStr);
+        
+        if (match.hasMatch()) {
+            cylinder.size = match.captured(1).toDouble();
+        }
+    }
+    
+    // Parse working pressure
+    if (attrs.hasAttribute("workpressure")) {
+        QString pressureStr = attrs.value("workpressure").toString();
+        QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
+        QRegularExpressionMatch match = pressureRe.match(pressureStr);
+        
+        if (match.hasMatch()) {
+            cylinder.workPressure = match.captured(1).toDouble();
+        }
+    }
+    
+    // Parse description
+    if (attrs.hasAttribute("description")) {
+        cylinder.description = attrs.value("description").toString();
+    }
+    
+    // Parse O2 percentage
+    if (attrs.hasAttribute("o2")) {
+        QString o2Str = attrs.value("o2").toString();
+        QRegularExpression o2Re("(\\d+\\.?\\d*)\\s*%");
+        QRegularExpressionMatch match = o2Re.match(o2Str);
+        
+        if (match.hasMatch()) {
+            cylinder.o2Percent = match.captured(1).toDouble();
+        }
+    }
+    
+    // Parse Helium percentage for trimix
+    if (attrs.hasAttribute("he")) {
+        QString heStr = attrs.value("he").toString();
+        QRegularExpression heRe("(\\d+\\.?\\d*)\\s*%");
+        QRegularExpressionMatch match = heRe.match(heStr);
+        
+        if (match.hasMatch()) {
+            cylinder.hePercent = match.captured(1).toDouble();
+        }
+    }
+    
+    // Parse start pressure
+    if (attrs.hasAttribute("start")) {
+        QString startStr = attrs.value("start").toString();
+        QRegularExpression startRe("(\\d+\\.?\\d*)\\s+bar");
+        QRegularExpressionMatch match = startRe.match(startStr);
+        
+        if (match.hasMatch()) {
+            cylinder.startPressure = match.captured(1).toDouble();
+        }
+    }
+    
+    // Parse end pressure
+    if (attrs.hasAttribute("end")) {
+        QString endStr = attrs.value("end").toString();
+        QRegularExpression endRe("(\\d+\\.?\\d*)\\s+bar");
+        QRegularExpressionMatch match = endRe.match(endStr);
+        
+        if (match.hasMatch()) {
+            cylinder.endPressure = match.captured(1).toDouble();
+        }
+    }
+    
+    // Add the cylinder to the dive
+    dive->addCylinder(cylinder);
+    
+    qDebug() << "Parsed cylinder:" << cylinder.description 
+             << "Size:" << cylinder.size << "l"
+             << "Gas mix:" << cylinder.o2Percent << "% O2" 
+             << (cylinder.hePercent > 0 ? QString::number(cylinder.hePercent) + "% He" : "");
+    
+    // Skip to the end of this element
+    while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "cylinder")) {
+        xml.readNext();
+        if (xml.atEnd()) break;
+    }
+}
+
 void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, int &sampleCount)
 {
     qDebug() << "Parsing divecomputer element";
@@ -341,6 +436,9 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     double lastTemperature = 0.0;
     double lastNDL = 0.0;
     double lastTTS = 0.0;
+
+    // Keep track of the last pressure for each tank - use map for sparse storage
+    QMap<int, double> lastPressures;
     
     // Process all elements within the divecomputer element
     while (!xml.atEnd()) {
@@ -355,7 +453,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
             
             if (elementName == "sample") {
                 // Process this sample
-                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS);
+                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS, lastPressures);
                 sampleCount++;
                 
                 // Log every 10th sample for debugging
@@ -386,7 +484,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
 
-void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS)
+void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures)
 {
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -464,23 +562,66 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         }
     }
     
-    // Get pressure - Subsurface uses format "xxx.xxx bar"
+    // Process pressure attributes (standard and numbered for multiple tanks)
+
+    // First check for the standard "pressure" attribute (single tank)
     if (attrs.hasAttribute("pressure")) {
         QString pressureStr = attrs.value("pressure").toString();
         QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
         QRegularExpressionMatch match = pressureRe.match(pressureStr);
         
         if (match.hasMatch()) {
-            point.pressure = match.captured(1).toDouble();
+            double pressure = match.captured(1).toDouble();
+            point.addPressure(pressure, 0); // Add to first tank (index 0)
             hasData = true;
         } else {
             // Try direct numeric parsing as fallback
             bool ok;
             double pressure = pressureStr.toDouble(&ok);
             if (ok) {
-                point.pressure = pressure;
+                point.addPressure(pressure, 0);
                 hasData = true;
             }
+        }
+    }
+
+    // Now check for numbered pressure attributes (multiple tanks)
+    for (int i = 0; i < 10; i++) { // Check up to 10 tanks (reasonable limit)
+        QString pressureAttr = QString("pressure%1").arg(i);
+        
+        if (attrs.hasAttribute(pressureAttr)) {
+            QString pressureStr = attrs.value(pressureAttr).toString();
+            qInfo() << "Found tank" << i << "pressure:" << pressureStr;
+            QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
+            QRegularExpressionMatch match = pressureRe.match(pressureStr);
+            
+            if (match.hasMatch()) {
+                double pressure = match.captured(1).toDouble();
+                point.addPressure(pressure, i);
+                lastPressures[i] = pressure;  // Update last known pressure for this tank
+                hasData = true;
+                
+                qDebug() << "Found tank" << i << "pressure:" << pressure << "bar";
+            } else {
+                // Try direct numeric parsing as fallback
+                bool ok;
+                double pressure = pressureStr.toDouble(&ok);
+                if (ok) {
+                    point.addPressure(pressure, i);
+                    lastPressures[i] = pressure;
+                    hasData = true;
+                }
+            }
+        }
+    }
+
+    // Apply last known pressures for tanks not included in this sample
+    for (auto it = lastPressures.constBegin(); it != lastPressures.constEnd(); ++it) {
+        int tankIndex = it.key();
+        // Only add if this tank's pressure wasn't explicitly set in this sample
+        if (!attrs.hasAttribute(QString("pressure%1").arg(tankIndex)) && 
+            !(tankIndex == 0 && attrs.hasAttribute("pressure"))) {
+            point.addPressure(it.value(), tankIndex);
         }
     }
     
@@ -577,6 +718,11 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
                      << "ndl=" << point.ndl << "(lastNDL=" << lastNDL << ")"
                      << "tts=" << point.tts << "(lastTTS=" << lastTTS << ")"
                      << "in_deco=" << inDeco;
+            // Debug tank pressures
+            for (int i = 0; i < point.tankCount(); i++) {
+                qDebug() << "  Tank" << i << "pressure=" << point.getPressure(i) 
+                         << "(last=" << lastPressures.value(i, 0.0) << ")";
+            }
         }
         
         dive->addDataPoint(point);

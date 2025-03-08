@@ -51,7 +51,7 @@ public:
     
     // Data access for QML
     Q_INVOKABLE QVariantList getTimelineData(int numPoints);
-    Q_INVOKABLE DiveDataPoint getCurrentDataPoint() const;
+    Q_INVOKABLE QVariantMap getCurrentDataPoint() const;
     
 signals:
     void diveDataChanged();

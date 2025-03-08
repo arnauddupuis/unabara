@@ -44,7 +44,8 @@ private:
     // Helper functions for XML parsing
     DiveData* parseDiveElement(QXmlStreamReader &xml);
     void parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, int &sampleCount);
-    void parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS);
+    void parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures);
+    void parseCylinderElement(QXmlStreamReader &xml, DiveData* dive);
     
     QString m_lastError;
     bool m_busy;

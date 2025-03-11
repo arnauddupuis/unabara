@@ -281,6 +281,9 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     // Create a new dive data object
     DiveData* dive = new DiveData(this);
     
+    // Reset the initial cylinder pressures map
+    m_initialCylinderPressures.clear();
+    
     // Parse dive attributes
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -306,7 +309,7 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     qDebug() << "Parsing dive element for" << dive->diveName();
     
     // Parse dive elements - continue until we reach the end of the dive element
-    int sampleCount = 0;  // Keep track of how many samples we've parsed
+    int sampleCount = 0;  // Track how many samples we've parsed - ADDED THIS LINE
     
     // We need to continue reading until we hit the end of the dive element
     while (!xml.atEnd()) {
@@ -330,6 +333,22 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
                 parseDiveComputerElement(xml, dive, sampleCount);
             }
         }
+    }
+    
+    // Ensure we have at least one dummy point with all cylinders initialized if no samples were found
+    if (dive->allDataPoints().isEmpty() && dive->cylinderCount() > 0) {
+        DiveDataPoint initialPoint;
+        initialPoint.timestamp = 0.0;
+        
+        // Initialize all cylinders with their default pressures
+        for (int i = 0; i < dive->cylinderCount(); i++) {
+            double initialPressure = m_initialCylinderPressures.value(i, 0.0);
+            if (initialPressure > 0.0) {
+                initialPoint.addPressure(initialPressure, i);
+            }
+        }
+        
+        dive->addDataPoint(initialPoint);
     }
     
     qDebug() << "Finished parsing dive element. Total data points:" << dive->allDataPoints().size();
@@ -413,13 +432,31 @@ void LogParser::parseCylinderElement(QXmlStreamReader &xml, DiveData* dive)
         }
     }
     
+    // Determine initial pressure (start pressure if available, otherwise work pressure)
+    double initialPressure = 0.0;
+    if (cylinder.startPressure > 0.0) {
+        initialPressure = cylinder.startPressure;
+    } else if (cylinder.workPressure > 0.0) {
+        initialPressure = cylinder.workPressure;
+    }
+    
     // Add the cylinder to the dive
+    int cylinderIndex = dive->cylinderCount();
     dive->addCylinder(cylinder);
+    
+    // Initialize the lastPressures map with this cylinder's initial pressure
+    if (initialPressure > 0.0) {
+        // Store this initial pressure as the first value for this tank
+        // Note: We'll need to make this available to parseSampleElement somehow
+        // This could be done by adding it to a member variable in LogParser
+        m_initialCylinderPressures[cylinderIndex] = initialPressure;
+    }
     
     qDebug() << "Parsed cylinder:" << cylinder.description 
              << "Size:" << cylinder.size << "l"
              << "Gas mix:" << cylinder.o2Percent << "% O2" 
-             << (cylinder.hePercent > 0 ? QString::number(cylinder.hePercent) + "% He" : "");
+             << (cylinder.hePercent > 0 ? QString::number(cylinder.hePercent) + "% He" : "")
+             << "Initial pressure:" << initialPressure << "bar";
     
     // Skip to the end of this element
     while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "cylinder")) {
@@ -438,7 +475,14 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     double lastTTS = 0.0;
 
     // Keep track of the last pressure for each tank - use map for sparse storage
+    // Initialize last pressures with the initial values for all cylinders
     QMap<int, double> lastPressures;
+    for (int i = 0; i < dive->cylinderCount(); i++) {
+        double initialPressure = m_initialCylinderPressures.value(i, 0.0);
+        if (initialPressure > 0.0) {
+            lastPressures[i] = initialPressure;
+        }
+    }
     
     // Process all elements within the divecomputer element
     while (!xml.atEnd()) {
@@ -615,13 +659,20 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         }
     }
 
-    // Apply last known pressures for tanks not included in this sample
-    for (auto it = lastPressures.constBegin(); it != lastPressures.constEnd(); ++it) {
-        int tankIndex = it.key();
-        // Only add if this tank's pressure wasn't explicitly set in this sample
-        if (!attrs.hasAttribute(QString("pressure%1").arg(tankIndex)) && 
-            !(tankIndex == 0 && attrs.hasAttribute("pressure"))) {
-            point.addPressure(it.value(), tankIndex);
+    // Apply last known pressures for ALL cylinders declared in the dive
+    // This ensures every cylinder has a pressure value in every sample
+    for (int i = 0; i < dive->cylinderCount(); i++) {
+        // Check if this tank already has a pressure set for this sample
+        bool pressureSet = false;
+        if (i == 0) {
+            pressureSet = attrs.hasAttribute("pressure") || attrs.hasAttribute("pressure0");
+        } else {
+            pressureSet = attrs.hasAttribute(QString("pressure%1").arg(i));
+        }
+        
+        // If not set explicitly in this sample, use the last known value
+        if (!pressureSet && lastPressures.contains(i)) {
+            point.addPressure(lastPressures[i], i);
         }
     }
     

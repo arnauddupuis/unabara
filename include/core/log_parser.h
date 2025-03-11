@@ -49,6 +49,7 @@ private:
     
     QString m_lastError;
     bool m_busy;
+    QMap<int, double> m_initialCylinderPressures; // Initial pressures for all tanks
 };
 
 #endif // LOG_PARSER_H

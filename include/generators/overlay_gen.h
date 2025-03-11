@@ -74,9 +74,10 @@ private:
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
     void drawTemperature(QPainter &painter, double temp, const QRect &rect);
     void drawNDL(QPainter &painter, double ndl, const QRect &rect);
-    void drawTTS(QPainter &painter, double tts, const QRect &rect);
-    void drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex = -1);
+    void drawTTS(QPainter &painter, double tts, const QRect &rect, double ceiling = 0.0);
+    void drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex = -1, DiveData* dive = nullptr);
     void drawTime(QPainter &painter, double timestamp, const QRect &rect);
+    void drawDataItem(QPainter &painter, const QString &label, const QString &value, const QRect &rect, bool centerAlign);
 };
 
 #endif // OVERLAY_GEN_H

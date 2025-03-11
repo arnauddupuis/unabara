@@ -172,10 +172,15 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     result.depth = prev.depth + factor * (next.depth - prev.depth);
     result.temperature = prev.temperature + factor * (next.temperature - prev.temperature);
     result.ndl = prev.ndl + factor * (next.ndl - prev.ndl);
-    result.ceiling = prev.ceiling + factor * (next.ceiling - prev.ceiling);
     result.o2percent = prev.o2percent + factor * (next.o2percent - prev.o2percent);
     result.tts = prev.tts + factor * (next.tts - prev.tts);
 
+    // Do NOT interpolate ceiling - use the value from the previous point
+    // Ceiling is a state that persists until changed
+    result.ceiling = prev.ceiling;
+    
+    // For in_deco state, we also shouldn't interpolate (though it's not part of DiveDataPoint directly)
+    
     // Interpolate all tank pressures
     // Get the maximum number of tanks between both points
     int maxTanks = qMax(prev.tankCount(), next.tankCount());

@@ -9,6 +9,7 @@
 LogParser::LogParser(QObject *parent)
     : QObject(parent)
     , m_busy(false)
+    , m_lastCeiling(0.0)
 {
 }
 
@@ -635,7 +636,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         
         if (attrs.hasAttribute(pressureAttr)) {
             QString pressureStr = attrs.value(pressureAttr).toString();
-            qInfo() << "Found tank" << i << "pressure:" << pressureStr;
+            qDebug() << "Found tank" << i << "pressure:" << pressureStr;
             QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
             QRegularExpressionMatch match = pressureRe.match(pressureStr);
             
@@ -753,6 +754,30 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             point.tts = 1.0;
             lastTTS = 1.0;
         }
+    }
+
+    if (attrs.hasAttribute("stopdepth")) {
+        QString stopDepthStr = attrs.value("stopdepth").toString();
+        QRegularExpression stopDepthRe("(\\d+\\.?\\d*)\\s+m");
+        QRegularExpressionMatch match = stopDepthRe.match(stopDepthStr);
+        
+        if (match.hasMatch()) {
+            point.ceiling = match.captured(1).toDouble();
+            m_lastCeiling = point.ceiling; // Store for future samples
+            qDebug() << "Parsed stopdepth:" << point.ceiling << "m for time:" << point.timestamp;
+        } else {
+            // Try direct numeric parsing as fallback
+            bool ok;
+            double stopDepth = stopDepthStr.toDouble(&ok);
+            if (ok) {
+                point.ceiling = stopDepth;
+                m_lastCeiling = point.ceiling; // Store for future samples
+                qDebug() << "Parsed stopdepth (numeric):" << point.ceiling << "m for time:" << point.timestamp;
+            }
+        }
+    } else {
+        // If no stopdepth in this sample, use the last known ceiling value
+        point.ceiling = m_lastCeiling;
     }
     
     // If we have any valid data, add the point to the dive

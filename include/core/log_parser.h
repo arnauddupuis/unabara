@@ -50,6 +50,7 @@ private:
     QString m_lastError;
     bool m_busy;
     QMap<int, double> m_initialCylinderPressures; // Initial pressures for all tanks
+    double m_lastCeiling; // Last parsed ceiling depth, puting it here because it's a state that persists between points.
 };
 
 #endif // LOG_PARSER_H

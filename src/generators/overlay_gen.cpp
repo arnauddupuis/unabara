@@ -146,74 +146,83 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     if (inDeco) numSections++; // Show TTS when in deco
     if (m_showTime) numSections++;
 
-    // Handle tank section sizing separately
+    // Handle tank section sizing separately - but more consistently
     if (m_showPressure && tankCount > 0) {
-        // Determine tank section width based on number of tanks
-        // Give more space for multiple tanks
-        if (tankCount <= 2) {
-            tankSectionWidth = width / (numSections + 1);
-        } else if (tankCount <= 4) {
-            tankSectionWidth = width / (numSections + 2);
-            numSections += 2; // Reserve 2 sections for tanks
-        } else {
-            tankSectionWidth = width / (numSections + 3);
-            numSections += 3; // Reserve 3 sections for tanks
+        // Always use a consistent approach for tanks
+        // For a single tank, just use one section like other elements
+        if (tankCount == 1) {
+            numSections++; // One standard section for a single tank
+            tankSectionWidth = 0; // We'll use standard section width
+        } 
+        // For 2+ tanks, allocate proportional space
+        else if (tankCount > 1) {
+            // Use 2 columns for layout
+            int cols = 2;
+            int rows = (tankCount + cols - 1) / cols; // Ceiling division
+            
+            // For multiple tanks, allocate space based on rows needed
+            tankSectionWidth = width / (numSections + rows);
+            numSections += rows; // Reserve space for rows of tanks
         }
     } else if (m_showPressure) {
-        numSections++; // Single pressure section
+        numSections++; // Single pressure section with no data
     }
 
     if (numSections == 0) {
         // If nothing to show, just return the template
         return result;
     }
-    
-    int sectionWidth = width / numSections;
-    int currentX = 0;
-    
-    // Draw each enabled data section
-    if (m_showDepth) {
-        drawDepth(painter, dataPoint.depth, QRect(currentX, 0, sectionWidth, height));
-        currentX += sectionWidth;
-    }
-    
-    if (m_showTemperature) {
-        drawTemperature(painter, dataPoint.temperature, QRect(currentX, 0, sectionWidth, height));
-        currentX += sectionWidth;
-    }
-    
-    // Show either NDL or TTS based on decompression status
-    // In generateOverlay method, before calling drawTTS:
-    qDebug() << "TTS data - tts:" << dataPoint.tts 
-            << "ceiling:" << dataPoint.ceiling
-            << "in deco:" << inDeco;
 
-    // When calling drawTTS:
+    // Calculate section width
+    int sectionWidth = width / numSections;
+
+    // Create all section rectangles with identical dimensions
+    QVector<QRect> sectionRects;
+    for (int i = 0; i < numSections; i++) {
+        sectionRects.append(QRect(i * sectionWidth, 0, sectionWidth, height));
+    }
+
+    // Current section index
+    int currentSection = 0;
+
+    // Draw each enabled data section using the pre-calculated rects
+    if (m_showDepth) {
+        drawDepth(painter, dataPoint.depth, sectionRects[currentSection++]);
+    }
+
+    if (m_showTemperature) {
+        drawTemperature(painter, dataPoint.temperature, sectionRects[currentSection++]);
+    }
+
+    // Show either NDL or TTS based on decompression status
     if (inDeco) {
         // In decompression, show TTS with ceiling
-        qDebug() << "Drawing TTS with ceiling:" << dataPoint.ceiling;
-        drawTTS(painter, dataPoint.tts, QRect(currentX, 0, sectionWidth, height), dataPoint.ceiling);
-        currentX += sectionWidth;
+        drawTTS(painter, dataPoint.tts, sectionRects[currentSection++], dataPoint.ceiling);
     } else if (m_showNDL) {
         // Not in decompression, show NDL
-        drawNDL(painter, dataPoint.ndl, QRect(currentX, 0, sectionWidth, height));
-        currentX += sectionWidth;
+        drawNDL(painter, dataPoint.ndl, sectionRects[currentSection++]);
     }
 
     if (m_showPressure) {
-        // Show pressure for each tank in a grid layout
+        // Show pressure for each tank
         int tankCount = dataPoint.tankCount();
-        if (tankCount > 0) {
-            // Calculate grid layout (max 2 tanks per row)
-            int cols = qMin(2, tankCount);
-            int rows = (tankCount + cols - 1) / cols; // Ceiling division
+        
+        if (tankCount == 1) {
+            // For single tank, treat it like a regular section
+            drawPressure(painter, dataPoint.getPressure(0), sectionRects[currentSection++], 0, dive);
+        } 
+        else if (tankCount > 1) {
+            // For multiple tanks, use the grid layout
+            // Calculate how many section slots we need for tanks
+            int cols = 2;
+            int rows = (tankCount + cols - 1) / cols;
+            int tanksWidth = sectionWidth * rows;
             
-            // Calculate space needed for tanks
-            int tankSpaceWidth = tankCount <= 2 ? tankSectionWidth : 
-                            (tankCount <= 4 ? tankSectionWidth * 2 : tankSectionWidth * 3);
+            // Create a wider rectangle that spans multiple sections
+            QRect tankGridRect(currentSection * sectionWidth, 0, tanksWidth, height);
             
             // Calculate cell dimensions
-            int cellWidth = tankSectionWidth;
+            int cellWidth = tankGridRect.width() / cols;
             int cellHeight = height / rows;
             
             // Draw each tank in its grid cell
@@ -222,7 +231,7 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 int col = i % cols;
                 
                 QRect tankRect(
-                    currentX + (col * cellWidth),
+                    tankGridRect.left() + (col * cellWidth),
                     row * cellHeight,
                     cellWidth,
                     cellHeight
@@ -230,16 +239,17 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 drawPressure(painter, dataPoint.getPressure(i), tankRect, i, dive);
             }
             
-            currentX += tankSpaceWidth;
-        } else {
-            // No pressure data available, but section was allocated
-            drawPressure(painter, 0.0, QRect(currentX, 0, sectionWidth, height), -1, dive);
-            currentX += sectionWidth;
+            // Move current section past the tank grid
+            currentSection += rows;
+        } 
+        else {
+            // No pressure data available
+            drawPressure(painter, 0.0, sectionRects[currentSection++], -1, dive);
         }
     }
-    
+
     if (m_showTime) {
-        drawTime(painter, dataPoint.timestamp, QRect(currentX, 0, sectionWidth, height));
+        drawTime(painter, dataPoint.timestamp, sectionRects[currentSection++]);
     }
     
     painter.end();
@@ -258,107 +268,70 @@ QImage OverlayGenerator::generatePreview(DiveData* dive)
     return generateOverlay(dive, timePoint);
 }
 
-void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect)
-{
+void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect) {
     QString depthStr = QString::number(depth, 'f', 1) + " m";
-    QFontMetrics fm = painter.fontMetrics();
     
-    // Draw label
     painter.save();
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.8);
-    painter.setFont(labelFont);
     
-    QString label = tr("DEPTH");
-    QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
-    painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
+    // Draw the header using the helper function
+    drawSectionHeader(painter, tr("DEPTH"), rect);
     
-    // Draw value
-    painter.setFont(m_font);
-    QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
-    painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, depthStr);
+    // Draw the value in the middle portion
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    // Position value in the middle of the rect
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, depthStr);
     
     painter.restore();
 }
 
-void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRect &rect)
-{
+void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRect &rect) {
     QString tempStr = QString::number(temp, 'f', 1) + " °C";
-    QFontMetrics fm = painter.fontMetrics();
     
-    // Draw label
     painter.save();
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.8);
-    painter.setFont(labelFont);
     
-    QString label = tr("TEMP");
-    QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
-    painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
+    // Draw the header using the helper function
+    drawSectionHeader(painter, tr("TEMP"), rect);
     
-    // Draw value
-    painter.setFont(m_font);
-    QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
-    painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, tempStr);
+    // Draw the value in the middle portion
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    // Position value in the middle of the rect
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, tempStr);
     
     painter.restore();
 }
 
-void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect)
-{
-    // Format NDL as minutes or show DECO if in decompression
-    QString ndlStr;
-    
-    if (ndl <= 0) {
-        // If NDL is 0 or negative, the diver is in decompression
-        ndlStr = "DECO";
-    } else {
-        ndlStr = QString::number(qRound(ndl)) + " min";
-    }
-    
-    QFontMetrics fm = painter.fontMetrics();
-    
-    // Draw label
+void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex, DiveData* dive) {
     painter.save();
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.8);
-    painter.setFont(labelFont);
     
-    QString label = tr("NDL");
-    QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
-    painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
-    
-    // Draw value
-    painter.setFont(m_font);
-    QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
-    painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, ndlStr);
-    
-    painter.restore();
-}
-
-void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex, DiveData* dive)
-{
-    QString pressureStr = QString::number(qRound(pressure)) + " bar";
-    
-    // Adjust label based on tank index and gas mix
+    // Create tank label
     QString label;
     if (tankIndex >= 0) {
-        // Get gas mix for the tank from the dive data
+        // Get gas mix info
         QString gasMix;
         if (dive && tankIndex < dive->cylinderCount()) {
             const CylinderInfo& cylinder = dive->cylinderInfo(tankIndex);
             
-            // Format gas mix information
             if (cylinder.hePercent > 0.0) {
-                // Trimix: show O2/He
                 gasMix = QString("(%1/%2)").arg(qRound(cylinder.o2Percent)).arg(qRound(cylinder.hePercent));
             } else if (cylinder.o2Percent != 21.0) {
-                // Nitrox or pure O2
                 gasMix = QString("(%1%)").arg(qRound(cylinder.o2Percent));
             }
         }
         
-        // Create tank label with gas mix if available
         if (!gasMix.isEmpty()) {
             label = tr("TANK %1 %2").arg(tankIndex + 1).arg(gasMix);
         } else {
@@ -368,111 +341,111 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
         label = tr("PRESSURE");
     }
     
-    drawDataItem(painter, label, pressureStr, rect, true);
+    // Draw the header using the helper function - SAME POSITION as other headers
+    drawSectionHeader(painter, label, rect);
+    
+    // Draw pressure value at SAME POSITION as other values
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    QString pressureStr = QString::number(qRound(pressure)) + " bar";
+    
+    // Position value in the middle of the rect - SAME as other sections
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, pressureStr);
+    
+    painter.restore();
 }
 
-void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect &rect)
-{
-    // Format time as minutes:seconds
+void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect &rect) {
     int minutes = qFloor(timestamp / 60);
     int seconds = qRound(timestamp) % 60;
     QString timeStr = QString("%1:%2")
                          .arg(minutes)
                          .arg(seconds, 2, 10, QChar('0'));
     
-    QFontMetrics fm = painter.fontMetrics();
-    
-    // Draw label
     painter.save();
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.8);
-    painter.setFont(labelFont);
     
-    QString label = tr("DIVE TIME");
-    QRect labelRect = rect.adjusted(10, 10, -10, -rect.height() / 2);
-    painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignTop, label);
+    // Draw the header using the helper function
+    drawSectionHeader(painter, tr("DIVE TIME"), rect);
     
-    // Draw value
-    painter.setFont(m_font);
-    QRect valueRect = rect.adjusted(10, rect.height() / 3, -10, -10);
-    painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, timeStr);
+    // Draw the value in the middle portion
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    // Position value in the middle of the rect
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, timeStr);
     
     painter.restore();
 }
 
-void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect, double ceiling)
-{
-    qDebug() << "drawTTS called with ceiling:" << ceiling;
-    // Format TTS as minutes (ensure it's positive)
-    QString ttsStr;
-    if (tts <= 0.0) {
-        // Use a non-zero minimum value if TTS is invalid or zero
-        ttsStr = "1 min";
-        qDebug() << "Warning: TTS value is" << tts << "- displaying minimum value";
-    } else {
-        ttsStr = QString::number(qRound(tts)) + " min";
-    }
-    
-    int padding = qMin(5, rect.width() / 20);
-    
+
+void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect) {
     painter.save();
     
-    // Draw main label and value
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.75);
-    painter.setFont(labelFont);
+    // Draw the header using the helper function - SAME POSITION as other headers
+    drawSectionHeader(painter, tr("NDL"), rect);
     
-    QRect labelRect = rect.adjusted(padding, padding, -padding, 0);
-    labelRect.setHeight(rect.height() / 3);
-    painter.drawText(labelRect, Qt::AlignCenter, tr("TTS"));
-    
-    // Draw value
-    QFont valueFont = labelFont;
-    valueFont.setPointSize(valueFont.pointSize() * 1.2);
+    // Draw NDL value at SAME POSITION as other values
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
-    QRect valueRect = rect.adjusted(padding, rect.height() / 3, -padding, -rect.height() / 4);
+    QString ndlStr = ndl > 0 ? QString::number(qRound(ndl)) + " min" : "DECO";
+    
+    // Position value in the middle of the rect - SAME as other sections
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, ndlStr);
+    
+    painter.restore();
+}
+
+void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect, double ceiling) {
+    painter.save();
+    
+    // Draw the header using the helper function - SAME POSITION as other headers
+    drawSectionHeader(painter, tr("TTS"), rect);
+    
+    // Draw TTS value at SAME POSITION as other values
+    QFont valueFont = painter.font();
+    valueFont.setPointSize(12);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    QString ttsStr = QString::number(qRound(tts > 0 ? tts : 1)) + " min";
+    
+    // Position value in the middle of the rect - SAME as other sections
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
     painter.drawText(valueRect, Qt::AlignCenter, ttsStr);
     
-    // Add DECO indicator with ceiling information
-    QFont decoFont = labelFont;
-    decoFont.setPointSize(decoFont.pointSize() * 0.9);
+    // Draw DECO text in the bottom portion
+    QFont decoFont = painter.font();
+    decoFont.setPointSize(10);
     decoFont.setBold(true);
     painter.setFont(decoFont);
     
     QString decoText = tr("DECO");
-    // Add ceiling if it's greater than zero
     if (ceiling > 0.0) {
         decoText += QString(" (%1m)").arg(ceiling, 0, 'f', 1);
-        qDebug() << "Created DECO text with ceiling:" << decoText;
-    } else {
-        qDebug() << "Ceiling value not positive:" << ceiling;
     }
     
-    QRect decoRect = rect.adjusted(padding, rect.height() * 2/3, -padding, -padding);
-    
-    // Check if the text fits in the space
-    QFontMetrics fm(decoFont);
-    if (fm.horizontalAdvance(decoText) > decoRect.width()) {
-        // If too wide, use shorter format or reduce font size
-        if (ceiling > 0.0) {
-            // Try more compact format first
-            decoText = tr("DECO %1m").arg(ceiling, 0, 'f', 1);
-            
-            // If still too wide, reduce font size
-            if (fm.horizontalAdvance(decoText) > decoRect.width()) {
-                decoFont.setPointSize(decoFont.pointSize() * 0.8);
-                painter.setFont(decoFont);
-                
-                // If still too wide after reducing font, elide
-                fm = QFontMetrics(decoFont);
-                if (fm.horizontalAdvance(decoText) > decoRect.width()) {
-                    decoText = fm.elidedText(decoText, Qt::ElideRight, decoRect.width());
-                }
-            }
-        }
-    }
+    // Position DECO text in the bottom of the rect
+    QRect decoRect(rect.left() + 5, rect.top() + 65, 
+                   rect.width() - 10, 20); // Fixed position and height
     
     painter.drawText(decoRect, Qt::AlignCenter, decoText);
     
@@ -482,50 +455,64 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
 // Common drawing function to reduce code duplication
 void OverlayGenerator::drawDataItem(QPainter &painter, const QString &label, const QString &value, const QRect &rect, bool centerAlign)
 {
-    int padding = qMin(5, rect.width() / 20); // Scale padding with cell size
-    
     painter.save();
     
-    // Draw label - ensure it fits in the available space
-    QFont labelFont = painter.font();
-    labelFont.setPointSize(labelFont.pointSize() * 0.75);
-    painter.setFont(labelFont);
+    // Use fixed padding
+    int padding = 5;
     
-    QRect labelRect = rect.adjusted(padding, padding, -padding, 0);
-    labelRect.setHeight(rect.height() / 3);
+    // Explicitly divide the rectangle into 3 equal parts
+    int sectionHeight = rect.height() / 3;
+    
+    // Top section for label
+    QRect labelRect(rect.left() + padding, rect.top() + padding, 
+                    rect.width() - 2*padding, sectionHeight - padding);
+    
+    // Middle section for value
+    QRect valueRect(rect.left() + padding, rect.top() + sectionHeight, 
+                   rect.width() - 2*padding, sectionHeight);
+    
+    // Bottom section (if needed)
+    QRect bottomRect(rect.left() + padding, rect.top() + 2*sectionHeight, 
+                    rect.width() - 2*padding, sectionHeight - padding);
+    
+    // Draw label with fixed font size
+    QFont labelFont = painter.font();
+    labelFont.setPointSize(10);
+    painter.setFont(labelFont);
     
     // Calculate if we need to elide the text
     QFontMetrics fm(labelFont);
     QString displayLabel = label;
     if (fm.horizontalAdvance(label) > labelRect.width()) {
-        // Text is too wide, scale down font size slightly for tank labels with gas mix
-        if (label.contains("TANK") && label.contains("(")) {
-            labelFont.setPointSize(labelFont.pointSize() * 0.85);
-            painter.setFont(labelFont);
-            fm = QFontMetrics(labelFont);
-            
-            // If still too wide, elide the text
-            if (fm.horizontalAdvance(label) > labelRect.width()) {
-                displayLabel = fm.elidedText(label, Qt::ElideRight, labelRect.width());
-            }
-        } else {
-            // For other labels, just elide
-            displayLabel = fm.elidedText(label, Qt::ElideRight, labelRect.width());
-        }
+        displayLabel = fm.elidedText(label, Qt::ElideRight, labelRect.width());
     }
     
-    Qt::Alignment labelAlign = centerAlign ? Qt::AlignCenter : Qt::AlignHCenter | Qt::AlignTop;
+    Qt::Alignment labelAlign = Qt::AlignCenter;
     painter.drawText(labelRect, labelAlign, displayLabel);
     
-    // Draw value with slightly larger font
+    // Draw value with fixed font size
     QFont valueFont = labelFont;
-    valueFont.setPointSize(valueFont.pointSize() * 1.2);
+    valueFont.setPointSize(12);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
-    QRect valueRect = rect.adjusted(padding, rect.height() / 3, -padding, -padding);
-    Qt::Alignment valueAlign = centerAlign ? Qt::AlignCenter : Qt::AlignHCenter | Qt::AlignVCenter;
-    painter.drawText(valueRect, valueAlign, value);
+    painter.drawText(valueRect, Qt::AlignCenter, value);
     
     painter.restore();
+}
+
+// Create a helper function to draw section headers with consistent positioning
+void OverlayGenerator::drawSectionHeader(QPainter &painter, const QString &label, const QRect &rect) {
+    // Fixed padding
+    int padding = 5;
+    // Fixed position for all labels - very top of the rect with fixed height
+    QRect labelRect(rect.left() + padding, rect.top() + padding, 
+                   rect.width() - 2*padding, 20); // Fixed height of 20px
+    
+    // Use consistent font for all labels
+    QFont labelFont = painter.font();
+    labelFont.setPointSize(10);
+    painter.setFont(labelFont);
+    
+    painter.drawText(labelRect, Qt::AlignCenter, label);
 }

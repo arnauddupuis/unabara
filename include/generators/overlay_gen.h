@@ -78,6 +78,8 @@ private:
     void drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex = -1, DiveData* dive = nullptr);
     void drawTime(QPainter &painter, double timestamp, const QRect &rect);
     void drawDataItem(QPainter &painter, const QString &label, const QString &value, const QRect &rect, bool centerAlign);
+    // Helper method to draw section headers with consistent positioning
+    void drawSectionHeader(QPainter &painter, const QString &label, const QRect &rect);
 };
 
 #endif // OVERLAY_GEN_H

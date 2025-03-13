@@ -126,6 +126,8 @@ For direct video export functionality, FFmpeg needs to be installed on your syst
 5. Configure the overlay display options in settings
 6. Export as image sequence or video file
 
+Then you can use the generated video or image sequence as a telemetry overlay in your video editor software.
+
 ## License
 
 Unabara is licensed under the GNU General Public License v2.0.

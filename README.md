@@ -85,7 +85,7 @@ cmake --build .
 
 ### Windows
 
-1. Install [Qt 6.9.0](https://www.qt.io/download) or newer
+1. Install [Qt 6.8.0](https://www.qt.io/download) or newer
 2. Install [CMake](https://cmake.org/download/)
 3. Install [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) or newer with C++ desktop development workload
 
@@ -99,7 +99,7 @@ mkdir build
 cd build
 
 # Configure and build
-cmake .. -DCMAKE_PREFIX_PATH=C:\path\to\Qt\6.9.0\msvc2019_64
+cmake .. -DCMAKE_PREFIX_PATH=C:\path\to\Qt\6.8.0\msvc2019_64
 cmake --build . --config Release
 
 # Run the application

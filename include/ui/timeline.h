@@ -17,6 +17,7 @@ class Timeline : public QObject
     Q_PROPERTY(double maxDepth READ maxDepth NOTIFY metricsChanged)
     Q_PROPERTY(double videoOffset READ videoOffset WRITE setVideoOffset NOTIFY videoOffsetChanged)
     Q_PROPERTY(QString videoPath READ videoPath WRITE setVideoPath NOTIFY videoPathChanged)
+    Q_PROPERTY(double videoDuration READ videoDuration WRITE setVideoDuration NOTIFY videoDurationChanged)
     
 public:
     explicit Timeline(QObject *parent = nullptr);
@@ -30,6 +31,7 @@ public:
     double maxDepth() const;
     double videoOffset() const { return m_videoOffset; }
     QString videoPath() const { return m_videoPath; }
+    double videoDuration() const { return m_videoDuration; }
     
     // Setters
     void setDiveData(DiveData* data);
@@ -39,6 +41,7 @@ public:
     void setZoomFactor(double factor);
     void setVideoOffset(double offset);
     void setVideoPath(const QString &path);
+    void setVideoDuration(double duration);
     
     // Timeline manipulation
     Q_INVOKABLE void zoomIn();
@@ -52,6 +55,11 @@ public:
     // Data access for QML
     Q_INVOKABLE QVariantList getTimelineData(int numPoints);
     Q_INVOKABLE QVariantMap getCurrentDataPoint() const;
+
+    // Video functions
+    Q_INVOKABLE double getVideoStartTime() const;
+    Q_INVOKABLE double getVideoEndTime() const;
+    Q_INVOKABLE bool isTimeInVideo(double time) const;
     
 signals:
     void diveDataChanged();
@@ -61,6 +69,7 @@ signals:
     void metricsChanged();
     void videoOffsetChanged();
     void videoPathChanged();
+    void videoDurationChanged();
     
 private:
     DiveData* m_diveData;
@@ -70,6 +79,7 @@ private:
     double m_zoomFactor;
     double m_videoOffset;
     QString m_videoPath;
+    double m_videoDuration;
     
     // Helper methods
     void updateViewRange();

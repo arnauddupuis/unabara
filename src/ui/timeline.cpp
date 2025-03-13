@@ -13,6 +13,7 @@ Timeline::Timeline(QObject *parent)
     , m_endTime(0.0)
     , m_zoomFactor(1.0)
     , m_videoOffset(0.0)
+    , m_videoDuration(0.0)
 {
 }
 
@@ -114,7 +115,24 @@ void Timeline::setVideoPath(const QString &path)
 {
     if (m_videoPath != path) {
         m_videoPath = path;
+        
+        // If the path is empty, reset video duration
+        if (path.isEmpty()) {
+            setVideoDuration(0.0);
+        }
+        
         emit videoPathChanged();
+    }
+}
+
+void Timeline::setVideoDuration(double duration)
+{
+    // Ensure duration is non-negative
+    duration = std::max(0.0, duration);
+    
+    if (m_videoDuration != duration) {
+        m_videoDuration = duration;
+        emit videoDurationChanged();
     }
 }
 
@@ -349,4 +367,20 @@ void Timeline::ensureTimeIsVisible(double time)
     }
     
     emit viewRangeChanged();
+}
+
+// Video utility functions
+double Timeline::getVideoStartTime() const 
+{ 
+    return m_videoOffset; 
+}
+
+double Timeline::getVideoEndTime() const 
+{ 
+    return m_videoOffset + m_videoDuration; 
+}
+
+bool Timeline::isTimeInVideo(double time) const 
+{ 
+    return (time >= m_videoOffset && time <= (m_videoOffset + m_videoDuration)); 
 }

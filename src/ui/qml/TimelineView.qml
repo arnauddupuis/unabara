@@ -12,6 +12,11 @@ Item {
     property alias visibleStartTime: timeline.startTime
     property alias visibleEndTime: timeline.endTime
     
+    // References to video properties
+    property alias videoPath: timeline.videoPath
+    property alias videoDuration: timeline.videoDuration
+    property alias videoOffset: timeline.videoOffset
+    
     // Reference to C++ Timeline object
     Timeline {
         id: timeline
@@ -20,6 +25,10 @@ Item {
     
     function setVideoPath(path) {
         timeline.videoPath = path
+    }
+    
+    function setVideoDuration(duration) {
+        timeline.videoDuration = duration
     }
     
     ColumnLayout {
@@ -108,19 +117,37 @@ Item {
                         id: videoOffsetSpinBox
                         from: -3600
                         to: 3600
-                        value: timeline.videoOffset
+                        
+                        Component.onCompleted: {
+                            // Set initial value without creating a binding
+                            value = timeline.videoOffset
+                        }
                         
                         onValueChanged: {
-                            if (value !== timeline.videoOffset) {
+                            // Only update if the change originated from UI
+                            if (!updatingFromTimeline && Math.abs(value - timeline.videoOffset) > 0.01) {
                                 timeline.videoOffset = value
                             }
                         }
                         
+                        // Flag to prevent binding loops
+                        property bool updatingFromTimeline: false
+                        
                         Connections {
                             target: timeline
                             function onVideoOffsetChanged() {
-                                videoOffsetSpinBox.value = timeline.videoOffset
+                                // Set flag to prevent echoing the change back
+                                videoOffsetSpinBox.updatingFromTimeline = true
+                                videoOffsetSpinBox.value = Math.round(timeline.videoOffset)
+                                // Use a Timer to reset the flag to avoid potential issues
+                                resetTimer.start()
                             }
+                        }
+                        
+                        Timer {
+                            id: resetTimer
+                            interval: 50
+                            onTriggered: videoOffsetSpinBox.updatingFromTimeline = false
                         }
                     }
                     
@@ -226,6 +253,68 @@ Item {
                     ctx.fillStyle = "rgba(0, 102, 204, 0.2)";
                     ctx.fill();
                     
+                    // Draw video representation if available
+                    if (timeline.videoPath !== "") {
+                        // Calculate video start position based on offset
+                        var videoStartTime = timeline.videoOffset;
+                        
+                        // Use actual duration if available, otherwise use a default duration
+                        var videoDuration = (timeline.videoDuration > 0) ? 
+                                            timeline.videoDuration : 
+                                            Math.min(300, (timeline.endTime - timeline.startTime) / 2); // Default to 5 minutes or half the visible range
+                        
+                        var videoEndTime = videoStartTime + videoDuration;
+                        
+                        // Check if video is visible in current view
+                        if (videoEndTime >= timeline.startTime && videoStartTime <= timeline.endTime) {
+                            // Calculate visible portion coordinates
+                            var startX = Math.max(0, ((videoStartTime - timeline.startTime) / timeRange) * width);
+                            var endX = Math.min(width, ((videoEndTime - timeline.startTime) / timeRange) * width);
+                            var videoWidth = endX - startX;
+                            
+                            // Draw video rectangle - semi-transparent orange with rounded corners
+                            ctx.beginPath();
+                            var cornerRadius = 5;
+                            
+                            // Draw rounded rectangle
+                            ctx.moveTo(startX + cornerRadius, 0);
+                            ctx.lineTo(endX - cornerRadius, 0);
+                            ctx.quadraticCurveTo(endX, 0, endX, cornerRadius);
+                            ctx.lineTo(endX, height - cornerRadius);
+                            ctx.quadraticCurveTo(endX, height, endX - cornerRadius, height);
+                            ctx.lineTo(startX + cornerRadius, height);
+                            ctx.quadraticCurveTo(startX, height, startX, height - cornerRadius);
+                            ctx.lineTo(startX, cornerRadius);
+                            ctx.quadraticCurveTo(startX, 0, startX + cornerRadius, 0);
+                            
+                            ctx.fillStyle = "rgba(255, 165, 0, 0.3)"; // Semi-transparent orange
+                            ctx.fill();
+                            
+                            ctx.strokeStyle = "rgba(255, 140, 0, 0.8)"; // Darker orange for border
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                            
+                            // Draw video label
+                            ctx.fillStyle = "rgba(255, 140, 0, 0.9)";
+                            ctx.font = "bold 12px sans-serif";
+                            
+                            // Format duration as MM:SS if available
+                            var videoLabel = "Video";
+                            
+                            if (timeline.videoDuration > 0) {
+                                var durationMins = Math.floor(timeline.videoDuration / 60);
+                                var durationSecs = Math.floor(timeline.videoDuration % 60);
+                                var durationText = durationMins + ":" + (durationSecs < 10 ? "0" : "") + durationSecs;
+                                videoLabel += " (" + durationText + ")";
+                            }
+                            
+                            // Check if there's enough space to draw the text
+                            if (videoWidth > 80) {
+                                ctx.fillText(videoLabel, startX + 10, 20);
+                            }
+                        }
+                    }
+                    
                     // Draw current time indicator
                     var currentX = ((timeline.currentTime - timeline.startTime) / timeRange) * width;
                     ctx.beginPath();
@@ -248,6 +337,15 @@ Item {
                     function onDiveDataChanged() {
                         depthCanvas.updateTimelineData()
                     }
+                    function onVideoPathChanged() {
+                        depthCanvas.requestPaint()
+                    }
+                    function onVideoDurationChanged() {
+                        depthCanvas.requestPaint()
+                    }
+                    function onVideoOffsetChanged() {
+                        depthCanvas.requestPaint()
+                    }
                 }
                 
                 function updateTimelineData() {
@@ -262,12 +360,97 @@ Item {
                 
                 // Handle mouse interactions
                 MouseArea {
+                    id: canvasMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
+                    
+                    property bool isDraggingVideo: false
+                    property double dragStartX: 0
+                    property double initialVideoOffset: 0
+                    property int dragThreshold: 3
                     
                     onClicked: function(mouseEvent) {
+                        if (!isDraggingVideo) {
+                            var timeRange = timeline.endTime - timeline.startTime;
+                            var clickTime = timeline.startTime + (mouseEvent.x / parent.width) * timeRange;
+                            timeline.currentTime = clickTime;
+                        }
+                    }
+                    
+                    onPressed: function(mouseEvent) {
                         var timeRange = timeline.endTime - timeline.startTime;
-                        var clickTime = timeline.startTime + (mouseEvent.x / parent.width) * timeRange;
-                        timeline.currentTime = clickTime;
+                        var width = depthCanvas.width;
+                        
+                        // Check if click is on the video rectangle
+                        if (timeline.videoPath !== "") {
+                            var videoStartTime = timeline.videoOffset;
+                            // Use actual duration if available, otherwise use a default
+                            var videoDuration = (timeline.videoDuration > 0) ? 
+                                                timeline.videoDuration : 
+                                                Math.min(300, (timeline.endTime - timeline.startTime) / 2);
+                            
+                            var videoEndTime = videoStartTime + videoDuration;
+                            
+                            var startX = ((videoStartTime - timeline.startTime) / timeRange) * width;
+                            var endX = ((videoEndTime - timeline.startTime) / timeRange) * width;
+                            
+                            // If mouse is over the video rectangle, start dragging
+                            if (mouseEvent.x >= startX && mouseEvent.x <= endX) {
+                                isDraggingVideo = true;
+                                dragStartX = mouseEvent.x;
+                                initialVideoOffset = timeline.videoOffset;
+                                
+                                // Change cursor to indicate draggable
+                                cursorShape = Qt.SizeHorCursor;
+                            }
+                        }
+                    }
+                    
+                    onReleased: function(mouseEvent) {
+                        isDraggingVideo = false;
+                        cursorShape = Qt.ArrowCursor;
+                    }
+                    
+                    onPositionChanged: function(mouseEvent) {
+                        if (isDraggingVideo) {
+                            var timeRange = timeline.endTime - timeline.startTime;
+                            var dx = mouseEvent.x - dragStartX;
+                            
+                            // Convert pixel movement to time offset
+                            var timeOffset = (dx / depthCanvas.width) * timeRange;
+                            
+                            // Update video offset with new position
+                            timeline.videoOffset = initialVideoOffset + timeOffset;
+                        } else {
+                            // Update cursor when hovering over video
+                            if (timeline.videoPath !== "") {
+                                var timeRange = timeline.endTime - timeline.startTime;
+                                var width = depthCanvas.width;
+                                
+                                var videoStartTime = timeline.videoOffset;
+                                // Use actual duration if available, otherwise use a default
+                                var videoDuration = (timeline.videoDuration > 0) ? 
+                                                    timeline.videoDuration : 
+                                                    Math.min(300, (timeline.endTime - timeline.startTime) / 2);
+                                
+                                var videoEndTime = videoStartTime + videoDuration;
+                                
+                                var startX = ((videoStartTime - timeline.startTime) / timeRange) * width;
+                                var endX = ((videoEndTime - timeline.startTime) / timeRange) * width;
+                                
+                                if (mouseEvent.x >= startX && mouseEvent.x <= endX) {
+                                    cursorShape = Qt.PointingHandCursor;
+                                } else {
+                                    cursorShape = Qt.ArrowCursor;
+                                }
+                            }
+                        }
+                    }
+                    
+                    onExited: {
+                        if (!isDraggingVideo) {
+                            cursorShape = Qt.ArrowCursor;
+                        }
                     }
                     
                     onWheel: function(wheelEvent) {

@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import Unabara.UI 1.0
 import Unabara.Generators 1.0
 import Unabara.Export 1.0
+import QtMultimedia
 
 ApplicationWindow {
     id: window
@@ -39,6 +40,36 @@ ApplicationWindow {
             messageDialog.title = qsTr("Export Error")
             messageDialog.message = errorMessage
             messageDialog.open()
+        }
+    }
+    
+    // Hidden MediaPlayer to get video metadata
+    MediaPlayer {
+        id: metadataPlayer
+        source: ""
+        
+        onSourceChanged: function() {
+            if (source != "") {
+                console.log("Loading video metadata from:", source)
+            }
+        }
+        
+        onPlaybackStateChanged: function() {
+            if (playbackState === MediaPlayer.PlayingState) {
+                // Immediately pause once it starts playing
+                pause()
+            }
+        }
+        
+        onDurationChanged: function() {
+            if (duration > 0 && hasVideo) {
+                var durationInSeconds = duration/1000;
+                console.log("Video metadata loaded: Duration =", durationInSeconds, "seconds")
+                timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
+                
+                // Default to positioning video at the beginning of the dive
+                timelineView.timeline.videoOffset = 0.0
+            }
         }
     }
     
@@ -220,6 +251,11 @@ ApplicationWindow {
                         previewImage.updatePreview()
                     }
                 }
+                
+                // Function to set video duration
+                function setVideoDuration(duration) {
+                    timeline.videoDuration = duration
+                }
             }
             
             // Placeholder when no dive is loaded
@@ -259,9 +295,49 @@ ApplicationWindow {
         id: importVideoFileDialog
         title: qsTr("Import Video")
         nameFilters: ["Video files (*.mp4 *.mov *.avi)", "All files (*)"]
+        
         onAccepted: {
             let filePath = mainWindow.urlToLocalFile(selectedFile.toString());
+            console.log("Importing video from:", filePath);
+            
+            // First set the video path in timeline
             timelineView.setVideoPath(filePath);
+            
+            // Setup a fallback timer in case metadata loading fails
+            let metadataTimer = Qt.createQmlObject(
+                'import QtQuick; Timer { interval: 3000; repeat: false; }',
+                importVideoFileDialog
+            );
+            
+            metadataTimer.triggered.connect(function() {
+                // If we get here, metadata loading probably failed
+                console.log("Metadata loading timed out, checking duration");
+                
+                // If duration hasn't been set, use a default
+                if (timelineView.timeline.videoDuration <= 0) {
+                    console.log("Setting default video duration");
+                    // Get the actual duration from metadata player if possible
+                    if (metadataPlayer.duration > 0) {
+                        timelineView.setVideoDuration(metadataPlayer.duration / 1000);
+                    } else {
+                        console.log("Using fallback 60 second duration");
+                        timelineView.setVideoDuration(60); // Default to 1 minute instead of 5
+                    }
+                    timelineView.timeline.videoOffset = 0.0; // Position at beginning of dive
+                } else {
+                    console.log("Duration already set to:", timelineView.timeline.videoDuration);
+                }
+            });
+            
+            // Then use MediaPlayer to determine video duration
+            metadataPlayer.source = selectedFile;
+            metadataPlayer.play();  // Start playback to initialize metadata
+            metadataTimer.start();
+            
+            // Show message about successful import
+            messageDialog.title = qsTr("Video Imported");
+            messageDialog.message = qsTr("Video imported successfully. You can now adjust its position on the timeline by dragging the orange rectangle.");
+            messageDialog.open();
         }
     }
     
@@ -274,27 +350,42 @@ ApplicationWindow {
         height: 300
         
         onAccepted: {
-            let path = imageExporter.createDefaultExportDir(mainWindow.currentDive)
+            let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
             if (path) {
-                imageExporter.exportPath = path
+                imageExporter.exportPath = path;
                 
+                // Check if we have a video and should export only the video portion
+                if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
+                    // Export only the video range - use the methods now that they're properly declared
+                    let videoStart = timelineView.timeline.getVideoStartTime();
+                    let videoEnd = timelineView.timeline.getVideoEndTime();
+                    
+                    console.log("Exporting video range from", videoStart, "to", videoEnd);
+                    
+                    imageExporter.exportImageRange(
+                        mainWindow.currentDive, 
+                        overlayGenerator,
+                        videoStart,  
+                        videoEnd
+                    );
+                }
                 // Check if we should export only the visible range
-                if (exportRangeOnly.checked) {
+                else if (exportRangeOnly.checked) {
                     // Export only the visible range from the timeline
                     imageExporter.exportImageRange(
                         mainWindow.currentDive, 
                         overlayGenerator,
                         timelineView.visibleStartTime,  
                         timelineView.visibleEndTime
-                    )
+                    );
                 } else {
                     // Export the full dive
-                    imageExporter.exportImages(mainWindow.currentDive, overlayGenerator)
+                    imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
                 }
             } else {
-                messageDialog.title = qsTr("Export Error")
-                messageDialog.message = qsTr("Failed to create export directory")
-                messageDialog.open()
+                messageDialog.title = qsTr("Export Error");
+                messageDialog.message = qsTr("Failed to create export directory");
+                messageDialog.open();
             }
         }
         
@@ -311,6 +402,20 @@ ApplicationWindow {
                 text: qsTr("Export only visible time range")
                 checked: false
                 id: exportRangeOnly
+                enabled: !exportVideoRangeOnly.checked
+            }
+            
+            CheckBox {
+                text: qsTr("Export only video time range")
+                checked: timelineView.videoPath !== ""
+                id: exportVideoRangeOnly
+                enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
+                
+                onCheckedChanged: {
+                    if (checked) {
+                        exportRangeOnly.checked = false;
+                    }
+                }
             }
             
             RowLayout {

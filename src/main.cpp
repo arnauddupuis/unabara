@@ -11,6 +11,7 @@
 #include "include/ui/timeline.h"
 #include "include/generators/overlay_gen.h"
 #include "include/export/image_export.h"
+#include "include/export/video_export.h"
 #include "include/generators/overlay_image_provider.h"
 
 // Global image provider
@@ -29,6 +30,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Timeline>("Unabara.UI", 1, 0, "Timeline");
     qmlRegisterType<OverlayGenerator>("Unabara.Generators", 1, 0, "OverlayGenerator");
     qmlRegisterType<ImageExporter>("Unabara.Export", 1, 0, "ImageExporter");
+    qmlRegisterType<VideoExporter>("Unabara.Export", 1, 0, "VideoExporter");
     
     // Create the QML engine
     QQmlApplicationEngine engine;

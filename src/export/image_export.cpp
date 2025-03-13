@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QThread>
 #include <QDebug>
+#include <QFileInfo>
 
 ImageExporter::ImageExporter(QObject *parent)
     : QObject(parent)
@@ -80,6 +81,9 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
     double timeStep = 1.0 / m_frameRate;
     int totalFrames = qRound((endTime - startTime) * m_frameRate);
     int processedFrames = 0;
+    
+    qDebug() << "Exporting images from" << startTime << "to" << endTime 
+             << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
     
     // Generate and save images
     for (double time = startTime; time <= endTime; time += timeStep) {

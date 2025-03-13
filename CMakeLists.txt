@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
     src/generators/overlay_gen.cpp
     src/generators/overlay_image_provider.cpp
     src/export/image_export.cpp
+    src/export/video_export.cpp
     resources.qrc
 )
 
@@ -31,7 +32,9 @@ set(PROJECT_HEADERS
     include/ui/main_window.h
     include/ui/timeline.h
     include/generators/overlay_gen.h
+    include/generators/overlay_image_provider.h
     include/export/image_export.h
+    include/export/video_export.h
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

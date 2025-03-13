@@ -43,6 +43,39 @@ ApplicationWindow {
         }
     }
     
+    // Video exporter
+    VideoExporter {
+        id: videoExporter
+        
+        onExportStarted: {
+            videoExportProgressDialog.open()
+        }
+        
+        onProgressChanged: {
+            videoExportProgressDialog.value = progress
+        }
+        
+        onStatusUpdate: function(message) {
+            videoExportProgressDialog.statusText = message
+        }
+        
+        onExportFinished: function(success, path) {
+            videoExportProgressDialog.close()
+            if (success) {
+                messageDialog.title = qsTr("Export Completed")
+                messageDialog.message = qsTr("Video exported successfully to:\n") + path
+                messageDialog.open()
+            }
+        }
+        
+        onExportError: function(errorMessage) {
+            videoExportProgressDialog.close()
+            messageDialog.title = qsTr("Export Error")
+            messageDialog.message = errorMessage
+            messageDialog.open()
+        }
+    }
+    
     // Hidden MediaPlayer to get video metadata
     MediaPlayer {
         id: metadataPlayer
@@ -70,6 +103,16 @@ ApplicationWindow {
                 // Default to positioning video at the beginning of the dive
                 timelineView.timeline.videoOffset = 0.0
             }
+        }
+    }
+    
+    Component.onCompleted: {
+        // Check if FFmpeg is available and show a notification if not
+        if (!videoExporter.isFFmpegAvailable()) {
+            messageDialog.title = qsTr("FFmpeg Not Found")
+            messageDialog.message = qsTr("FFmpeg was not found on your system. The video export feature will be disabled.\n\n" +
+                               "To enable video export, please install FFmpeg and restart the application.")
+            messageDialog.open()
         }
     }
     
@@ -321,7 +364,7 @@ ApplicationWindow {
                         timelineView.setVideoDuration(metadataPlayer.duration / 1000);
                     } else {
                         console.log("Using fallback 60 second duration");
-                        timelineView.setVideoDuration(60); // Default to 1 minute instead of 5
+                        timelineView.setVideoDuration(60); // Default to 1 minute
                     }
                     timelineView.timeline.videoOffset = 0.0; // Position at beginning of dive
                 } else {
@@ -343,100 +386,376 @@ ApplicationWindow {
     
     Dialog {
         id: exportImagesDialog
-        title: qsTr("Export Images")
+        title: qsTr("Export Overlay")
         modal: true
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        width: 400
-        height: 300
+        width: 500
+
+        // Use implicitHeight instead of fixed height to adapt to content
+        implicitHeight: contentColumn.implicitHeight + 140 // Add padding for dialog margins
+        
+        // Move standard buttons to the footer
+        footer: DialogButtonBox {
+            standardButtons: Dialog.Ok | Dialog.Cancel
+            onAccepted: exportImagesDialog.accept()
+            onRejected: exportImagesDialog.reject()
+            padding: 10
+        }
+        
+        // Update height when export type changes
+        onImplicitHeightChanged: {
+            // Ensure dialog is properly sized after content changes
+            height = implicitHeight
+        }
+        
+        // Add connections to resize the dialog when export type changes
+        Connections {
+            target: exportTypeImages
+            function onCheckedChanged() {
+                // Force dialog height update after a short delay
+                resizeTimer.start()
+            }
+        }
+        
+        Connections {
+            target: exportTypeVideo
+            function onCheckedChanged() {
+                // Force dialog height update after a short delay
+                resizeTimer.start()
+            }
+        }
+        
+        // Timer to handle resize after animation completes
+        Timer {
+            id: resizeTimer
+            interval: 10
+            onTriggered: {
+                exportImagesDialog.height = contentColumn.implicitHeight + 140
+            }
+        }
         
         onAccepted: {
-            let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
-            if (path) {
-                imageExporter.exportPath = path;
-                
-                // Check if we have a video and should export only the video portion
-                if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
-                    // Export only the video range - use the methods now that they're properly declared
-                    let videoStart = timelineView.timeline.getVideoStartTime();
-                    let videoEnd = timelineView.timeline.getVideoEndTime();
+            if (exportTypeImages.checked) {
+                // Images export mode
+                let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
+                if (path) {
+                    imageExporter.exportPath = path;
                     
-                    console.log("Exporting video range from", videoStart, "to", videoEnd);
-                    
-                    imageExporter.exportImageRange(
-                        mainWindow.currentDive, 
-                        overlayGenerator,
-                        videoStart,  
-                        videoEnd
-                    );
-                }
-                // Check if we should export only the visible range
-                else if (exportRangeOnly.checked) {
-                    // Export only the visible range from the timeline
-                    imageExporter.exportImageRange(
-                        mainWindow.currentDive, 
-                        overlayGenerator,
-                        timelineView.visibleStartTime,  
-                        timelineView.visibleEndTime
-                    );
+                    // Check if we have a video and should export only the video portion
+                    if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
+                        // Export only the video range - use the methods
+                        let videoStart = timelineView.timeline.getVideoStartTime();
+                        let videoEnd = timelineView.timeline.getVideoEndTime();
+                        
+                        console.log("Exporting video range from", videoStart, "to", videoEnd);
+                        
+                        imageExporter.exportImageRange(
+                            mainWindow.currentDive, 
+                            overlayGenerator,
+                            videoStart,  
+                            videoEnd
+                        );
+                    }
+                    // Check if we should export only the visible range
+                    else if (exportRangeOnly.checked) {
+                        // Export only the visible range from the timeline
+                        imageExporter.exportImageRange(
+                            mainWindow.currentDive, 
+                            overlayGenerator,
+                            timelineView.visibleStartTime,  
+                            timelineView.visibleEndTime
+                        );
+                    } else {
+                        // Export the full dive
+                        imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
+                    }
                 } else {
-                    // Export the full dive
-                    imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
+                    messageDialog.title = qsTr("Export Error");
+                    messageDialog.message = qsTr("Failed to create export directory");
+                    messageDialog.open();
                 }
             } else {
-                messageDialog.title = qsTr("Export Error");
-                messageDialog.message = qsTr("Failed to create export directory");
-                messageDialog.open();
+                // Video export mode
+                let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive);
+                if (outputFile) {
+                    // Just pass the file path directly, don't manipulate it further
+                    videoExporter.frameRate = videoFrameRateSpinBox.value;
+                    videoExporter.videoBitrate = bitrateSlider.value;
+                    videoExporter.videoCodec = codecComboBox.currentText;
+                    
+                    // Handle resolution matching
+                    if (matchVideoResolutionCheckbox.checked && timelineView.videoPath !== "") {
+                        // Detect and use the video's resolution
+                        let videoRes = videoExporter.detectVideoResolution(timelineView.videoPath);
+                        if (videoRes.width > 0 && videoRes.height > 0) {
+                            videoExporter.customResolution = videoRes;
+                        }
+                    } else {
+                        // Use default resolution from the template
+                        videoExporter.customResolution = Qt.size(0, 0);
+                    }
+                    
+                    // Determine the time range to export
+                    let startTime, endTime;
+                    
+                    if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
+                        // Export the imported video's time range
+                        startTime = timelineView.timeline.getVideoStartTime();
+                        endTime = timelineView.timeline.getVideoEndTime();
+                    } else if (exportRangeOnly.checked) {
+                        // Export the visible range from the timeline
+                        startTime = timelineView.visibleStartTime;
+                        endTime = timelineView.visibleEndTime;
+                    } else {
+                        // Export the full dive
+                        startTime = 0;
+                        endTime = mainWindow.currentDive.durationSeconds;
+                    }
+                    
+                    console.log("Exporting video from", startTime, "to", endTime);
+                    videoExporter.exportVideo(mainWindow.currentDive, overlayGenerator, startTime, endTime);
+                } else {
+                    messageDialog.title = qsTr("Export Error");
+                    messageDialog.message = qsTr("Failed to create export file");
+                    messageDialog.open();
+                }
             }
         }
         
         ColumnLayout {
+            id: contentColumn
             anchors.fill: parent
+            anchors.margins: 20
             spacing: 20
             
-            Label {
-                text: qsTr("Export overlay images for the current dive?")
+            // Export type selection
+            GroupBox {
+                title: qsTr("Export Format")
                 Layout.fillWidth: true
-            }
-            
-            CheckBox {
-                text: qsTr("Export only visible time range")
-                checked: false
-                id: exportRangeOnly
-                enabled: !exportVideoRangeOnly.checked
-            }
-            
-            CheckBox {
-                text: qsTr("Export only video time range")
-                checked: timelineView.videoPath !== ""
-                id: exportVideoRangeOnly
-                enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
                 
-                onCheckedChanged: {
-                    if (checked) {
-                        exportRangeOnly.checked = false;
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    RadioButton {
+                        id: exportTypeImages
+                        text: qsTr("Export as Image Sequence")
+                        checked: true
+                        ToolTip.text: qsTr("Export individual PNG images with transparency")
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                    }
+                    
+                    RadioButton {
+                        id: exportTypeVideo
+                        text: qsTr("Export as Video File")
+                        enabled: videoExporter.isFFmpegAvailable()
+                        ToolTip.text: videoExporter.isFFmpegAvailable() ? 
+                            qsTr("Export a single video file with the overlay") : 
+                            qsTr("FFmpeg not found - install FFmpeg to enable video export")
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
                     }
                 }
             }
             
-            RowLayout {
+            // Common export range options
+            GroupBox {
+                title: qsTr("Export Range")
                 Layout.fillWidth: true
                 
-                Label {
-                    text: qsTr("Frame rate:")
-                }
-                
-                SpinBox {
-                    id: frameRateSpinBox
-                    value: 10
-                    from: 1
-                    to: 60
+                ColumnLayout {
+                    anchors.fill: parent
                     
-                    onValueChanged: {
-                        imageExporter.frameRate = value
+                    RadioButton {
+                        id: exportFullDive
+                        text: qsTr("Export full dive")
+                        checked: true
                     }
                     
-                    Component.onCompleted: {
-                        imageExporter.frameRate = value
+                    RadioButton {
+                        text: qsTr("Export only visible time range")
+                        id: exportRangeOnly
+                        enabled: !exportVideoRangeOnly.checked
+                    }
+                    
+                    RadioButton {
+                        text: qsTr("Export only video time range")
+                        id: exportVideoRangeOnly
+                        enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
+                        
+                        onCheckedChanged: {
+                            if (checked) {
+                                exportRangeOnly.checked = false;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Image-specific options (visible when exporting images)
+            GroupBox {
+                title: qsTr("Image Export Settings")
+                Layout.fillWidth: true
+                visible: exportTypeImages.checked
+                
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    Label {
+                        text: qsTr("Frame rate:")
+                    }
+                    
+                    SpinBox {
+                        id: frameRateSpinBox
+                        value: 10
+                        from: 1
+                        to: 60
+                        
+                        onValueChanged: {
+                            if (exportTypeImages.checked) {
+                                imageExporter.frameRate = value
+                            }
+                        }
+                        
+                        Component.onCompleted: {
+                            imageExporter.frameRate = value
+                        }
+                    }
+                }
+            }
+            
+            // Video-specific options (visible when exporting video)
+            GroupBox {
+                title: qsTr("Video Export Settings")
+                Layout.fillWidth: true
+                visible: exportTypeVideo.checked
+                enabled: exportTypeVideo.checked
+                
+                // Set a minimum height to ensure proper layout calculations
+                Layout.minimumHeight: videoSettingsColumn.implicitHeight + 30
+                
+                ColumnLayout {
+                    id: videoSettingsColumn
+                    anchors.fill: parent
+                    spacing: 8 // Reduce spacing for a more compact layout
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        
+                        Label {
+                            text: qsTr("Frame rate:")
+                            Layout.preferredWidth: 100
+                        }
+                        
+                        SpinBox {
+                            id: videoFrameRateSpinBox
+                            value: 30
+                            from: 1
+                            to: 60
+                            Layout.fillWidth: true
+                        }
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        
+                        Label {
+                            text: qsTr("Codec:")
+                            Layout.preferredWidth: 100
+                        }
+                        
+                        ComboBox {
+                            id: codecComboBox
+                            model: videoExporter.getAvailableCodecs()
+                            Layout.fillWidth: true
+                            
+                            ToolTip {
+                                visible: codecComboBox.hovered
+                                text: {
+                                    if (codecComboBox.currentText === "h264") 
+                                        return qsTr("H.264 - most compatible format")
+                                    else if (codecComboBox.currentText === "prores") 
+                                        return qsTr("ProRes - high quality with alpha channel")
+                                    else if (codecComboBox.currentText === "vp9") 
+                                        return qsTr("VP9 - good for web with alpha support")
+                                    else if (codecComboBox.currentText === "hevc") 
+                                        return qsTr("HEVC - better compression, newer hardware")
+                                    else 
+                                        return ""
+                                }
+                                delay: 500
+                            }
+                        }
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        
+                        Label {
+                            text: qsTr("Quality:")
+                            Layout.preferredWidth: 100
+                        }
+                        
+                        Slider {
+                            id: bitrateSlider
+                            from: 1000  // 1 Mbps
+                            to: 20000   // 20 Mbps
+                            value: 8000 // 8 Mbps default
+                            stepSize: 1000
+                            Layout.fillWidth: true
+                        }
+                        
+                        Label {
+                            text: (bitrateSlider.value / 1000).toFixed(1) + " Mbps"
+                            Layout.preferredWidth: 70
+                        }
+                    }
+                    
+                    // Resolution options
+                    CheckBox {
+                        id: matchVideoResolutionCheckbox
+                        text: qsTr("Match video resolution")
+                        enabled: timelineView.videoPath !== ""
+                        checked: timelineView.videoPath !== ""
+                        Layout.fillWidth: true
+                        
+                        ToolTip {
+                            visible: parent.hovered
+                            text: timelineView.videoPath !== "" ?
+                                qsTr("Output video will match the resolution of the imported video") :
+                                qsTr("Import a video first to enable this option")
+                            delay: 500
+                        }
+                    }
+                    
+                    Label {
+                        text: {
+                            // Basic file size estimation
+                            if (mainWindow.hasActiveDive) {
+                                let rangeStart, rangeEnd;
+                                
+                                if (exportVideoRangeOnly.checked && timelineView.timeline.videoDuration > 0) {
+                                    rangeStart = timelineView.timeline.getVideoStartTime();
+                                    rangeEnd = timelineView.timeline.getVideoEndTime();
+                                } else if (exportRangeOnly.checked) {
+                                    rangeStart = timelineView.visibleStartTime;
+                                    rangeEnd = timelineView.visibleEndTime;
+                                } else {
+                                    rangeStart = 0;
+                                    rangeEnd = mainWindow.currentDive.durationSeconds;
+                                }
+                                
+                                let durationSec = rangeEnd - rangeStart;
+                                let bitrateMbps = bitrateSlider.value / 1000;
+                                let sizeInMB = (durationSec * bitrateMbps) / 8;
+                                
+                                return qsTr("Estimated file size: ") + sizeInMB.toFixed(1) + " MB";
+                            } else {
+                                return "";
+                            }
+                        }
+                        Layout.alignment: Qt.AlignRight
+                        Layout.fillWidth: true // Ensure it has space to display
+                        elide: Text.ElideRight // Allow text to be elided if too long
                     }
                 }
             }
@@ -563,6 +882,56 @@ ApplicationWindow {
             ProgressBar {
                 value: exportProgressDialog.value / 100
                 Layout.fillWidth: true
+            }
+        }
+    }
+    
+    Dialog {
+        id: videoExportProgressDialog
+        title: qsTr("Exporting Video")
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        standardButtons: Dialog.Cancel
+        width: 500
+        height: 250
+        
+        property int value: 0
+        property string statusText: qsTr("Preparing...")
+        
+        onRejected: {
+            // Try to cancel the FFmpeg process
+            videoExporter.cancelExport();
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 20
+            
+            Label {
+                text: videoExportProgressDialog.statusText
+                Layout.fillWidth: true
+                font.bold: true
+            }
+            
+            ProgressBar {
+                value: videoExportProgressDialog.value / 100
+                Layout.fillWidth: true
+            }
+            
+            Label {
+                text: qsTr("Progress: %1%").arg(videoExportProgressDialog.value)
+                Layout.alignment: Qt.AlignHCenter
+            }
+            
+            Item {
+                Layout.fillHeight: true
+            }
+            
+            Label {
+                text: qsTr("This process can take several minutes depending on video length and settings.\nDo not close the application during export.")
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.italic: true
             }
         }
     }

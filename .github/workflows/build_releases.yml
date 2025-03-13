@@ -88,18 +88,18 @@ jobs:
     - name: Install MSBuild
       run: choco install visualstudio2022buildtools --package-parameters "--add Microsoft.Component.MSBuild"
 
-    - name: Set up MSBuild path
-      run: |
-        $msbuildPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
-        echo "##vso[task.setvariable variable=MSBuildPath]$msbuildPath"
-      shell: powershell
+    # - name: Set up MSBuild path
+    #   run: |
+    #     $msbuildPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+    #     echo "##vso[task.setvariable variable=MSBuildPath]$msbuildPath"
+    #   shell: powershell
 
-    - name: Build with MSBuild
-      run: |
-        $env:PATH += ";${{ variables.MSBuildPath }}"
-        msbuild /p:Configuration=Release /p:Platform="x64"
-      shell: powershell
-      
+    # - name: Build with MSBuild
+    #   run: |
+    #     $env:PATH += ";${{ variables.MSBuildPath }}"
+    #     msbuild /p:Configuration=Release /p:Platform="x64"
+    #   shell: powershell
+
     - name: Set up Visual Studio
       uses: microsoft/setup-msbuild@v1.0.2
       with:

@@ -187,7 +187,7 @@ void Config::loadConfig()
                                         QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Unabara").toString();
     
     // Load overlay settings
-    m_templatePath = m_settings.value("overlay/template", ":/resources/templates/default_overlay.png").toString();
+    m_templatePath = m_settings.value("overlay/template", ":/default_overlay.png").toString();
     
     // Load font
     QString fontFamily = m_settings.value("overlay/fontFamily", "Arial").toString();

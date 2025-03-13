@@ -6,7 +6,7 @@
 
 OverlayGenerator::OverlayGenerator(QObject *parent)
     : QObject(parent)
-    , m_templatePath(":/resources/templates/default_overlay.png")
+    , m_templatePath(":/default_overlay.png")
     , m_font(QFont("Arial", 12))
     , m_textColor(Qt::white)
     , m_showDepth(true)
@@ -223,9 +223,9 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
             
             // Calculate cell dimensions
             int cellWidth = tankGridRect.width() / cols;
-            int cellHeight = height / rows;
+            int cellHeight = height / ((tankCount > 2) ? tankCount / 2 : 1);
             
-            // Draw each tank in its grid cell
+            // Draw each tank in its grid cell with padding between cells
             for (int i = 0; i < tankCount; i++) {
                 int row = i / cols;
                 int col = i % cols;
@@ -236,12 +236,16 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                     cellWidth,
                     cellHeight
                 );
+                
+                // Add a small margin around each cell for better separation
+                tankRect.adjust(3, 3, -3, -3);
+                
                 drawPressure(painter, dataPoint.getPressure(i), tankRect, i, dive);
             }
             
             // Move current section past the tank grid
             currentSection += rows;
-        } 
+        }
         else {
             // No pressure data available
             drawPressure(painter, 0.0, sectionRects[currentSection++], -1, dive);
@@ -278,7 +282,8 @@ void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &r
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -301,7 +306,8 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -316,6 +322,9 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
 
 void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex, DiveData* dive) {
     painter.save();
+    
+    // Get tank count for adaptive layout
+    int tankCount = dive ? dive->cylinderCount() : 1;
     
     // Create tank label
     QString label;
@@ -332,29 +341,68 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
             }
         }
         
-        if (!gasMix.isEmpty()) {
-            label = tr("TANK %1 %2").arg(tankIndex + 1).arg(gasMix);
+        // Use shorter labels for multi-tank displays
+        if (tankCount > 2) {
+            if (!gasMix.isEmpty()) {
+                label = tr("T%1 %2").arg(tankIndex + 1).arg(gasMix);
+            } else {
+                label = tr("TNK %1").arg(tankIndex + 1);
+            }
         } else {
-            label = tr("TANK %1").arg(tankIndex + 1);
+            if (!gasMix.isEmpty()) {
+                label = tr("TANK %1 %2").arg(tankIndex + 1).arg(gasMix);
+            } else {
+                label = tr("TANK %1").arg(tankIndex + 1);
+            }
         }
     } else {
         label = tr("PRESSURE");
     }
     
-    // Draw the header using the helper function - SAME POSITION as other headers
-    drawSectionHeader(painter, label, rect);
+    // Adjust font size based on number of tanks
+    QFont headerFont = painter.font();
+    if (tankCount > 2) {
+        headerFont.setPixelSize(16); // Smaller for multi-tank
+    } else {
+        headerFont.setPixelSize(20); // Normal size
+    }
+    painter.setFont(headerFont);
     
-    // Draw pressure value at SAME POSITION as other values
+    // Calculate label position - adjust for multi-tank
+    int padding = 2; // Use smaller padding for multi-tank
+    QRect labelRect(rect.left() + padding, rect.top() + padding, 
+                   rect.width() - 2*padding, 20); // Fixed height of 20px
+    
+    // Draw the label with eliding if necessary
+    QFontMetrics fm(headerFont);
+    QString displayLabel = label;
+    if (fm.horizontalAdvance(label) > labelRect.width()) {
+        displayLabel = fm.elidedText(label, Qt::ElideRight, labelRect.width());
+    }
+    
+    painter.drawText(labelRect, Qt::AlignCenter, displayLabel);
+    
+    // Draw pressure value with adaptive sizing
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    if (tankCount > 2) {
+        valueFont.setPixelSize(20); // Smaller for multi-tank
+    } else {
+        valueFont.setPixelSize(24); // Normal size
+    }
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
     QString pressureStr = QString::number(qRound(pressure)) + " bar";
     
-    // Position value in the middle of the rect - SAME as other sections
-    QRect valueRect(rect.left() + 5, rect.top() + 35, 
-                    rect.width() - 10, 20); // Fixed position and height
+    // Position value - adjust for multi-tank
+    QRect valueRect;
+    if (tankCount > 2) {
+        valueRect = QRect(rect.left() + padding, rect.top() + 25, 
+                        rect.width() - 2*padding, 20);
+    } else {
+        valueRect = QRect(rect.left() + 5, rect.top() + 35, 
+                        rect.width() - 10, 20);
+    }
     
     painter.drawText(valueRect, Qt::AlignCenter, pressureStr);
     
@@ -375,7 +423,8 @@ void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -397,7 +446,8 @@ void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect)
     
     // Draw NDL value at SAME POSITION as other values
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -420,7 +470,8 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
     
     // Draw TTS value at SAME POSITION as other values
     QFont valueFont = painter.font();
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -434,7 +485,8 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
     
     // Draw DECO text in the bottom portion
     QFont decoFont = painter.font();
-    decoFont.setPointSize(10);
+    // decoFont.setPointSize(10);
+    decoFont.setPixelSize(14);
     decoFont.setBold(true);
     painter.setFont(decoFont);
     
@@ -477,7 +529,8 @@ void OverlayGenerator::drawDataItem(QPainter &painter, const QString &label, con
     
     // Draw label with fixed font size
     QFont labelFont = painter.font();
-    labelFont.setPointSize(10);
+    // labelFont.setPointSize(10);
+    labelFont.setPixelSize(20);
     painter.setFont(labelFont);
     
     // Calculate if we need to elide the text
@@ -492,7 +545,8 @@ void OverlayGenerator::drawDataItem(QPainter &painter, const QString &label, con
     
     // Draw value with fixed font size
     QFont valueFont = labelFont;
-    valueFont.setPointSize(12);
+    // valueFont.setPointSize(12);
+    valueFont.setPixelSize(24);
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -511,7 +565,8 @@ void OverlayGenerator::drawSectionHeader(QPainter &painter, const QString &label
     
     // Use consistent font for all labels
     QFont labelFont = painter.font();
-    labelFont.setPointSize(10);
+    // labelFont.setPointSize(10);
+    labelFont.setPixelSize(20);
     painter.setFont(labelFont);
     
     painter.drawText(labelRect, Qt::AlignCenter, label);

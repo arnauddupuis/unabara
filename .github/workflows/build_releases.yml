@@ -100,10 +100,12 @@ jobs:
     #     msbuild /p:Configuration=Release /p:Platform="x64"
     #   shell: powershell
 
-    - name: Set up Visual Studio
-      uses: microsoft/setup-msbuild@v1.0.2
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v2
       with:
-        vs-version: '2022'
+        # vs-version: '2022'
+        vs-version: '14.36'
+        msbuild-architecture: x64
 
     - name: Install dependencies
       run: |

@@ -45,16 +45,6 @@ target_include_directories(unabara PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Remove the qt_add_qml_module section since we're handling QML files via resources.qrc
-# qt_add_qml_module(unabara
-#    URI unabara
-#    VERSION 1.0
-#    QML_FILES
-#        src/ui/qml/main.qml
-#        src/ui/qml/TimelineView.qml
-#        src/ui/qml/OverlayEditor.qml
-# )
-
 target_link_libraries(unabara PRIVATE
     Qt::Core
     Qt::Gui

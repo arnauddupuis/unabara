@@ -112,7 +112,7 @@ For direct video export functionality, FFmpeg needs to be installed on your syst
 
 - **Linux**: 
    - _Ubuntu/Debian_: `sudo apt install ffmpeg`
-   - _Fedora_: `sudo apt install ffmpeg`
+   - _Fedora_: `sudo dnf install ffmpeg`
    - _Arch Linux_: `sudo pacman -S ffmpeg`
 - **macOS**: `brew install ffmpeg`
 - **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)

@@ -7,7 +7,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: '6.8.2'
+  QT_VERSION: '6.5.3'
   APP_ID: 'org.unabara.unabara'
 
 jobs:
@@ -52,10 +52,11 @@ jobs:
         flatpak build-bundle repo ${{ env.APP_ID }}.flatpak ${{ env.APP_ID }}
     
     - name: Upload Linux Flatpak Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: unabara-linux-flatpak
         path: ${{ env.APP_ID }}.flatpak
+        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -98,10 +99,11 @@ jobs:
         7z a -tzip unabara-windows.zip package\*
         
     - name: Upload Windows Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: unabara-windows
         path: ${{github.workspace}}/build/unabara-windows.zip
+        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -141,10 +143,11 @@ jobs:
         mv package/Unabara.dmg unabara-macos.dmg
         
     - name: Upload macOS Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: unabara-macos
         path: ${{github.workspace}}/build/unabara-macos.dmg
+        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'

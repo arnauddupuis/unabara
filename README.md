@@ -31,7 +31,7 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ### Dependencies
 
-- Qt 6.9.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets)
+- Qt 6.8.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets)
 - CMake 3.16 or newer
 - C++17 compatible compiler (GCC 9+, Clang 10+, MSVC 2019+)
 

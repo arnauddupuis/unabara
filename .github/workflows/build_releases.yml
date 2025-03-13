@@ -7,8 +7,8 @@ on:
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: '6.5.3'  # Adjust Qt version as needed
-  APP_ID: 'org.unabara.unabara'  # Change to your actual app ID
+  QT_VERSION: '6.8.2'
+  APP_ID: 'org.unabara.unabara'
 
 jobs:
   build-linux-flatpak:

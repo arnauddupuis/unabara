@@ -7,7 +7,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: '6.5.3'
+  QT_VERSION: '6.8.2'
   APP_ID: 'org.unabara.unabara'
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
         cat > org.unabara.unabara.yml << EOF
         app-id: ${{ env.APP_ID }}
         runtime: org.kde.Platform
-        runtime-version: '6.5'
+        runtime-version: '6.6'  # Use KDE Platform 6.6 which includes Qt 6.6+
         sdk: org.kde.Sdk
         command: unabara
         finish-args:
@@ -56,7 +56,6 @@ jobs:
       with:
         name: unabara-linux-flatpak
         path: ${{ env.APP_ID }}.flatpak
-        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -80,7 +79,6 @@ jobs:
         host: windows
         target: desktop
         arch: win64_msvc2019_64
-        modules: qtcharts qtwebengine qtwebchannel qtpositioning qtwebview
         
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -103,7 +101,6 @@ jobs:
       with:
         name: unabara-windows
         path: ${{github.workspace}}/build/unabara-windows.zip
-        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -126,7 +123,6 @@ jobs:
         host: mac
         target: desktop
         arch: clang_64
-        modules: qtcharts qtwebengine qtwebchannel qtpositioning qtwebview
         
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -147,7 +143,6 @@ jobs:
       with:
         name: unabara-macos
         path: ${{github.workspace}}/build/unabara-macos.dmg
-        overwrite: true
         
     - name: Upload to Release
       if: github.event_name == 'release'

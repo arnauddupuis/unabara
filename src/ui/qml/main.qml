@@ -246,7 +246,20 @@ ApplicationWindow {
             let path = imageExporter.createDefaultExportDir(mainWindow.currentDive)
             if (path) {
                 imageExporter.exportPath = path
-                imageExporter.exportImages(mainWindow.currentDive, overlayGenerator)
+                
+                // Check if we should export only the visible range
+                if (exportRangeOnly.checked) {
+                    // Export only the visible range from the timeline
+                    imageExporter.exportImageRange(
+                        mainWindow.currentDive, 
+                        overlayGenerator,
+                        timelineView.visibleStartTime,  
+                        timelineView.visibleEndTime
+                    )
+                } else {
+                    // Export the full dive
+                    imageExporter.exportImages(mainWindow.currentDive, overlayGenerator)
+                }
             } else {
                 messageDialog.title = qsTr("Export Error")
                 messageDialog.message = qsTr("Failed to create export directory")

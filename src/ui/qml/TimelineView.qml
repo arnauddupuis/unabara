@@ -7,6 +7,10 @@ Item {
     id: root
     
     property alias currentTime: timeline.currentTime
+    // Expose the timeline object and its properties
+    property alias timeline: timeline
+    property alias visibleStartTime: timeline.startTime
+    property alias visibleEndTime: timeline.endTime
     
     // Reference to C++ Timeline object
     Timeline {

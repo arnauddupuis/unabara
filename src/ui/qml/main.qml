@@ -13,17 +13,7 @@ ApplicationWindow {
     visible: true
     title: qsTr("Unabara - Dive Telemetry Overlay")
     
-    // Models and objects
-    OverlayGenerator {
-        id: overlayGenerator
-        templatePath: "qrc:/resources/templates/default_overlay.png"
-        showDepth: true
-        showTemperature: true
-        showTime: true
-        showNDL: true
-        showPressure: true
-    }
-    
+    // Models and objects 
     ImageExporter {
         id: imageExporter
         
@@ -128,18 +118,59 @@ ApplicationWindow {
                     anchors.fill: parent
                     fillMode: Image.PreserveAspectFit
                     cache: false
-                    source: "image://overlay/preview/" + Math.random()
+                    asynchronous: true
                     
-                    // This would be updated when the timeline position changes
+                    // Add a timer to handle the update with proper delay
+                    Timer {
+                        id: updateTimer
+                        interval: 100  // Short delay to ensure property changes are processed
+                        repeat: false
+                        onTriggered: {
+                            // Force complete source refresh with two-step approach
+                            previewImage.source = ""
+                            Qt.callLater(function() {
+                                previewImage.source = "image://overlay/preview/" + Date.now() // Use current time for unique URL
+                                console.log("Preview source updated: " + previewImage.source)
+                            })
+                        }
+                    }
+                    
+                    // This would be updated when the timeline position changes or settings change
                     property var updatePreview: function() {
                         if (mainWindow.hasActiveDive && timelineView.visible) {
-                            source = "image://overlay/preview/" + Math.random()
+                            // Use timer to delay update slightly
+                            updateTimer.restart()
                         }
                     }
                     
                     Component.onCompleted: {
-                        // Initial preview
-                        updatePreview()
+                        // Set initial source with a short delay
+                        Qt.callLater(function() {
+                            source = "image://overlay/preview/" + Date.now()
+                        })
+                    }
+                    
+                    // Monitor changes to overlay generator properties
+                    Connections {
+                        target: overlayGenerator
+                        
+                        function onShowDepthChanged() { previewImage.updatePreview() }
+                        function onShowTemperatureChanged() { previewImage.updatePreview() }
+                        function onShowTimeChanged() { previewImage.updatePreview() }
+                        function onShowNDLChanged() { previewImage.updatePreview() }
+                        function onShowPressureChanged() { previewImage.updatePreview() }
+                        function onTemplateChanged() { previewImage.updatePreview() }
+                        function onFontChanged() { previewImage.updatePreview() }
+                        function onTextColorChanged() { previewImage.updatePreview() }
+                    }
+                    
+                    // Add status changes monitoring
+                    onStatusChanged: {
+                        if (status === Image.Error) {
+                            console.error("Error loading preview image")
+                        } else if (status === Image.Ready) {
+                            console.log("Preview image loaded successfully")
+                        }
                     }
                 }
             }
@@ -314,6 +345,26 @@ ApplicationWindow {
         standardButtons: Dialog.Ok | Dialog.Cancel
         width: 400
         height: 300
+
+        // Ensure settings are applied when dialog is accepted
+        onAccepted: {
+            // Explicitly apply all settings to the generator
+            overlayGenerator.showDepth = showDepthCheckbox.checked
+            overlayGenerator.showTemperature = showTempCheckbox.checked
+            overlayGenerator.showTime = showTimeCheckbox.checked
+            overlayGenerator.showNDL = showNDLCheckbox.checked
+            overlayGenerator.showPressure = showPressureCheckbox.checked
+            
+            // Update the preview
+            previewImage.updatePreview()
+            
+            // For debugging
+            console.log("Settings applied - Depth:", overlayGenerator.showDepth, 
+                        "Temp:", overlayGenerator.showTemperature,
+                        "Time:", overlayGenerator.showTime,
+                        "NDL:", overlayGenerator.showNDL,
+                        "Pressure:", overlayGenerator.showPressure)
+        }
         
         ColumnLayout {
             anchors.fill: parent
@@ -327,6 +378,7 @@ ApplicationWindow {
                     anchors.fill: parent
                     
                     CheckBox {
+                        id: showDepthCheckbox
                         text: qsTr("Show Depth")
                         checked: overlayGenerator.showDepth
                         onCheckedChanged: {
@@ -336,6 +388,7 @@ ApplicationWindow {
                     }
                     
                     CheckBox {
+                        id: showTempCheckbox
                         text: qsTr("Show Temperature")
                         checked: overlayGenerator.showTemperature
                         onCheckedChanged: {
@@ -345,6 +398,7 @@ ApplicationWindow {
                     }
                     
                     CheckBox {
+                        id: showTimeCheckbox
                         text: qsTr("Show Time")
                         checked: overlayGenerator.showTime
                         onCheckedChanged: {
@@ -354,6 +408,7 @@ ApplicationWindow {
                     }
                     
                     CheckBox {
+                        id: showNDLCheckbox
                         text: qsTr("Show NDL")
                         checked: overlayGenerator.showNDL
                         onCheckedChanged: {
@@ -363,6 +418,7 @@ ApplicationWindow {
                     }
                     
                     CheckBox {
+                        id: showPressureCheckbox
                         text: qsTr("Show Pressure")
                         checked: overlayGenerator.showPressure
                         onCheckedChanged: {

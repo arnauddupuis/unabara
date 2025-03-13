@@ -82,39 +82,16 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2022_64'
-        modules: 'qtmultimedia qtquickcontrols2 qtdeclarative'
-        
-    # - name: Set up MSVC
-    #   uses: ilammy/msvc-dev-cmd@v1
-    #   with:
-    #     toolset: '14.36'
+        modules: 'qtmultimedia qtpositioning qtwebview'
+ 
     - name: Install MSBuild
       run: choco install visualstudio2022buildtools --package-parameters "--add Microsoft.Component.MSBuild"
-
-    # - name: Set up MSBuild path
-    #   run: |
-    #     $msbuildPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
-    #     echo "##vso[task.setvariable variable=MSBuildPath]$msbuildPath"
-    #   shell: powershell
-
-    # - name: Build with MSBuild
-    #   run: |
-    #     $env:PATH += ";${{ variables.MSBuildPath }}"
-    #     msbuild /p:Configuration=Release /p:Platform="x64"
-    #   shell: powershell
 
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v2
       with:
-        # vs-version: '2022'
         vs-version: '14.36'
         msbuild-architecture: x64
-
-    # - name: Install dependencies
-    #   run: |
-    #     "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
-    #     vcpkg install
-    #   shell: cmd
         
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}

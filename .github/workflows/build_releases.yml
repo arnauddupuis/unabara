@@ -1,0 +1,156 @@
+name: Build Releases
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual trigger for testing
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: '6.5.3'  # Adjust Qt version as needed
+  APP_ID: 'org.unabara.unabara'  # Change to your actual app ID
+
+jobs:
+  build-linux-flatpak:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flatpak flatpak-builder elfutils
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    
+    - name: Set up Flatpak manifest
+      run: |
+        cat > org.unabara.unabara.yml << EOF
+        app-id: ${{ env.APP_ID }}
+        runtime: org.kde.Platform
+        runtime-version: '6.5'
+        sdk: org.kde.Sdk
+        command: unabara
+        finish-args:
+          - --share=ipc
+          - --socket=x11
+          - --socket=wayland
+          - --filesystem=host
+          - --device=dri
+        modules:
+          - name: unabara
+            buildsystem: cmake-ninja
+            config-opts:
+              - -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+            sources:
+              - type: dir
+                path: .
+        EOF
+    
+    - name: Build Flatpak
+      run: |
+        flatpak-builder --repo=repo --force-clean build-dir org.unabara.unabara.yml
+        flatpak build-bundle repo ${{ env.APP_ID }}.flatpak ${{ env.APP_ID }}
+    
+    - name: Upload Linux Flatpak Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: unabara-linux-flatpak
+        path: ${{ env.APP_ID }}.flatpak
+        
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ env.APP_ID }}.flatpak
+        asset_name: unabara-linux.flatpak
+        tag: ${{ github.ref }}
+        overwrite: true
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: windows
+        target: desktop
+        arch: win64_msvc2019_64
+        modules: qtcharts qtwebengine qtwebchannel qtpositioning qtwebview
+        
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      
+    - name: Package with windeployqt
+      working-directory: ${{github.workspace}}/build
+      run: |
+        mkdir package
+        copy bin\${{env.BUILD_TYPE}}\unabara.exe package\
+        cd package
+        windeployqt unabara.exe --release --no-translations
+        cd ..
+        7z a -tzip unabara-windows.zip package\*
+        
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: unabara-windows
+        path: ${{github.workspace}}/build/unabara-windows.zip
+        
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{github.workspace}}/build/unabara-windows.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: mac
+        target: desktop
+        arch: clang_64
+        modules: qtcharts qtwebengine qtwebchannel qtpositioning qtwebview
+        
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      
+    - name: Package with macdeployqt
+      working-directory: ${{github.workspace}}/build
+      run: |
+        mkdir -p package/Unabara.app/Contents/MacOS/
+        cp bin/unabara package/Unabara.app/Contents/MacOS/
+        macdeployqt package/Unabara.app -dmg
+        mv package/Unabara.dmg unabara-macos.dmg
+        
+    - name: Upload macOS Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: unabara-macos
+        path: ${{github.workspace}}/build/unabara-macos.dmg
+        
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{github.workspace}}/build/unabara-macos.dmg
+        tag: ${{ github.ref }}
+        overwrite: true

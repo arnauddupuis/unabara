@@ -138,44 +138,103 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
+build-macos:
+  runs-on: macos-latest
+  steps:
+  - uses: actions/checkout@v4
+  
+  - name: Install Qt
+    uses: jurplel/install-qt-action@v4.1.1
+    with:
+      aqtversion: '==3.1.*'
+      version: ${{ env.QT_VERSION }}
+      host: mac
+      target: desktop
+      arch: clang_64
+  
+  - name: Configure CMake for Intel Build
+    run: cmake -B ${{github.workspace}}/build-x86_64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_OSX_ARCHITECTURES=x86_64
     
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: ${{ env.QT_VERSION }}
-        host: mac
-        target: desktop
-        arch: clang_64
-        
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+  - name: Build Intel Version
+    run: cmake --build ${{github.workspace}}/build-x86_64 --config ${{env.BUILD_TYPE}}
+  
+  - name: Configure CMake for ARM Build
+    run: cmake -B ${{github.workspace}}/build-arm64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_OSX_ARCHITECTURES=arm64
+    
+  - name: Build ARM Version
+    run: cmake --build ${{github.workspace}}/build-arm64 --config ${{env.BUILD_TYPE}}
+  
+  - name: Create Universal Binary
+    run: |
+      mkdir -p ${{github.workspace}}/build-universal/bin
+      lipo -create \
+        ${{github.workspace}}/build-x86_64/bin/unabara \
+        ${{github.workspace}}/build-arm64/bin/unabara \
+        -output ${{github.workspace}}/build-universal/bin/unabara
+      chmod +x ${{github.workspace}}/build-universal/bin/unabara
       
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+  - name: Package Universal App
+    working-directory: ${{github.workspace}}/build-universal
+    run: |
+      mkdir -p package/Unabara.app/Contents/MacOS/
+      cp bin/unabara package/Unabara.app/Contents/MacOS/
       
-    - name: Package with macdeployqt
-      working-directory: ${{github.workspace}}/build
-      run: |
-        mkdir -p package/Unabara.app/Contents/MacOS/
-        cp bin/unabara package/Unabara.app/Contents/MacOS/
-        macdeployqt package/Unabara.app -dmg
-        mv package/Unabara.dmg unabara-macos.dmg
-        
-    - name: Upload macOS Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: unabara-macos
-        path: ${{github.workspace}}/build/unabara-macos.dmg
-        
-    - name: Upload to Release
-      if: github.event_name == 'release'
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/build/unabara-macos.dmg
-        tag: ${{ github.ref }}
-        overwrite: true
+      # Create Info.plist
+      mkdir -p package/Unabara.app/Contents/
+      cat > package/Unabara.app/Contents/Info.plist << EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>CFBundleExecutable</key>
+        <string>unabara</string>
+        <key>CFBundleIconFile</key>
+        <string>unabara.icns</string>
+        <key>CFBundleIdentifier</key>
+        <string>org.unabara.unabara</string>
+        <key>CFBundleName</key>
+        <string>Unabara</string>
+        <key>CFBundleDisplayName</key>
+        <string>Unabara</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleSignature</key>
+        <string></string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>CFBundleVersion</key>
+        <string>1</string>
+        <key>LSMinimumSystemVersion</key>
+        <string>10.14</string>
+        <key>NSPrincipalClass</key>
+        <string>NSApplication</string>
+        <key>NSHighResolutionCapable</key>
+        <true/>
+        <key>LSArchitecturePriority</key>
+        <array>
+          <string>arm64</string>
+          <string>x86_64</string>
+        </array>
+      </dict>
+      </plist>
+      EOF
+      
+      # Deploy Qt dependencies
+      macdeployqt package/Unabara.app -dmg -verbose=3
+      mv package/Unabara.dmg unabara-macos-universal.dmg
+      
+  - name: Upload macOS Universal Artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: unabara-macos-universal
+      path: ${{github.workspace}}/build-universal/unabara-macos-universal.dmg
+      
+  - name: Upload to Release
+    if: github.event_name == 'release'
+    uses: svenstaro/upload-release-action@v2
+    with:
+      repo_token: ${{ secrets.GITHUB_TOKEN }}
+      file: ${{github.workspace}}/build-universal/unabara-macos-universal.dmg
+      asset_name: unabara-macos-universal.dmg
+      tag: ${{ github.ref }}
+      overwrite: true

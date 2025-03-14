@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Concurrent Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Multimedia DBus Concurrent Widgets)
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -44,6 +44,10 @@ qt_add_executable(unabara
     ${PROJECT_HEADERS}
 )
 
+if(APPLE)
+    set_target_properties(unabara PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
+
 target_include_directories(unabara PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -56,6 +60,8 @@ target_link_libraries(unabara PRIVATE
     Qt::Xml
     Qt::Concurrent
     Qt::Widgets
+    Qt::Multimedia
+    Qt::DBus
 )
 
 install(TARGETS unabara

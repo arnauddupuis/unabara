@@ -115,6 +115,7 @@ jobs:
         $env:PATH = "$env:Qt6_DIR\bin;$env:PATH"
         windeployqt unabara.exe --release --no-translations --qmldir=../../src/ui/qml
         cd ..
+        mv package ${{github.workspace}}/build/unabara-windows
 
     # - name: Create ZIP Archive (Direct)
     #   working-directory: ${{github.workspace}}/build
@@ -126,14 +127,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: unabara-windows
-        path: ${{github.workspace}}/build/unabara-windows.zip
+        path: ${{github.workspace}}/build/unabara-windows
         
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/build/unabara-windows.zip
+        file: ${{github.workspace}}/build/unabara-windows
         tag: ${{ github.ref }}
         overwrite: true
 

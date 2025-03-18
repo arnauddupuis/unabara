@@ -20,6 +20,7 @@ class VideoExporter : public QObject
     Q_PROPERTY(QString videoCodec READ videoCodec WRITE setVideoCodec NOTIFY videoCodecChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
+    Q_PROPERTY(QSize customResolution READ customResolution WRITE setCustomResolution NOTIFY customResolutionChanged)
     
 public:
     explicit VideoExporter(QObject *parent = nullptr);
@@ -75,10 +76,12 @@ signals:
     void exportFinished(bool success, const QString &path);
     void exportError(const QString &errorMessage);
     void statusUpdate(const QString &message);
+    void customResolutionChanged();
     
 private slots:
     void processFFmpegOutput();
     void onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void updateEncodingProgress();
     
 private:
     QString m_exportPath;
@@ -89,9 +92,14 @@ private:
     bool m_busy;
     QSize m_customResolution;
     QString m_lastOutputPath;
+    double m_exportStartTime;
+    double m_exportEndTime;
     
     QProcess* m_ffmpegProcess;
+    QTimer* m_progressTimer;
     QTemporaryDir m_tempDir;
+    // QThread* m_workerThread;
+    // QObject* m_worker;
     
     // Frame generation stages
     bool generateFrames(DiveData* dive, OverlayGenerator* generator,
@@ -106,6 +114,8 @@ private:
     QString sanitizeFileName(const QString &fileName);
     QString generateUniqueFileName(DiveData* dive, const QString &extension);
     void cleanupTempFiles();
+    QSize getDefaultOverlaySize();
+    QStringList createFFmpegArgs(const QString &outputPath);
 };
 
 #endif // VIDEO_EXPORT_H

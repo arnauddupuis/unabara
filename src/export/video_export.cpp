@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QDebug>
+#include <QTimer>
 
 VideoExporter::VideoExporter(QObject *parent)
     : QObject(parent)
@@ -26,6 +27,10 @@ VideoExporter::VideoExporter(QObject *parent)
     if (!m_tempDir.isValid()) {
         qWarning() << "Failed to create temporary directory for frame storage";
     }
+
+    m_progressTimer = new QTimer(this);
+    connect(m_progressTimer, &QTimer::timeout, this, &VideoExporter::updateEncodingProgress);
+
 }
 
 VideoExporter::~VideoExporter()
@@ -78,6 +83,7 @@ void VideoExporter::setCustomResolution(const QSize &size)
 {
     if (m_customResolution != size && size.isValid()) {
         m_customResolution = size;
+        emit customResolutionChanged();
     }
 }
 
@@ -151,6 +157,28 @@ QString VideoExporter::getFileExtensionForCodec(const QString &codec)
 bool VideoExporter::exportVideo(DiveData* dive, OverlayGenerator* generator,
                               double startTime, double endTime)
 {
+    qDebug() << "======== EXPORT VIDEO CALLED ========";
+    qDebug() << "Parameters:" << startTime << "to" << endTime;
+    // Add the duplicate call detection as suggested
+    static double lastStartTime = -1;
+    static double lastEndTime = -1;
+    static QDateTime lastExportTime;
+    m_exportStartTime = startTime;
+    m_exportEndTime = endTime;
+    
+    QDateTime currentTime = QDateTime::currentDateTime();
+    // If the same export was attempted in the last 2 seconds, ignore it
+    if (lastStartTime == startTime && lastEndTime == endTime && 
+        lastExportTime.msecsTo(currentTime) < 2000) {
+        qDebug() << "Ignoring duplicate export request within 2 seconds";
+        return true; // Return success to avoid error messages
+    }
+    
+    // Update the last export parameters
+    lastStartTime = startTime;
+    lastEndTime = endTime;
+    lastExportTime = currentTime;
+
     if (m_busy) {
         emit exportError(tr("Already exporting video"));
         return false;
@@ -324,12 +352,13 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
         return false;
     }
     
-    // Set up the FFmpeg command
-    QString inputPattern = QString("%1/frame_%06d.png").arg(m_tempDir.path());
-    
-    // Prepare arguments
+    // Set up the FFmpeg command with arguments
     QStringList args;
-    args << "-y" << "-framerate" << QString::number(m_frameRate) << "-i" << inputPattern;
+    args << "-y"
+         << "-progress" << "-" // Output progress info to stdout
+         << "-stats" // Show stats
+         << "-framerate" << QString::number(m_frameRate) 
+         << "-i" << QString("%1/frame_%06d.png").arg(m_tempDir.path());
     
     // Add scale filter if custom resolution is set
     if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
@@ -351,7 +380,11 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
     }
     qInfo() << "FFmpeg command:" << cmdLog;
     
-    // Start the FFmpeg process with the program and arguments list
+    // Start progress timer for animation
+    m_progressTimer->start(500);
+    qDebug() << "Started progress timer";
+    
+    // Start the FFmpeg process
     m_ffmpegProcess->start(ffmpegPath, args);
     
     // Wait for the process to start
@@ -361,77 +394,102 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
         return false;
     }
     
-    // Wait for the process to finish with a timeout
-    bool finished = m_ffmpegProcess->waitForFinished(300000); // 5 minute timeout
+    return true; // Process started successfully
+}
+
+QStringList VideoExporter::createFFmpegArgs(const QString &outputPath)
+{
+    QStringList args;
+    args << "-y"
+         << "-progress" << "-" // Output progress info to stdout
+         << "-stats" // Show stats
+         << "-framerate" << QString::number(m_frameRate) 
+         << "-i" << QString("%1/frame_%06d.png").arg(m_tempDir.path());
     
-    if (!finished) {
-        emit exportError(tr("FFmpeg process timed out"));
-        m_ffmpegProcess->terminate();
-        return false;
+    // Add scale filter if custom resolution is set
+    if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
+        args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
     }
     
-    // Capture all error output if process failed
-    if (m_ffmpegProcess->exitCode() != 0) {
-        QString errorOutput = QString::fromUtf8(m_ffmpegProcess->readAllStandardError());
-        QString fullError = tr("FFmpeg exited with error code: %1\nError details: %2")
-                              .arg(m_ffmpegProcess->exitCode())
-                              .arg(errorOutput);
-        qInfo() << fullError;
-        emit exportError(fullError);
-        return false;
+    // Add codec-specific options
+    QString formatOptions = getFormatOptions(m_videoCodec);
+    QStringList formatArgs = formatOptions.split(" ", Qt::SkipEmptyParts);
+    args.append(formatArgs);
+    
+    // Add output file
+    args << outputPath;
+    
+    return args;
+}
+
+void VideoExporter::updateEncodingProgress()
+{
+    // If FFmpeg isn't running, there's nothing to update
+    if (!m_ffmpegProcess || m_ffmpegProcess->state() != QProcess::Running) {
+        return;
     }
     
-    return true;
+    // If the progress hasn't changed recently and we're in the encoding phase (>50%),
+    // gently increase it to show activity
+    static int lastProgress = 0;
+    static int unchangedCount = 0;
+    
+    if (m_progress >= 50 && m_progress < 99 && lastProgress == m_progress) {
+        unchangedCount++;
+        if (unchangedCount > 4) { // After ~2 seconds of no updates
+            // Small increment just to show activity
+            m_progress++;
+            lastProgress = m_progress;
+            unchangedCount = 0;
+            emit progressChanged();
+            qDebug() << "Incrementing progress to show activity:" << m_progress << "%";
+        }
+    } else if (lastProgress != m_progress) {
+        lastProgress = m_progress;
+        unchangedCount = 0;
+    }
+    
+    // Send periodic status updates to keep UI responsive
+    static int statusUpdateCount = 0;
+    statusUpdateCount = (statusUpdateCount + 1) % 5;
+    if (statusUpdateCount == 0) {
+        QString statusMsg = tr("Encoding video... %1%").arg(m_progress);
+        emit statusUpdate(statusMsg);
+    }
 }
 
 void VideoExporter::processFFmpegOutput()
 {
     // Process the FFmpeg stdout and stderr
     if (m_ffmpegProcess) {
-        // Read stdout
-        if (m_ffmpegProcess->canReadLine()) {
-            QByteArray stdoutBytes = m_ffmpegProcess->readAllStandardOutput();
-            QString stdoutStr = QString::fromUtf8(stdoutBytes);
-            
-            qDebug() << "FFmpeg stdout:" << stdoutStr.trimmed();
-            
-            // Parse progress information if available
-            // Example: frame= 1234 fps= 43 q=24.0 size=   12345kB time=00:01:23.45 bitrate= 1234.5kbits/s
-            QRegularExpression timeRegex("time=(\\d+):(\\d+):(\\d+\\.\\d+)");
-            QRegularExpressionMatch match = timeRegex.match(stdoutStr);
-            
-            if (match.hasMatch()) {
-                // Extract hours, minutes, seconds
-                int hours = match.captured(1).toInt();
-                int minutes = match.captured(2).toInt();
-                double seconds = match.captured(3).toDouble();
-                
-                // Calculate total seconds
-                double totalSeconds = hours * 3600 + minutes * 60 + seconds;
-                
-                // Calculate progress percentage for video encoding (50-100%)
-                // Assuming we know the total duration in seconds
-                double totalDuration = (m_frameRate > 0) ? 
-                    static_cast<double>(QDir(m_tempDir.path()).entryList(QStringList() << "*.png").count()) / m_frameRate : 0;
-                
-                if (totalDuration > 0) {
-                    int encodeProgress = static_cast<int>((totalSeconds / totalDuration) * 50);
-                    m_progress = 50 + qMin(encodeProgress, 50); // Frame generation was 50%, encoding is the other 50%
-                    emit progressChanged();
-                }
-            }
+        QByteArray output = m_ffmpegProcess->readAllStandardOutput();
+        output.append(m_ffmpegProcess->readAllStandardError());
+        
+        if (output.isEmpty()) {
+            return;
         }
         
-        // Read stderr
-        if (m_ffmpegProcess->canReadLine()) {
-            QByteArray stderrBytes = m_ffmpegProcess->readAllStandardError();
-            QString stderrStr = QString::fromUtf8(stderrBytes);
+        QString outputStr = QString::fromUtf8(output);
+        
+        // Parse frame information (most reliable for progress)
+        QRegularExpression frameRegex("frame=\\s*(\\d+)");
+        QRegularExpressionMatch frameMatch = frameRegex.match(outputStr);
+        
+        if (frameMatch.hasMatch()) {
+            int currentFrame = frameMatch.captured(1).toInt();
+            int totalFrames = QDir(m_tempDir.path()).entryList(QStringList() << "*.png").count();
             
-            qDebug() << "FFmpeg stderr:" << stderrStr.trimmed();
-            
-            // Look for warnings or errors
-            if (stderrStr.contains("error", Qt::CaseInsensitive)) {
-                emit statusUpdate(tr("FFmpeg error: %1").arg(stderrStr.trimmed()));
+            if (totalFrames > 0) {
+                // Calculate progress (50% for generation, 50% for encoding)
+                int encodingProgress = (currentFrame * 50) / totalFrames;
+                int newProgress = 50 + qMin(encodingProgress, 50);
+                
+                if (newProgress != m_progress) {
+                    m_progress = newProgress;
+                    emit progressChanged();
+                    emit statusUpdate(tr("Encoding frame %1 of %2").arg(currentFrame).arg(totalFrames));
+                    qDebug() << "Progress:" << m_progress << "% (Frame:" << currentFrame << "/" << totalFrames << ")";
+                }
             }
         }
     }
@@ -439,6 +497,8 @@ void VideoExporter::processFFmpegOutput()
 
 void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
+    m_progressTimer->stop();
+    
     bool success = false;
     
     if (exitStatus == QProcess::CrashExit) {
@@ -446,13 +506,13 @@ void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStat
     } else if (exitCode != 0) {
         emit exportError(tr("FFmpeg exited with error code: %1").arg(exitCode));
     } else {
-        m_progress = 100;
+        m_progress = 100; // Ensure we reach 100%
         emit progressChanged();
         emit statusUpdate(tr("Video encoding completed successfully"));
         success = true;
     }
     
-    // Clean up temp files now that encoding is done
+    // Clean up temp files
     cleanupTempFiles();
     
     m_busy = false;
@@ -520,41 +580,153 @@ QString VideoExporter::getFormatOptions(const QString &codec)
     return QString("-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -movflags +faststart -b:v %1k").arg(m_videoBitrate);
 }
 
+QSize VideoExporter::getDefaultOverlaySize()
+{
+    // Load the default overlay image and get its dimensions
+    QImage defaultOverlay(":/default_overlay.png");
+    if (!defaultOverlay.isNull()) {
+        QSize size = defaultOverlay.size();
+        qDebug() << "Using default overlay size:" << size;
+        return size;
+    }
+    
+    // If default overlay can't be loaded for some reason, fall back to 16:9 HD
+    qWarning() << "Could not load default overlay image, using fallback size 1280x720";
+    return QSize(1280, 720);
+}
+
 QSize VideoExporter::detectVideoResolution(const QString &videoPath)
 {
     if (videoPath.isEmpty()) {
-        return QSize();
+        qWarning() << "Empty video path provided to detectVideoResolution";
+        return getDefaultOverlaySize();
     }
+
+    qDebug() << "Detecting resolution for video:" << videoPath;
 
     // Use FFmpeg to detect video resolution
     QString ffmpegPath = findFFmpegPath();
     if (ffmpegPath.isEmpty()) {
-        return QSize();
+        qWarning() << "FFmpeg not found, cannot detect video resolution";
+        return getDefaultOverlaySize();
     }
 
+    // Approach 1: Use FFmpeg with more verbose output to stderr
     QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels); // Merge stdout and stderr
+    
     QStringList args;
-    args << "-i" << videoPath << "-hide_banner";
+    args << "-i" << videoPath;
+    
+    qDebug() << "Running FFmpeg info command:" << ffmpegPath << args.join(" ");
     
     process.start(ffmpegPath, args);
-    process.waitForFinished();
+    process.waitForFinished(5000);
     
-    // FFmpeg outputs to stderr
-    QString output = process.readAllStandardError();
+    QString output = process.readAllStandardOutput();
+    qDebug() << "FFmpeg info output length:" << output.length();
+    qDebug() << "FFmpeg info output sample:" << output.left(200);
     
-    // Parse the output to find video stream info
-    QRegularExpression resolutionRegex("Stream #\\d+:\\d+.*? (\\d+)x(\\d+)");
-    QRegularExpressionMatch match = resolutionRegex.match(output);
+    // Look for Stream information that contains resolution
+    QRegularExpression videoStreamRegex("Stream\\s+#\\d+:\\d+(?:\\[0x[0-9a-f]+\\])?[^,]*:\\s+Video[^,]*,\\s+([^,]*,\\s+)?([0-9]+x[0-9]+)");
+    QRegularExpressionMatch videoStreamMatch = videoStreamRegex.match(output);
     
-    if (match.hasMatch()) {
-        int width = match.captured(1).toInt();
-        int height = match.captured(2).toInt();
+    if (videoStreamMatch.hasMatch()) {
+        QString resString = videoStreamMatch.captured(2); // This should be something like "1920x1080"
+        QRegularExpression resolutionRegex("(\\d+)x(\\d+)");
+        QRegularExpressionMatch match = resolutionRegex.match(resString);
         
-        qDebug() << "Detected video resolution:" << width << "x" << height;
-        return QSize(width, height);
+        if (match.hasMatch()) {
+            int width = match.captured(1).toInt();
+            int height = match.captured(2).toInt();
+            
+            if (width > 0 && height > 0) {
+                qDebug() << "Detected video resolution:" << width << "x" << height;
+                return QSize(width, height);
+            }
+        }
     }
     
-    return QSize();
+    // Approach 2: Use FFprobe with different options
+    QString ffprobePath = ffmpegPath;
+    ffprobePath.replace("ffmpeg", "ffprobe");
+    
+    QStringList ffprobeArgs;
+    ffprobeArgs << "-v" << "quiet" 
+                << "-print_format" << "json" 
+                << "-show_format" 
+                << "-show_streams" 
+                << videoPath;
+    
+    qDebug() << "Running ffprobe command:" << ffprobePath << ffprobeArgs.join(" ");
+    
+    process.start(ffprobePath, ffprobeArgs);
+    if (!process.waitForFinished(5000)) {
+        qWarning() << "ffprobe process timed out";
+        process.kill();
+        return getDefaultOverlaySize();
+    }
+    
+    QString ffprobeOutput = process.readAllStandardOutput();
+    qDebug() << "ffprobe output length:" << ffprobeOutput.length();
+    
+    if (!ffprobeOutput.isEmpty()) {
+        // Look for width and height in the JSON output
+        QRegularExpression widthRegex("\"width\"\\s*:\\s*(\\d+)");
+        QRegularExpression heightRegex("\"height\"\\s*:\\s*(\\d+)");
+        
+        QRegularExpressionMatch widthMatch = widthRegex.match(ffprobeOutput);
+        QRegularExpressionMatch heightMatch = heightRegex.match(ffprobeOutput);
+        
+        if (widthMatch.hasMatch() && heightMatch.hasMatch()) {
+            int width = widthMatch.captured(1).toInt();
+            int height = heightMatch.captured(1).toInt();
+            
+            if (width > 0 && height > 0) {
+                qDebug() << "Detected video resolution (ffprobe):" << width << "x" << height;
+                return QSize(width, height);
+            }
+        }
+    }
+    
+    // If all else fails, use ffmpeg with simpler approach that focuses just on resolution
+    QStringList simpleArgs;
+    simpleArgs << "-v" << "error" 
+              << "-i" << videoPath
+              << "-select_streams" << "v:0" 
+              << "-show_entries" << "stream=width,height" 
+              << "-of" << "default=noprint_wrappers=1";
+    
+    qDebug() << "Running simple ffmpeg resolution command:" << ffmpegPath << simpleArgs.join(" ");
+    
+    process.start(ffmpegPath, simpleArgs);
+    if (!process.waitForFinished(5000)) {
+        qWarning() << "Simple ffmpeg process timed out";
+        process.kill();
+        return getDefaultOverlaySize();
+    }
+    
+    QString simpleOutput = process.readAllStandardOutput();
+    qDebug() << "Simple ffmpeg output:" << simpleOutput;
+    
+    QRegularExpression widthRegex("width=(\\d+)");
+    QRegularExpression heightRegex("height=(\\d+)");
+    
+    QRegularExpressionMatch widthMatch = widthRegex.match(simpleOutput);
+    QRegularExpressionMatch heightMatch = heightRegex.match(simpleOutput);
+    
+    if (widthMatch.hasMatch() && heightMatch.hasMatch()) {
+        int width = widthMatch.captured(1).toInt();
+        int height = heightMatch.captured(1).toInt();
+        
+        if (width > 0 && height > 0) {
+            qDebug() << "Detected video resolution (simple):" << width << "x" << height;
+            return QSize(width, height);
+        }
+    }
+    
+    qWarning() << "All resolution detection methods failed, using default overlay size";
+    return getDefaultOverlaySize();
 }
 
 QString VideoExporter::createDefaultExportFile(DiveData* dive)

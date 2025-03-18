@@ -75,19 +75,85 @@ ApplicationWindow {
             messageDialog.open()
         }
     }
+
+    Connections {
+        target: videoExporter
+        function onProgressChanged() {
+            // Debug progress updates
+            console.log("Progress update from C++:", videoExporter.progress);
+            
+            // Set timer to ensure UI updates
+            videoExportProgressDialog.value = videoExporter.progress;
+            
+            // Force immediate refresh
+            if (videoExportProgressDialog.visible) {
+                progressBarContainer.Layout.preferredHeight += 0.001;
+                progressBarContainer.Layout.preferredHeight -= 0.001;
+            }
+        }
+    }
+
+    Timer {
+        id: progressUpdateTimer
+        interval: 250 // Check every 250ms
+        repeat: true
+        running: videoExportProgressDialog.visible
+        
+        onTriggered: {
+            if (videoExportProgressDialog.visible) {
+                // Force update from latest value
+                videoExportProgressDialog.value = videoExporter.progress;
+                console.log("Timer checking progress:", videoExporter.progress, "%");
+            }
+        }
+    }
     
     // Hidden MediaPlayer to get video metadata
     MediaPlayer {
         id: metadataPlayer
         source: ""
         
+        // onSourceChanged: function() {
+        //     if (source != "") {
+        //         console.log("Loading video metadata from:", source)
+        //     }
+        // }
+        
+        // onPlaybackStateChanged: function() {
+        //     if (playbackState === MediaPlayer.PlayingState) {
+        //         // Immediately pause once it starts playing
+        //         pause()
+        //     }
+        // }
+        
+        // onDurationChanged: function() {
+        //     if (duration > 0 && hasVideo) {
+        //         var durationInSeconds = duration/1000;
+        //         console.log("Video metadata loaded: Duration =", durationInSeconds, "seconds")
+        //         timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
+                
+        //         // Default to positioning video at the beginning of the dive
+        //         timelineView.timeline.videoOffset = 0.0
+        //     }
+        // }
+
+        // Add media-specific properties
+        videoOutput: VideoOutput { visible: false } // Create an invisible VideoOutput
+        
         onSourceChanged: function() {
             if (source != "") {
                 console.log("Loading video metadata from:", source)
+                // Force the player to load the metadata
+                metadataLoaded = false
+                metadataPlayer.play()
             }
         }
         
+        // Add property to track metadata loading
+        property bool metadataLoaded: false
+        
         onPlaybackStateChanged: function() {
+            console.log("Metadata player state changed:", playbackState)
             if (playbackState === MediaPlayer.PlayingState) {
                 // Immediately pause once it starts playing
                 pause()
@@ -95,13 +161,33 @@ ApplicationWindow {
         }
         
         onDurationChanged: function() {
-            if (duration > 0 && hasVideo) {
+            console.log("Duration changed:", duration)
+            if (duration > 0) {
+                metadataLoaded = true
                 var durationInSeconds = duration/1000;
                 console.log("Video metadata loaded: Duration =", durationInSeconds, "seconds")
-                timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
                 
+                // Get video resolution
+                console.log("Video resolution:", metadataPlayer.metaData.resolution)
+                
+                timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
                 // Default to positioning video at the beginning of the dive
                 timelineView.timeline.videoOffset = 0.0
+            }
+        }
+        
+        onErrorStringChanged: function() {
+            if (errorString) {
+                console.error("MediaPlayer error:", errorString)
+            }
+        }
+        
+        onMetaDataChanged: function() {
+            console.log("Metadata received:", JSON.stringify(metaData))
+            
+            // Access specific metadata properties
+            if (metaData && metaData.resolution) {
+                console.log("Video resolution from metadata:", metaData.resolution)
             }
         }
     }
@@ -374,7 +460,7 @@ ApplicationWindow {
             
             // Then use MediaPlayer to determine video duration
             metadataPlayer.source = selectedFile;
-            metadataPlayer.play();  // Start playback to initialize metadata
+            // metadataPlayer.play();  // Start playback to initialize metadata
             metadataTimer.start();
             
             // Show message about successful import
@@ -396,7 +482,99 @@ ApplicationWindow {
         // Move standard buttons to the footer
         footer: DialogButtonBox {
             standardButtons: Dialog.Ok | Dialog.Cancel
-            onAccepted: exportImagesDialog.accept()
+            // Define a function to handle video export
+            function handleExport() {
+                console.log("Export dialog accepted - this should only print once");
+                if (exportTypeImages.checked) {
+                    // Images export mode
+                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
+                    if (path) {
+                        imageExporter.exportPath = path;
+                        
+                        // Check if we have a video and should export only the video portion
+                        if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
+                            // Export only the video range - use the methods
+                            let videoStart = timelineView.timeline.getVideoStartTime();
+                            let videoEnd = timelineView.timeline.getVideoEndTime();
+                            
+                            console.log("Exporting video range from", videoStart, "to", videoEnd);
+                            
+                            imageExporter.exportImageRange(
+                                mainWindow.currentDive, 
+                                overlayGenerator,
+                                videoStart,  
+                                videoEnd
+                            );
+                        }
+                        // Check if we should export only the visible range
+                        else if (exportRangeOnly.checked) {
+                            // Export only the visible range from the timeline
+                            imageExporter.exportImageRange(
+                                mainWindow.currentDive, 
+                                overlayGenerator,
+                                timelineView.visibleStartTime,  
+                                timelineView.visibleEndTime
+                            );
+                        } else {
+                            // Export the full dive
+                            imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
+                        }
+                    } else {
+                        messageDialog.title = qsTr("Export Error");
+                        messageDialog.message = qsTr("Failed to create export directory");
+                        messageDialog.open();
+                    }
+                } else {
+                    // Video export mode
+                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive);
+                    if (outputFile) {
+                        // Just pass the file path directly, don't manipulate it further
+                        videoExporter.frameRate = videoFrameRateSpinBox.value;
+                        videoExporter.videoBitrate = bitrateSlider.value;
+                        videoExporter.videoCodec = codecComboBox.currentText;
+                        
+                        // Handle resolution matching
+                        if (matchVideoResolutionCheckbox.checked && timelineView.videoPath !== "") {
+                            // Detect and use the video's resolution
+                            let videoRes = videoExporter.detectVideoResolution(timelineView.videoPath);
+                            if (videoRes.width > 0 && videoRes.height > 0) {
+                                videoExporter.customResolution = videoRes;
+                            }
+                        } else {
+                            // Use default resolution from the template
+                            videoExporter.customResolution = Qt.size(0, 0);
+                        }
+                        
+                        // Determine the time range to export
+                        let startTime, endTime;
+                        
+                        if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
+                            // Export the imported video's time range
+                            startTime = timelineView.timeline.getVideoStartTime();
+                            endTime = timelineView.timeline.getVideoEndTime();
+                        } else if (exportRangeOnly.checked) {
+                            // Export the visible range from the timeline
+                            startTime = timelineView.visibleStartTime;
+                            endTime = timelineView.visibleEndTime;
+                        } else {
+                            // Export the full dive
+                            startTime = 0;
+                            endTime = mainWindow.currentDive.durationSeconds;
+                        }
+                        
+                        console.log("Exporting video from", startTime, "to", endTime);
+                        videoExporter.exportVideo(mainWindow.currentDive, overlayGenerator, startTime, endTime);
+                    } else {
+                        messageDialog.title = qsTr("Export Error");
+                        messageDialog.message = qsTr("Failed to create export file");
+                        messageDialog.open();
+                    }
+                }
+            }
+            onAccepted: {
+                handleExport();
+                exportImagesDialog.accept();
+            }
             onRejected: exportImagesDialog.reject()
             padding: 10
         }
@@ -430,94 +608,6 @@ ApplicationWindow {
             interval: 10
             onTriggered: {
                 exportImagesDialog.height = contentColumn.implicitHeight + 140
-            }
-        }
-        
-        onAccepted: {
-            if (exportTypeImages.checked) {
-                // Images export mode
-                let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
-                if (path) {
-                    imageExporter.exportPath = path;
-                    
-                    // Check if we have a video and should export only the video portion
-                    if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
-                        // Export only the video range - use the methods
-                        let videoStart = timelineView.timeline.getVideoStartTime();
-                        let videoEnd = timelineView.timeline.getVideoEndTime();
-                        
-                        console.log("Exporting video range from", videoStart, "to", videoEnd);
-                        
-                        imageExporter.exportImageRange(
-                            mainWindow.currentDive, 
-                            overlayGenerator,
-                            videoStart,  
-                            videoEnd
-                        );
-                    }
-                    // Check if we should export only the visible range
-                    else if (exportRangeOnly.checked) {
-                        // Export only the visible range from the timeline
-                        imageExporter.exportImageRange(
-                            mainWindow.currentDive, 
-                            overlayGenerator,
-                            timelineView.visibleStartTime,  
-                            timelineView.visibleEndTime
-                        );
-                    } else {
-                        // Export the full dive
-                        imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
-                    }
-                } else {
-                    messageDialog.title = qsTr("Export Error");
-                    messageDialog.message = qsTr("Failed to create export directory");
-                    messageDialog.open();
-                }
-            } else {
-                // Video export mode
-                let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive);
-                if (outputFile) {
-                    // Just pass the file path directly, don't manipulate it further
-                    videoExporter.frameRate = videoFrameRateSpinBox.value;
-                    videoExporter.videoBitrate = bitrateSlider.value;
-                    videoExporter.videoCodec = codecComboBox.currentText;
-                    
-                    // Handle resolution matching
-                    if (matchVideoResolutionCheckbox.checked && timelineView.videoPath !== "") {
-                        // Detect and use the video's resolution
-                        let videoRes = videoExporter.detectVideoResolution(timelineView.videoPath);
-                        if (videoRes.width > 0 && videoRes.height > 0) {
-                            videoExporter.customResolution = videoRes;
-                        }
-                    } else {
-                        // Use default resolution from the template
-                        videoExporter.customResolution = Qt.size(0, 0);
-                    }
-                    
-                    // Determine the time range to export
-                    let startTime, endTime;
-                    
-                    if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
-                        // Export the imported video's time range
-                        startTime = timelineView.timeline.getVideoStartTime();
-                        endTime = timelineView.timeline.getVideoEndTime();
-                    } else if (exportRangeOnly.checked) {
-                        // Export the visible range from the timeline
-                        startTime = timelineView.visibleStartTime;
-                        endTime = timelineView.visibleEndTime;
-                    } else {
-                        // Export the full dive
-                        startTime = 0;
-                        endTime = mainWindow.currentDive.durationSeconds;
-                    }
-                    
-                    console.log("Exporting video from", startTime, "to", endTime);
-                    videoExporter.exportVideo(mainWindow.currentDive, overlayGenerator, startTime, endTime);
-                } else {
-                    messageDialog.title = qsTr("Export Error");
-                    messageDialog.message = qsTr("Failed to create export file");
-                    messageDialog.open();
-                }
             }
         }
         
@@ -715,7 +805,7 @@ ApplicationWindow {
                         id: matchVideoResolutionCheckbox
                         text: qsTr("Match video resolution")
                         enabled: timelineView.videoPath !== ""
-                        checked: timelineView.videoPath !== ""
+                        checked: false
                         Layout.fillWidth: true
                         
                         ToolTip {
@@ -903,6 +993,19 @@ ApplicationWindow {
             videoExporter.cancelExport();
         }
         
+        // Add a timer to force UI updates
+        Timer {
+            id: uiRefreshTimer
+            interval: 100
+            repeat: true
+            running: videoExportProgressDialog.visible
+            
+            onTriggered: {
+                // Force layout refresh
+                progressBarContainer.Layout.preferredHeight = progressBarContainer.Layout.preferredHeight
+            }
+        }
+        
         ColumnLayout {
             anchors.fill: parent
             spacing: 20
@@ -913,9 +1016,51 @@ ApplicationWindow {
                 font.bold: true
             }
             
-            ProgressBar {
-                value: videoExportProgressDialog.value / 100
+            // Wrap the ProgressBar in a container
+            Item {
+                id: progressBarContainer
                 Layout.fillWidth: true
+                Layout.preferredHeight: 24
+                
+                ProgressBar {
+                    id: exportProgressBar
+                    anchors.fill: parent
+                    value: videoExportProgressDialog.value / 100
+                    
+                    // Add a pulse animation to indicate activity
+                    Rectangle {
+                        id: pulseAnimation
+                        width: Math.min(30, exportProgressBar.width / 10) // Make width proportional but not too wide
+                        height: Math.min(4, parent.height * 0.5)
+                        radius: height / 2 // Rounded corners to match progress bar
+                        color: Qt.rgba(1, 1, 1, 0.25) // Subtle white with low opacity
+                        visible: parent.value > 0 && parent.value < 1.0
+                        y: (parent.height - height) / 2
+                        
+                        SequentialAnimation on x {
+                            loops: Animation.Infinite
+                            running: pulseAnimation.visible
+                            // Start from the left side
+                            PropertyAnimation {
+                                from: 0
+                                to: exportProgressBar.width - pulseAnimation.width
+                                duration: 1500
+                                easing.type: Easing.InOutQuad // Smoother easing
+                            }
+                            // Go back to the start
+                            PropertyAnimation {
+                                from: exportProgressBar.width - pulseAnimation.width
+                                to: 0
+                                duration: 1500
+                                easing.type: Easing.InOutQuad
+                            }
+                        }
+                    }
+                    
+                    onValueChanged: {
+                        console.log("Progress bar value updated to:", Math.round(value * 100), "%");
+                    }
+                }
             }
             
             Label {

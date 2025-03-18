@@ -115,8 +115,8 @@ Item {
                     
                     SpinBox {
                         id: videoOffsetSpinBox
-                        from: -3600
-                        to: 3600
+                        from: -18000
+                        to: 18000
                         
                         Component.onCompleted: {
                             // Set initial value without creating a binding

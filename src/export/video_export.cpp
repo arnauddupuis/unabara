@@ -93,43 +93,61 @@ bool VideoExporter::isFFmpegAvailable()
     return !ffmpegPath.isEmpty();
 }
 
-QString VideoExporter::findFFmpegPath()
+QString VideoExporter::ffmpegCommandName()
 {
-    // First, try to find FFmpeg in the same directory as the application
-    QString appDir = QCoreApplication::applicationDirPath();
-    QFileInfo ffmpegFile(appDir + "/ffmpeg");
-    
-    if (ffmpegFile.exists() && ffmpegFile.isExecutable()) {
-        return ffmpegFile.absoluteFilePath();
-    }
-    
-    // Next, try system paths
-    QString ffmpegCommand = "ffmpeg";
-    
-#ifdef Q_OS_WIN
-    ffmpegCommand += ".exe";
+#if Q_OS_WIN
+    return "ffmpeg.exe";
+#else
+    return "ffmpeg";
 #endif
-    
-    QString path = QStandardPaths::findExecutable(ffmpegCommand);
-    if (!path.isEmpty()) {
-        return path;
-    }
-    
-    // On Windows, also check Program Files
+}
+
+QStringList VideoExporter::listFfmpegPossiblePaths()
+{
 #ifdef Q_OS_WIN
-    QStringList possiblePaths = {
+    return {
         "C:/Program Files/ffmpeg/bin/ffmpeg.exe",
         "C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe"
     };
-    
-    for (const QString &testPath : possiblePaths) {
-        QFileInfo fi(testPath);
-        if (fi.exists() && fi.isExecutable()) {
-            return fi.absoluteFilePath();
-        }
-    }
 #endif
-    
+#ifdef Q_OS_APPLE
+    return {
+        "/opt/homebrew/bin/",
+        "/usr/local/bin/",
+    };
+#else
+    return {
+        "/usr/local/bin/",
+    };
+#endif
+}
+
+QString VideoExporter::findFFmpegPath()
+{
+    QString ffmpegCommand = ffmpegCommandName();
+
+    // First, try to find FFmpeg packaged in our app directory
+    QString appDir = QCoreApplication::applicationDirPath();
+    QFileInfo ffmpegFile(appDir + "/" + ffmpegCommand);
+
+    if (ffmpegFile.exists() && ffmpegFile.isExecutable()) {
+        return ffmpegFile.absoluteFilePath();
+    }
+
+    // Next, try "standard" user install paths like brew dest dir or /usr/local
+    // for manual builds when you donàt override the defaults
+    QStringList userPaths = listFfmpegPossiblePaths();
+    QString path = QStandardPaths::findExecutable(ffmpegCommand, userPaths);
+    if (!path.isEmpty()) {
+        return path;
+    }
+
+    // Finally, try standard system paths
+    path = QStandardPaths::findExecutable(ffmpegCommand);
+    if (!path.isEmpty()) {
+        return path;
+    }
+
     return QString();
 }
 

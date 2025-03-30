@@ -48,6 +48,7 @@ struct DiveDataPoint {
 
 // Represents a cylinder (tank) used in a dive
 struct CylinderInfo {
+    int index;              // Index of this cylinder in the dive
     QString description;    // Cylinder description (e.g., "AL80")
     double size;            // Cylinder size in liters
     double workPressure;    // Working pressure in bar
@@ -57,8 +58,13 @@ struct CylinderInfo {
     double endPressure;     // Ending pressure in bar
     
     CylinderInfo() 
-        : size(0.0), workPressure(0.0), o2Percent(21.0), hePercent(0.0),
+        : index(0), size(0.0), workPressure(0.0), o2Percent(21.0), hePercent(0.0),
           startPressure(0.0), endPressure(0.0) {}
+};
+
+struct GasSwitch {
+    double timestamp;  // Time in minutes when switch occurred
+    int cylinderIndex; // Which cylinder was switched to
 };
 
 class DiveData : public QObject
@@ -94,6 +100,8 @@ public:
     void addCylinder(const CylinderInfo &cylinder);
     const CylinderInfo& cylinderInfo(int index) const;
     QVector<CylinderInfo> cylinders() const { return m_cylinders; }
+    bool isCylinderActiveAtTime(int cylinderIndex, double timestamp) const;
+    double interpolateCylinderPressure(int cylinderIndex, double timestamp) const;
 
     // Get a descriptive string for a cylinder
     QString cylinderDescription(int index) const;
@@ -110,6 +118,9 @@ public:
     
     // Get data within a time range
     QVector<DiveDataPoint> dataInRange(double startTime, double endTime) const;
+
+    // Public method to add a gas switch
+    void addGasSwitch(double timestamp, int cylinderIndex);
     
 signals:
     void diveNameChanged();
@@ -124,6 +135,7 @@ private:
     QString m_location;
     QVector<DiveDataPoint> m_dataPoints;
     QVector<CylinderInfo> m_cylinders;
+    QList<GasSwitch> m_gasSwitches;
 };
 
 #endif // DIVE_DATA_H

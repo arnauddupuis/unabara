@@ -46,11 +46,19 @@ private:
     void parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, int &sampleCount);
     void parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures);
     void parseCylinderElement(QXmlStreamReader &xml, DiveData* dive);
+    bool isCylinderActiveAtTime(int cylinderIndex, double timestamp) const;
+
+    struct GasSwitch {
+        double timestamp;  // Time in minutes when switch occurred
+        int cylinderIndex; // Which cylinder was switched to
+    };
     
     QString m_lastError;
     bool m_busy;
     QMap<int, double> m_initialCylinderPressures; // Initial pressures for all tanks
     double m_lastCeiling; // Last parsed ceiling depth, puting it here because it's a state that persists between points.
+    QList<GasSwitch> m_gasSwitches; // List of gas switches for the current dive
+    double m_diveDuration; // Store the total dive duration
 };
 
 #endif // LOG_PARSER_H

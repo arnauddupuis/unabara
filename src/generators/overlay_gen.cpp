@@ -209,7 +209,19 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         
         if (tankCount == 1) {
             // For single tank, treat it like a regular section
-            drawPressure(painter, dataPoint.getPressure(0), sectionRects[currentSection++], 0, dive);
+            double pressure = dataPoint.getPressure(0);
+            
+            // If no explicit pressure data but we have start/end pressures, interpolate
+            qDebug() << "Tank count:" << tankCount << "Pressure:" << pressure;
+            const CylinderInfo &cylinder = dive->cylinderInfo(0);
+            if (pressure == cylinder.startPressure && dive->cylinderCount() > 0) {
+                if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+                    pressure = dive->interpolateCylinderPressure(0, dataPoint.timestamp);
+                    qDebug() << "Using interpolated pressure for display:" << pressure;
+                }
+            }
+            
+            drawPressure(painter, pressure, sectionRects[currentSection++], 0, dive);
         } 
         else if (tankCount > 1) {
             // For multiple tanks, use the grid layout
@@ -239,8 +251,16 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 
                 // Add a small margin around each cell for better separation
                 tankRect.adjust(3, 3, -3, -3);
+
+                double pressure = dataPoint.getPressure(i);
+                // Check if the pressure equals the start pressure (suggesting it needs interpolation)
+                const CylinderInfo &cylinder = dive->cylinderInfo(i);
+                if (pressure == cylinder.startPressure && cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+                    pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
+                    qDebug() << "Using interpolated pressure for tank" << i << ":" << pressure;
+                }
                 
-                drawPressure(painter, dataPoint.getPressure(i), tankRect, i, dive);
+                drawPressure(painter, pressure, tankRect, i, dive);
             }
             
             // Move current section past the tank grid

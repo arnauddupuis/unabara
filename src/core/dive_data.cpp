@@ -76,7 +76,9 @@ double DiveData::minTemperature() const
 
 void DiveData::addCylinder(const CylinderInfo &cylinder)
 {
-    m_cylinders.append(cylinder);
+    CylinderInfo newCyl = cylinder;
+    newCyl.index = m_cylinders.size(); // Set the index
+    m_cylinders.append(newCyl);
     emit dataChanged();
 }
 
@@ -246,4 +248,172 @@ QVector<DiveDataPoint> DiveData::dataInRange(double startTime, double endTime) c
     }
     
     return result;
+}
+
+void DiveData::addGasSwitch(double timestamp, int cylinderIndex) {
+    if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
+        return;  // Invalid cylinder index
+    }
+    
+    GasSwitch gasSwitch;
+    gasSwitch.timestamp = timestamp;
+    gasSwitch.cylinderIndex = cylinderIndex;
+    m_gasSwitches.append(gasSwitch);
+    
+    // Keep gas switches sorted by timestamp
+    std::sort(m_gasSwitches.begin(), m_gasSwitches.end(), 
+              [](const GasSwitch &a, const GasSwitch &b) {
+                  return a.timestamp < b.timestamp;
+              });
+}
+
+bool DiveData::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const {
+    if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
+        return false;  // Invalid cylinder index
+    }
+    
+    // If we have no gas switches, assume first cylinder is always active
+    if (m_gasSwitches.isEmpty()) {
+        return cylinderIndex == 0;
+    }
+    
+    // Find the active cylinder at this timestamp
+    int activeCylinder = 0; // Default to first cylinder
+    
+    for (const GasSwitch &gasSwitch : m_gasSwitches) {
+        if (gasSwitch.timestamp <= timestamp) {
+            activeCylinder = gasSwitch.cylinderIndex;
+        } else {
+            // Gas switches are sorted by time, so once we find one
+            // that's after our timestamp, we can stop looking
+            break;
+        }
+    }
+    
+    return (cylinderIndex == activeCylinder);
+}
+
+double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp) const
+{
+    qDebug() << "INTERPOLATION FUNCTION CALLED for cylinder" << cylinderIndex << "at time" << timestamp;
+
+    // if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
+    //     qDebug() << "Invalid cylinder index for interpolation:" << cylinderIndex;
+    //     return 0.0;
+    // }
+    
+    // const CylinderInfo &cylinder = m_cylinders[cylinderIndex];
+    
+    // // For debugging
+    // qDebug() << "Interpolating pressure for" << cylinder.description
+    //          << "with start pressure:" << cylinder.startPressure
+    //          << "end pressure:" << cylinder.endPressure
+    //          << "at time:" << timestamp << "/" << this->durationSeconds()
+    //          << "(" << (timestamp * 100.0 / std::max(1.0, static_cast<double>(this->durationSeconds()))) << "%)";
+    
+    // if (cylinder.startPressure <= 0.0 || cylinder.endPressure <= 0.0) {
+    //     qDebug() << "Cannot interpolate: missing start or end pressure";
+    //     return 0.0;
+    // }
+    
+    // double diveDuration = this->durationSeconds();
+    // if (diveDuration <= 0.0) {
+    //     qDebug() << "Cannot interpolate: dive duration is zero";
+    //     return cylinder.startPressure;
+    // }
+    
+    // // Calculate how far we are through the dive (0.0 to 1.0)
+    // double diveFraction = timestamp / diveDuration;
+    
+    // // Cap to range [0,1]
+    // diveFraction = std::max(0.0, std::min(1.0, diveFraction));
+    
+    // // Linear interpolation between start and end pressures
+    // double interpolatedPressure = cylinder.startPressure - 
+    //                              (diveFraction * (cylinder.startPressure - cylinder.endPressure));
+    
+    // qDebug() << "Interpolated pressure:" << interpolatedPressure
+    //          << "at fraction:" << diveFraction;
+    
+    // return interpolatedPressure;
+    if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
+        qDebug() << "Invalid cylinder index for interpolation:" << cylinderIndex;
+        return 0.0;
+    }
+    
+    const CylinderInfo &cylinder = m_cylinders[cylinderIndex];
+    
+    if (cylinder.startPressure <= 0.0 || cylinder.endPressure <= 0.0) {
+        qDebug() << "Cannot interpolate: missing start or end pressure";
+        return 0.0;
+    }
+    
+    // Determine the time range when this cylinder was active
+    double startTime = 0.0;
+    double endTime = this->durationSeconds();
+    
+    // For multiple tanks, find when this cylinder became active
+    if (!m_gasSwitches.isEmpty()) {
+        bool foundActiveSwitch = false;
+        
+        // Find when this cylinder started being used
+        for (int i = 0; i < m_gasSwitches.size(); i++) {
+            if (m_gasSwitches[i].cylinderIndex == cylinderIndex) {
+                startTime = m_gasSwitches[i].timestamp;
+                foundActiveSwitch = true;
+                break;
+            }
+        }
+        
+        // Find when this cylinder stopped being used
+        if (foundActiveSwitch) {
+            for (int i = 0; i < m_gasSwitches.size(); i++) {
+                if (m_gasSwitches[i].timestamp > startTime && 
+                    m_gasSwitches[i].cylinderIndex != cylinderIndex) {
+                    endTime = m_gasSwitches[i].timestamp;
+                    break;
+                }
+            }
+        }
+    }
+    
+    qDebug() << "Interpolating pressure for" << cylinder.description
+             << "with start pressure:" << cylinder.startPressure
+             << "end pressure:" << cylinder.endPressure
+             << "from time" << startTime << "to" << endTime
+             << "at time:" << timestamp;
+    
+    // If timestamp is outside the active period
+    if (timestamp < startTime) {
+        qDebug() << "Timestamp before cylinder active period, returning start pressure:" 
+                 << cylinder.startPressure;
+        return cylinder.startPressure;
+    }
+    
+    if (timestamp > endTime) {
+        qDebug() << "Timestamp after cylinder active period, returning end pressure:" 
+                 << cylinder.endPressure;
+        return cylinder.endPressure;
+    }
+    
+    // Calculate fraction within the active period (0.0 to 1.0)
+    double usageRange = endTime - startTime;
+    if (usageRange <= 0.0) {
+        qDebug() << "Zero usage range, returning start pressure:" << cylinder.startPressure;
+        return cylinder.startPressure;
+    }
+    
+    double usageFraction = (timestamp - startTime) / usageRange;
+    
+    // Cap to range [0,1]
+    usageFraction = std::max(0.0, std::min(1.0, usageFraction));
+    
+    // Linear interpolation between start and end pressures
+    double interpolatedPressure = cylinder.startPressure - 
+                                (usageFraction * (cylinder.startPressure - cylinder.endPressure));
+    
+    qDebug() << "Interpolated pressure:" << interpolatedPressure
+             << "at usage fraction:" << usageFraction;
+    
+    return interpolatedPressure;
 }

@@ -284,6 +284,7 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     
     // Reset the initial cylinder pressures map
     m_initialCylinderPressures.clear();
+    m_gasSwitches.clear();
     
     // Parse dive attributes
     QXmlStreamAttributes attrs = xml.attributes();
@@ -352,6 +353,8 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
         dive->addDataPoint(initialPoint);
     }
     
+    m_diveDuration = dive->durationSeconds();
+
     qDebug() << "Finished parsing dive element. Total data points:" << dive->allDataPoints().size();
     return dive;
 }
@@ -522,9 +525,57 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
                     xml.readNext();
                     if (xml.atEnd()) break;
                 }
+            } else if (elementName == "event") {
+                // Handle events, including gas switches
+                QXmlStreamAttributes eventAttrs = xml.attributes();
+                
+                if (eventAttrs.hasAttribute("name") && eventAttrs.value("name") == "gaschange") {
+                    // This is a gas change event
+                    if (eventAttrs.hasAttribute("time") && eventAttrs.hasAttribute("cylinder")) {
+                        // Extract timestamp
+                        QString timeStr = eventAttrs.value("time").toString();
+                        double timestamp = 0.0;
+                        
+                        // Parse the time (similar to sample element time parsing)
+                        QRegularExpression timeRe("(\\d+):(\\d+)\\s+min");
+                        QRegularExpressionMatch match = timeRe.match(timeStr);
+                        
+                        if (match.hasMatch()) {
+                            int minutes = match.captured(1).toInt();
+                            int seconds = match.captured(2).toInt();
+                            timestamp = minutes * 60 + seconds;
+                        } else {
+                            // Try direct numeric parsing as fallback
+                            bool ok;
+                            timestamp = timeStr.toDouble(&ok);
+                            if (!ok) timestamp = 0.0;
+                        }
+                        
+                        // Extract cylinder index
+                        int cylinderIndex = eventAttrs.value("cylinder").toInt();
+                        
+                        // Add the gas switch to the dive data
+                        dive->addGasSwitch(timestamp, cylinderIndex);
+                        
+                        qDebug() << "Parsed gas switch at time" << timestamp 
+                                 << "to cylinder" << cylinderIndex;
+                    }
+                }
+                
+                // Skip to the end of this event
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "event")) {
+                    xml.readNext();
+                    if (xml.atEnd()) break;
+                }
             }
         }
     }
+
+    // Sort gas switches by timestamp to ensure chronological order
+    std::sort(m_gasSwitches.begin(), m_gasSwitches.end(), 
+              [](const GasSwitch &a, const GasSwitch &b) {
+                  return a.timestamp < b.timestamp;
+              });
     
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
@@ -671,8 +722,9 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             pressureSet = attrs.hasAttribute(QString("pressure%1").arg(i));
         }
         
-        // If not set explicitly in this sample, use the last known value
+        // If pressure not explicitly given in this sample but we have a last known pressure
         if (!pressureSet && lastPressures.contains(i)) {
+            // Keep the last known pressure for continuity
             point.addPressure(lastPressures[i], i);
         }
     }
@@ -809,4 +861,28 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         xml.readNext();
         if (xml.atEnd()) break;
     }
+}
+
+// Check if a cylinder is actively being used at a specific time
+bool LogParser::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const
+{
+    // If we have no gas switches, assume first cylinder is always active
+    if (m_gasSwitches.isEmpty()) {
+        return cylinderIndex == 0;
+    }
+    
+    // Find the active cylinder at this timestamp
+    int activeCylinder = 0; // Default to first cylinder
+    
+    for (const GasSwitch &gasSwitch : m_gasSwitches) {
+        if (gasSwitch.timestamp <= timestamp) {
+            activeCylinder = gasSwitch.cylinderIndex;
+        } else {
+            // Gas switches are sorted by time, so once we find one
+            // that's after our timestamp, we can stop looking
+            break;
+        }
+    }
+    
+    return (cylinderIndex == activeCylinder);
 }

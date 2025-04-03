@@ -457,6 +457,7 @@ void LogParser::parseCylinderElement(QXmlStreamReader &xml, DiveData* dive)
     }
     
     qDebug() << "Parsed cylinder:" << cylinder.description 
+             << "Index:" << cylinderIndex
              << "Size:" << cylinder.size << "l"
              << "Gas mix:" << cylinder.o2Percent << "% O2" 
              << (cylinder.hePercent > 0 ? QString::number(cylinder.hePercent) + "% He" : "")
@@ -687,7 +688,6 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
         
         if (attrs.hasAttribute(pressureAttr)) {
             QString pressureStr = attrs.value(pressureAttr).toString();
-            qDebug() << "Found tank" << i << "pressure:" << pressureStr;
             QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
             QRegularExpressionMatch match = pressureRe.match(pressureStr);
             
@@ -696,8 +696,6 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
                 point.addPressure(pressure, i);
                 lastPressures[i] = pressure;  // Update last known pressure for this tank
                 hasData = true;
-                
-                qDebug() << "Found tank" << i << "pressure:" << pressure << "bar";
             } else {
                 // Try direct numeric parsing as fallback
                 bool ok;

@@ -102,6 +102,7 @@ public:
     QVector<CylinderInfo> cylinders() const { return m_cylinders; }
     bool isCylinderActiveAtTime(int cylinderIndex, double timestamp) const;
     double interpolateCylinderPressure(int cylinderIndex, double timestamp) const;
+    double getLastInterpolatedPressure(int cylinderIndex) const;
 
     // Get a descriptive string for a cylinder
     QString cylinderDescription(int index) const;
@@ -136,6 +137,7 @@ private:
     QVector<DiveDataPoint> m_dataPoints;
     QVector<CylinderInfo> m_cylinders;
     QList<GasSwitch> m_gasSwitches;
+    mutable QMap<int, double> m_lastInterpolatedPressures;
 };
 
 #endif // DIVE_DATA_H

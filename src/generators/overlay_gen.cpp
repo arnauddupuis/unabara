@@ -253,13 +253,35 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 tankRect.adjust(3, 3, -3, -3);
 
                 double pressure = dataPoint.getPressure(i);
-                // Check if the pressure equals the start pressure (suggesting it needs interpolation)
+                // // Check if the pressure equals the start pressure (suggesting it needs interpolation)
+                // const CylinderInfo &cylinder = dive->cylinderInfo(i);
+                // if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+                //     // Check if this cylinder is active at the current time
+                //     if (dive->isCylinderActiveAtTime(i, dataPoint.timestamp)) {
+                //         pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
+                //         qDebug() << "Using interpolated pressure for tank" << i << ":" << pressure;
+                //     }
+                // }
+
                 const CylinderInfo &cylinder = dive->cylinderInfo(i);
-                if (pressure == cylinder.startPressure && cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
-                    pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
-                    qDebug() << "Using interpolated pressure for tank" << i << ":" << pressure;
+                // If the cylinder has valid pressure values for interpolation
+                if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+                    // Check if this cylinder is active at the current time
+                    if (dive->isCylinderActiveAtTime(i, dataPoint.timestamp)) {
+                        // Active tank - use interpolation
+                        pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
+                        qDebug() << "Using interpolated pressure for active tank" << i << ":" << pressure;
+                    } else {
+                        // Inactive tank - check if we have a previously interpolated value
+                        double lastInterpolated = dive->getLastInterpolatedPressure(i);
+                        if (lastInterpolated > 0.0) {
+                            // Use the last known interpolated value for continuity
+                            pressure = lastInterpolated;
+                            qDebug() << "Using last interpolated pressure for inactive tank" << i << ":" << pressure;
+                        }
+                    }
                 }
-                
+
                 drawPressure(painter, pressure, tankRect, i, dive);
             }
             
@@ -343,8 +365,12 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
 void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex, DiveData* dive) {
     painter.save();
     
+    qDebug() << "Drawing pressure for tank index:" << tankIndex 
+             << "Pressure:" << pressure;
     // Get tank count for adaptive layout
     int tankCount = dive ? dive->cylinderCount() : 1;
+
+    qDebug() << "Tank count:" << tankCount;
     
     // Create tank label
     QString label;

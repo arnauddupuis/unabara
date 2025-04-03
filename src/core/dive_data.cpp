@@ -379,6 +379,8 @@ double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp
     
     qDebug() << "Interpolating pressure for" << cylinder.description
              << "with start pressure:" << cylinder.startPressure
+             << "O2:" << cylinder.o2Percent
+             << "He:" << cylinder.hePercent
              << "end pressure:" << cylinder.endPressure
              << "from time" << startTime << "to" << endTime
              << "at time:" << timestamp;
@@ -415,5 +417,13 @@ double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp
     qDebug() << "Interpolated pressure:" << interpolatedPressure
              << "at usage fraction:" << usageFraction;
     
+    // Store the result for future reference
+    m_lastInterpolatedPressures[cylinderIndex] = interpolatedPressure;
+
     return interpolatedPressure;
+}
+
+double DiveData::getLastInterpolatedPressure(int cylinderIndex) const
+{
+    return m_lastInterpolatedPressures.value(cylinderIndex, 0.0);
 }

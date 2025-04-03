@@ -229,13 +229,17 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
             int cols = 2;
             int rows = (tankCount + cols - 1) / cols;
             int tanksWidth = sectionWidth * rows;
+            qDebug() << "Tank grid - rows:" << rows << "cols:" << cols << "width:" << tanksWidth;
             
             // Create a wider rectangle that spans multiple sections
             QRect tankGridRect(currentSection * sectionWidth, 0, tanksWidth, height);
             
             // Calculate cell dimensions
             int cellWidth = tankGridRect.width() / cols;
-            int cellHeight = height / ((tankCount > 2) ? tankCount / 2 : 1);
+            int cellHeight = height / ((tankCount > 2) ? ((tankCount + 1) / 2) : 1);
+
+            qDebug() << "Tank cell dimensions: width =" << cellWidth << "height =" << cellHeight;
+    
             
             // Draw each tank in its grid cell with padding between cells
             for (int i = 0; i < tankCount; i++) {
@@ -251,6 +255,8 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 
                 // Add a small margin around each cell for better separation
                 tankRect.adjust(3, 3, -3, -3);
+                qDebug() << "Drawing tank" << i << "at row" << row << "col" << col 
+                 << "rect:" << tankRect;
 
                 double pressure = dataPoint.getPressure(i);
                 // // Check if the pressure equals the start pressure (suggesting it needs interpolation)

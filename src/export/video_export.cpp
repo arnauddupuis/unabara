@@ -159,25 +159,9 @@ bool VideoExporter::exportVideo(DiveData* dive, OverlayGenerator* generator,
 {
     qDebug() << "======== EXPORT VIDEO CALLED ========";
     qDebug() << "Parameters:" << startTime << "to" << endTime;
-    // Add the duplicate call detection as suggested
-    static double lastStartTime = -1;
-    static double lastEndTime = -1;
-    static QDateTime lastExportTime;
+    
     m_exportStartTime = startTime;
     m_exportEndTime = endTime;
-    
-    QDateTime currentTime = QDateTime::currentDateTime();
-    // If the same export was attempted in the last 2 seconds, ignore it
-    if (lastStartTime == startTime && lastEndTime == endTime && 
-        lastExportTime.msecsTo(currentTime) < 2000) {
-        qDebug() << "Ignoring duplicate export request within 2 seconds";
-        return true; // Return success to avoid error messages
-    }
-    
-    // Update the last export parameters
-    lastStartTime = startTime;
-    lastEndTime = endTime;
-    lastExportTime = currentTime;
 
     if (m_busy) {
         emit exportError(tr("Already exporting video"));
@@ -216,9 +200,22 @@ bool VideoExporter::exportVideo(DiveData* dive, OverlayGenerator* generator,
     QString outputPath = generateUniqueFileName(dive, extension);
     m_lastOutputPath = outputPath;
     
+    // Create a new temporary directory for this export
+    // Make sure we create a fresh temporary directory for each export attempt
+    cleanupTempFiles();
+    m_tempDir = QTemporaryDir();
+    
+    if (!m_tempDir.isValid()) {
+        emit exportError(tr("Failed to create temporary directory for frame storage"));
+        m_busy = false;
+        emit busyChanged();
+        return false;
+    }
+    
     // First generate all the frames
     bool framesGenerated = generateFrames(dive, generator, startTime, endTime);
     if (!framesGenerated) {
+        cleanupTempFiles();
         m_busy = false;
         emit busyChanged();
         return false;
@@ -272,8 +269,7 @@ void VideoExporter::cleanupTempFiles()
         
         qDebug() << "Cleaning up" << count << "temporary files from" << tempPath;
         
-        // The QTemporaryDir will automatically remove all contents when it goes out of scope
-        // But we can force removal earlier if needed
+        // Ensure the QTemporaryDir is properly cleaned up
         if (!m_tempDir.remove()) {
             qWarning() << "Failed to clean up some temporary files. They will be removed when the application exits.";
         }

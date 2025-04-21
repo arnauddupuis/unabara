@@ -106,8 +106,8 @@ QStringList VideoExporter::listFfmpegPossiblePaths()
 {
 #ifdef Q_OS_WIN
     return {
-        "C:/Program Files/ffmpeg/bin/ffmpeg.exe",
-        "C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe"
+        "C:/Program Files/ffmpeg/bin/",
+        "C:/Program Files (x86)/ffmpeg/bin/"
     };
 #endif
 #ifdef Q_OS_APPLE

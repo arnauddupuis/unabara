@@ -107,6 +107,8 @@ private:
     bool encodeFramesToVideo(const QString &outputPath);
     
     // Helper methods
+    static QString ffmpegCommandName();
+    static QStringList listFfmpegPossiblePaths();
     QString findFFmpegPath();
     QString generateFFmpegCommand(const QString &inputPattern, 
                                  const QString &outputFile);

@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Unabara VERSION 0.1 LANGUAGES CXX)
+# Read version from VERSION file
+file(STRINGS "VERSION" VERSION_LINE)
+string(REGEX REPLACE "UNABARA_VERSION=(.+)" "\\1" UNABARA_VERSION "${VERSION_LINE}")
+
+project(Unabara VERSION ${UNABARA_VERSION} LANGUAGES CXX)
+
+# Add version as a define to be accessible in code
+add_definitions(-DUNABARA_VERSION="${UNABARA_VERSION}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -69,3 +76,12 @@ install(TARGETS unabara
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Configure a version header file
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/version.h
+)
+
+# Add the binary dir to the include path to find the generated version.h
+target_include_directories(unabara PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)

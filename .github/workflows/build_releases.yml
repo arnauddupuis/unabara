@@ -11,7 +11,28 @@ env:
   APP_ID: 'org.unabara.unabara'
 
 jobs:
+  # Read version from the version file.
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Get version from VERSION file
+        id: get-version
+        run: |
+          if [ -f "VERSION" ]; then
+            VERSION_LINE=$(cat VERSION)
+            VERSION=$(echo $VERSION_LINE | cut -d'=' -f2)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Found version: $VERSION"
+          else
+            echo "VERSION file not found, using default version"
+            echo "version=0.1-dev" >> $GITHUB_OUTPUT
+          fi
   build-linux-flatpak:
+    needs: determine-version
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -51,7 +72,7 @@ jobs:
     - name: Build Flatpak
       run: |
         flatpak-builder --repo=repo --force-clean build-dir org.unabara.unabara.yml
-        flatpak build-bundle repo ${{ env.APP_ID }}.flatpak ${{ env.APP_ID }}
+        flatpak build-bundle repo ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak ${{ env.APP_ID }}
     
     - name: Upload Linux Flatpak Artifact
       uses: actions/upload-artifact@v4
@@ -70,6 +91,7 @@ jobs:
         overwrite: true
 
   build-windows:
+    needs: determine-version
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -115,7 +137,7 @@ jobs:
         $env:PATH = "$env:Qt6_DIR\bin;$env:PATH"
         windeployqt unabara.exe --release --no-translations --qmldir=../../src/ui/qml
         cd ..
-        mv package ${{github.workspace}}/build/unabara-windows
+        mv package ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
 
     # - name: Create ZIP Archive (Direct)
     #   working-directory: ${{github.workspace}}/build
@@ -127,18 +149,19 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: unabara-windows
-        path: ${{github.workspace}}/build/unabara-windows
+        path: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
         
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/build/unabara-windows
+        file: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
         tag: ${{ github.ref }}
         overwrite: true
 
   build-macos:
+    needs: determine-version
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
@@ -201,7 +224,7 @@ jobs:
           <key>CFBundleSignature</key>
           <string></string>
           <key>CFBundleShortVersionString</key>
-          <string>1.0</string>
+          <string>${{ needs.determine-version.outputs.version }}</string>
           <key>CFBundleVersion</key>
           <string>1</string>
           <key>LSMinimumSystemVersion</key>
@@ -221,20 +244,20 @@ jobs:
         
         # Deploy Qt dependencies
         macdeployqt package/Unabara.app -dmg -verbose=3
-        mv package/Unabara.dmg unabara-macos-universal.dmg
+        mv package/Unabara.dmg unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
         
     - name: Upload macOS Universal Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: unabara-macos-universal
-        path: ${{github.workspace}}/build-universal/unabara-macos-universal.dmg
+        name: unabara-macos-universal-${{ needs.determine-version.outputs.version }}
+        path: ${{github.workspace}}/build-universal/unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
         
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/build-universal/unabara-macos-universal.dmg
-        asset_name: unabara-macos-universal.dmg
+        file: ${{github.workspace}}/build-universal/unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
+        asset_name: unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
         tag: ${{ github.ref }}
         overwrite: true

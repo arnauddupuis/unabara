@@ -4,6 +4,9 @@
 #include <QQuickWindow>
 #include <QDebug>
 
+// Include the generated version header
+#include "version.h"
+
 // Include all the necessary headers
 #include "include/ui/main_window.h"
 #include "include/core/dive_data.h"
@@ -23,7 +26,7 @@ int main(int argc, char *argv[])
     
     // Set application info
     app.setApplicationName("Unabara");
-    app.setApplicationVersion("0.1");
+    app.setApplicationVersion(UNABARA_VERSION_STR);
     app.setOrganizationName("UnabaraProject");
     
     // Register C++ types with QML
@@ -67,6 +70,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mainWindow", &mainWindow);
     engine.rootContext()->setContextProperty("logParser", &logParser);
     engine.rootContext()->setContextProperty("overlayGenerator", overlayGenerator);
+
+    // Expose version to QML
+    engine.rootContext()->setContextProperty("appVersion", UNABARA_VERSION_STR);
     
     // Load the main QML file
     const QUrl url(QStringLiteral("qrc:/main.qml"));

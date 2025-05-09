@@ -86,7 +86,7 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak
-        asset_name: unabara-linux.flatpak
+        asset_name: unabara-linux-${{ needs.determine-version.outputs.version }}.flatpak
         tag: ${{ github.ref }}
         overwrite: true
 

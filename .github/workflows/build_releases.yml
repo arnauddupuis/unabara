@@ -22,8 +22,8 @@ jobs:
       - name: Get version from VERSION file
         id: get-version
         run: |
-          if [ -f "VERSION" ]; then
-            VERSION=$(cat VERSION | tr -d '\n' | tr -d '\r')
+          if [ -f "VERSION.md" ]; then
+            VERSION=$(cat VERSION.md | tr -d '\n' | tr -d '\r')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Found version: $VERSION"
           else

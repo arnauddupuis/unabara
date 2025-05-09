@@ -28,6 +28,8 @@ int main(int argc, char *argv[])
     app.setApplicationName("Unabara");
     app.setApplicationVersion(UNABARA_VERSION_STR);
     app.setOrganizationName("UnabaraProject");
+
+    qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
     
     // Register C++ types with QML
     qmlRegisterType<Timeline>("Unabara.UI", 1, 0, "Timeline");

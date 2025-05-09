@@ -23,8 +23,7 @@ jobs:
         id: get-version
         run: |
           if [ -f "VERSION" ]; then
-            VERSION_LINE=$(cat VERSION)
-            VERSION=$(echo $VERSION_LINE | cut -d'=' -f2)
+            VERSION=$(grep -oP 'UNABARA_VERSION=\K.*' VERSION)
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Found version: $VERSION"
           else
@@ -77,7 +76,7 @@ jobs:
     - name: Upload Linux Flatpak Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: unabara-linux-flatpak
+        name: unabara-linux-flatpak-${{ needs.determine-version.outputs.version }}
         path: ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak
         
     - name: Upload to Release
@@ -143,7 +142,8 @@ jobs:
     #   working-directory: ${{github.workspace}}/build
     #   run: |
     #     cd package
-    #     7z a -tzip ${{github.workspace}}/build/unabara-windows.zip *
+    #     7z a -tzip ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}.zip ./unabara-windows-${{ needs.determine-version.outputs.version }}/*
+    
 
     - name: Upload Windows Artifact
       uses: actions/upload-artifact@v4

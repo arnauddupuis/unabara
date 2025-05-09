@@ -1,10 +1,21 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Read version from VERSION file
-file(STRINGS "VERSION" VERSION_LINE)
-string(REGEX REPLACE "UNABARA_VERSION=(.+)" "\\1" UNABARA_VERSION "${VERSION_LINE}")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_LINE)
+    if(VERSION_LINE MATCHES "UNABARA_VERSION=(.+)")
+        set(UNABARA_VERSION "${CMAKE_MATCH_1}")
+    else()
+        set(UNABARA_VERSION "0.1")
+    endif()
+else()
+    set(UNABARA_VERSION "0.1")
+endif()
 
-project(Unabara VERSION ${UNABARA_VERSION} LANGUAGES CXX)
+message(STATUS "Building Unabara version: ${UNABARA_VERSION}")
+
+
+project(Unabara LANGUAGES CXX)
 
 # Add version as a define to be accessible in code
 add_definitions(-DUNABARA_VERSION="${UNABARA_VERSION}")
@@ -17,6 +28,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Multimedia DBus Concurrent Widgets)
+
+# Configure a version header file
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
+    @ONLY
+)
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -57,6 +75,7 @@ endif()
 
 target_include_directories(unabara PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
 target_link_libraries(unabara PRIVATE
@@ -76,12 +95,3 @@ install(TARGETS unabara
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
-# Configure a version header file
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/include/version.h
-)
-
-# Add the binary dir to the include path to find the generated version.h
-target_include_directories(unabara PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)

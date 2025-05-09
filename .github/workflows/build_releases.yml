@@ -78,14 +78,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: unabara-linux-flatpak
-        path: ${{ env.APP_ID }}.flatpak
+        path: ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak
         
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.APP_ID }}.flatpak
+        file: ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak
         asset_name: unabara-linux.flatpak
         tag: ${{ github.ref }}
         overwrite: true

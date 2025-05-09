@@ -1,24 +1,20 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Read version from VERSION file
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_LINE)
-    if(VERSION_LINE MATCHES "UNABARA_VERSION=(.+)")
-        set(UNABARA_VERSION "${CMAKE_MATCH_1}")
-    else()
-        set(UNABARA_VERSION "0.1")
-    endif()
-else()
-    set(UNABARA_VERSION "0.1")
-endif()
+# Set a default version in case VERSION file doesn't exist
+set(UNABARA_VERSION "0.1")
 
-message(STATUS "Building Unabara version: ${UNABARA_VERSION}")
+# Try to read version from VERSION file
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" UNABARA_VERSION)
+    string(STRIP "${UNABARA_VERSION}" UNABARA_VERSION)
+    message(STATUS "Building Unabara version: ${UNABARA_VERSION}")
+else()
+    message(STATUS "VERSION file not found, using default version: ${UNABARA_VERSION}")
+endif()
 
 
 project(Unabara LANGUAGES CXX)
 
-# Add version as a define to be accessible in code
-add_definitions(-DUNABARA_VERSION="${UNABARA_VERSION}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,7 +27,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Multimedia DBus Conc
 
 # Configure a version header file
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/templates/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
     @ONLY
 )
@@ -60,6 +56,7 @@ set(PROJECT_HEADERS
     include/generators/overlay_image_provider.h
     include/export/image_export.h
     include/export/video_export.h
+    "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

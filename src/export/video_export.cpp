@@ -95,7 +95,7 @@ bool VideoExporter::isFFmpegAvailable()
 
 QString VideoExporter::ffmpegCommandName()
 {
-#if Q_OS_WIN
+#ifdef Q_OS_WIN
     return "ffmpeg.exe";
 #else
     return "ffmpeg";

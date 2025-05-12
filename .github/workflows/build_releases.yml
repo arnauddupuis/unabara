@@ -187,21 +187,28 @@ jobs:
       
     - name: Build ARM Version
       run: cmake --build ${{github.workspace}}/build-arm64 --config ${{env.BUILD_TYPE}}
+
+    - name: Debug - List directory contents
+      run: |
+        echo "Checking x86_64 build output:"
+        ls -la ${{github.workspace}}/build-x86_64/bin
+        echo "Checking app bundle structure:"
+        ls -la ${{github.workspace}}/build-x86_64/bin/unabara.app/Contents/MacOS
+        echo "Checking arm64 build output:"
+        ls -la ${{github.workspace}}/build-arm64/bin
+        echo "Checking app bundle structure:"
+        ls -la ${{github.workspace}}/build-arm64/bin/unabara.app/Contents/MacOS
     
-    - name: Create Universal Binary
+    - name: Create Universal Binary and App Bundle
       run: |
         mkdir -p ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS
+        mkdir -p ${{github.workspace}}/build-universal/bin/unabara.app/Contents/Resources
         lipo -create \
           ${{github.workspace}}/build-x86_64/bin/unabara.app/Contents/MacOS/unabara \
           ${{github.workspace}}/build-arm64/bin/unabara.app/Contents/MacOS/unabara \
           -output ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
+
         chmod +x ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
-        
-    - name: Package Universal App
-      working-directory: ${{github.workspace}}/build-universal
-      run: |
-        mkdir -p package/Unabara.app/Contents/MacOS/
-        cp bin/unabara package/Unabara.app/Contents/MacOS/
         
         # Create Info.plist
         mkdir -p package/Unabara.app/Contents/
@@ -242,10 +249,16 @@ jobs:
         </dict>
         </plist>
         EOF
+    
+    - name: Package Universal App with macdeployqt
+      run: |
+        cd ${{github.workspace}}/build-universal
         
-        # Deploy Qt dependencies
-        macdeployqt package/Unabara.app -dmg -verbose=3
-        mv package/Unabara.dmg unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
+        # Use macdeployqt to create the DMG with all dependencies
+        macdeployqt bin/unabara.app -dmg -verbose=3
+        
+        # Rename DMG to include version
+        mv bin/unabara.dmg unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
         
     - name: Upload macOS Universal Artifact
       uses: actions/upload-artifact@v4

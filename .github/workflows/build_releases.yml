@@ -190,12 +190,12 @@ jobs:
     
     - name: Create Universal Binary
       run: |
-        mkdir -p ${{github.workspace}}/build-universal/bin
+        mkdir -p ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS
         lipo -create \
-          ${{github.workspace}}/build-x86_64/bin/unabara \
-          ${{github.workspace}}/build-arm64/bin/unabara \
-          -output ${{github.workspace}}/build-universal/bin/unabara
-        chmod +x ${{github.workspace}}/build-universal/bin/unabara
+          ${{github.workspace}}/build-x86_64/bin/unabara.app/Contents/MacOS/unabara \
+          ${{github.workspace}}/build-arm64/bin/unabara.app/Contents/MacOS/unabara \
+          -output ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
+        chmod +x ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
         
     - name: Package Universal App
       working-directory: ${{github.workspace}}/build-universal

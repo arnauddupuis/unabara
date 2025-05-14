@@ -157,6 +157,7 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
+        asset_name: unabara-macos-universal-${{ needs.determine-version.outputs.version }}.exe
         tag: ${{ github.ref }}
         overwrite: true
 

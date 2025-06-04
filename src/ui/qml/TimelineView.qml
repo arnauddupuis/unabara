@@ -111,6 +111,7 @@ Item {
                     
                     Label {
                         text: qsTr("Video Offset:")
+                        color: "black"
                     }
                     
                     SpinBox {

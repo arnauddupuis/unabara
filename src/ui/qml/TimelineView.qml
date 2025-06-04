@@ -93,6 +93,7 @@ Item {
                 
                 Label {
                     text: qsTr("Time: ") + formatTime(timeline.currentTime)
+                    color: "darkgrey"
                     font.bold: true
                     
                     function formatTime(seconds) {

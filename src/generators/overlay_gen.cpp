@@ -321,7 +321,8 @@ QImage OverlayGenerator::generatePreview(DiveData* dive)
 }
 
 void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect) {
-    QString depthStr = QString::number(depth, 'f', 1) + " m";
+    Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+    QString depthStr = Units::formatDepthValue(depth, unitSystem);
     
     painter.save();
     
@@ -345,7 +346,8 @@ void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &r
 }
 
 void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRect &rect) {
-    QString tempStr = QString::number(temp, 'f', 1) + " °C";
+    Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+    QString tempStr = Units::formatTemperatureValue(temp, unitSystem);
     
     painter.save();
     
@@ -444,7 +446,8 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
-    QString pressureStr = QString::number(qRound(pressure)) + " bar";
+    Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+    QString pressureStr = Units::formatPressureValue(pressure, unitSystem);
     
     // Position value - adjust for multi-tank
     QRect valueRect;
@@ -544,7 +547,9 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
     
     QString decoText = tr("DECO");
     if (ceiling > 0.0) {
-        decoText += QString(" (%1m)").arg(ceiling, 0, 'f', 1);
+        Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+        QString ceilingStr = Units::formatDepthValue(ceiling, unitSystem);
+        decoText += QString(" (%1)").arg(ceilingStr);
     }
     
     // Position DECO text in the bottom of the rect

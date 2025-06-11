@@ -37,6 +37,7 @@ set(PROJECT_SOURCES
     src/core/dive_data.cpp
     src/core/log_parser.cpp
     src/core/config.cpp
+    src/core/units.cpp
     src/ui/main_window.cpp
     src/ui/timeline.cpp
     src/generators/overlay_gen.cpp
@@ -50,6 +51,7 @@ set(PROJECT_HEADERS
     include/core/dive_data.h
     include/core/log_parser.h
     include/core/config.h
+    include/core/units.h
     include/ui/main_window.h
     include/ui/timeline.h
     include/generators/overlay_gen.h

@@ -6,6 +6,7 @@
 #include <QString>
 #include <QFont>
 #include <QColor>
+#include "include/core/units.h"
 
 class Config : public QObject
 {
@@ -24,6 +25,7 @@ class Config : public QObject
     Q_PROPERTY(bool showNDL READ showNDL WRITE setShowNDL NOTIFY showNDLChanged)
     Q_PROPERTY(bool showPressure READ showPressure WRITE setShowPressure NOTIFY showPressureChanged)
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
+    Q_PROPERTY(Units::UnitSystem unitSystem READ unitSystem WRITE setUnitSystem NOTIFY unitSystemChanged)
     
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
@@ -63,6 +65,9 @@ public:
     bool showTime() const;
     void setShowTime(bool show);
     
+    Units::UnitSystem unitSystem() const;
+    void setUnitSystem(Units::UnitSystem system);
+    
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -81,6 +86,7 @@ signals:
     void showNDLChanged();
     void showPressureChanged();
     void showTimeChanged();
+    void unitSystemChanged();
     void frameRateChanged();
     
 private:
@@ -104,6 +110,7 @@ private:
     bool m_showNDL;
     bool m_showPressure;
     bool m_showTime;
+    Units::UnitSystem m_unitSystem;
     double m_frameRate;
     
     // Load configuration from disk

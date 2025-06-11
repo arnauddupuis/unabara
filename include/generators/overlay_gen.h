@@ -7,6 +7,8 @@
 #include <QFont>
 #include <QColor>
 #include "include/core/dive_data.h"
+#include "include/core/config.h"
+#include "include/core/units.h"
 
 class OverlayGenerator : public QObject
 {

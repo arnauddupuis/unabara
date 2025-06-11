@@ -23,6 +23,7 @@ Config::Config(QObject *parent)
     , m_showNDL(true)
     , m_showPressure(true)
     , m_showTime(true)
+    , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
 {
     // Load settings from disk
@@ -170,6 +171,19 @@ double Config::frameRate() const
     return m_frameRate;
 }
 
+Units::UnitSystem Config::unitSystem() const
+{
+    return m_unitSystem;
+}
+
+void Config::setUnitSystem(Units::UnitSystem system)
+{
+    if (m_unitSystem != system) {
+        m_unitSystem = system;
+        emit unitSystemChanged();
+    }
+}
+
 void Config::setFrameRate(double fps)
 {
     if (m_frameRate != fps) {
@@ -212,6 +226,10 @@ void Config::loadConfig()
     m_showPressure = m_settings.value("overlay/showPressure", true).toBool();
     m_showTime = m_settings.value("overlay/showTime", true).toBool();
     
+    // Load unit system
+    int unitSystemValue = m_settings.value("overlay/unitSystem", static_cast<int>(Units::UnitSystem::Metric)).toInt();
+    m_unitSystem = static_cast<Units::UnitSystem>(unitSystemValue);
+    
     // Load export settings
     m_frameRate = m_settings.value("export/frameRate", 10.0).toDouble();
 }
@@ -242,6 +260,9 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showNDL", m_showNDL);
     m_settings.setValue("overlay/showPressure", m_showPressure);
     m_settings.setValue("overlay/showTime", m_showTime);
+    
+    // Save unit system
+    m_settings.setValue("overlay/unitSystem", static_cast<int>(m_unitSystem));
     
     // Save export settings
     m_settings.setValue("export/frameRate", m_frameRate);

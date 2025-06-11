@@ -16,6 +16,8 @@
 #include "include/export/image_export.h"
 #include "include/export/video_export.h"
 #include "include/generators/overlay_image_provider.h"
+#include "include/core/config.h"
+#include "include/core/units.h"
 
 // Global image provider
 OverlayImageProvider* g_imageProvider = nullptr;
@@ -36,6 +38,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<OverlayGenerator>("Unabara.Generators", 1, 0, "OverlayGenerator");
     qmlRegisterType<ImageExporter>("Unabara.Export", 1, 0, "ImageExporter");
     qmlRegisterType<VideoExporter>("Unabara.Export", 1, 0, "VideoExporter");
+    qmlRegisterUncreatableMetaObject(Units::staticMetaObject, "Unabara.Core", 1, 0, "Units", "Units is a utility class");
     
     // Create the QML engine
     QQmlApplicationEngine engine;
@@ -72,6 +75,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mainWindow", &mainWindow);
     engine.rootContext()->setContextProperty("logParser", &logParser);
     engine.rootContext()->setContextProperty("overlayGenerator", overlayGenerator);
+    engine.rootContext()->setContextProperty("config", Config::instance());
 
     // Expose version to QML
     engine.rootContext()->setContextProperty("appVersion", UNABARA_VERSION_STR);

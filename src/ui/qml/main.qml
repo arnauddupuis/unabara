@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import Unabara.UI 1.0
 import Unabara.Generators 1.0
 import Unabara.Export 1.0
+import Unabara.Core 1.0
 import QtMultimedia
 
 ApplicationWindow {
@@ -322,6 +323,13 @@ ApplicationWindow {
                         function onTemplateChanged() { previewImage.updatePreview() }
                         function onFontChanged() { previewImage.updatePreview() }
                         function onTextColorChanged() { previewImage.updatePreview() }
+                    }
+                    
+                    // Monitor changes to config properties
+                    Connections {
+                        target: config
+                        
+                        function onUnitSystemChanged() { previewImage.updatePreview() }
                     }
                     
                     // Add status changes monitoring
@@ -858,7 +866,7 @@ ApplicationWindow {
         modal: true
         standardButtons: Dialog.Ok | Dialog.Cancel
         width: 400
-        height: 300
+        height: 400
 
         // Ensure settings are applied when dialog is accepted
         onAccepted: {
@@ -938,6 +946,39 @@ ApplicationWindow {
                         onCheckedChanged: {
                             overlayGenerator.showPressure = checked
                             previewImage.updatePreview()
+                        }
+                    }
+                }
+            }
+            
+            GroupBox {
+                title: qsTr("Units")
+                Layout.fillWidth: true
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    RadioButton {
+                        id: metricUnitsRadio
+                        text: qsTr("Metric (m, °C, bar)")
+                        checked: config.unitSystem === Units.Metric
+                        onCheckedChanged: {
+                            if (checked) {
+                                config.unitSystem = Units.Metric
+                                previewImage.updatePreview()
+                            }
+                        }
+                    }
+                    
+                    RadioButton {
+                        id: imperialUnitsRadio
+                        text: qsTr("Imperial (ft, °F, psi)")
+                        checked: config.unitSystem === Units.Imperial
+                        onCheckedChanged: {
+                            if (checked) {
+                                config.unitSystem = Units.Imperial
+                                previewImage.updatePreview()
+                            }
                         }
                     }
                 }

@@ -78,6 +78,9 @@ class DiveData : public QObject
     Q_PROPERTY(double minTemperature READ minTemperature NOTIFY dataChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(int cylinderCount READ cylinderCount NOTIFY dataChanged)
+    Q_PROPERTY(int diveNumber READ diveNumber WRITE setDiveNumber NOTIFY diveNumberChanged)
+    Q_PROPERTY(QString diveSiteName READ diveSiteName WRITE setDiveSiteName NOTIFY diveSiteNameChanged)
+    Q_PROPERTY(QString diveSiteId READ diveSiteId WRITE setDiveSiteId NOTIFY diveSiteIdChanged)
     
 public:
     explicit DiveData(QObject *parent = nullptr);
@@ -89,11 +92,17 @@ public:
     double maxDepth() const;
     double minTemperature() const;
     QString location() const { return m_location; }
+    int diveNumber() const { return m_diveNumber; }
+    QString diveSiteName() const { return m_diveSiteName; }
+    QString diveSiteId() const { return m_diveSiteId; }
     
     // Setters
     void setDiveName(const QString &name);
     void setStartTime(const QDateTime &time);
     void setLocation(const QString &location);
+    void setDiveNumber(int number);
+    void setDiveSiteName(const QString &siteName);
+    void setDiveSiteId(const QString &siteId);
 
     // Cylinder management
     int cylinderCount() const { return m_cylinders.size(); }
@@ -129,11 +138,17 @@ signals:
     void durationChanged();
     void dataChanged();
     void locationChanged();
+    void diveNumberChanged();
+    void diveSiteNameChanged();
+    void diveSiteIdChanged();
     
 private:
     QString m_diveName;
     QDateTime m_startTime;
     QString m_location;
+    int m_diveNumber;
+    QString m_diveSiteName;
+    QString m_diveSiteId;
     QVector<DiveDataPoint> m_dataPoints;
     QVector<CylinderInfo> m_cylinders;
     QList<GasSwitch> m_gasSwitches;

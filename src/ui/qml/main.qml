@@ -193,6 +193,15 @@ ApplicationWindow {
         }
     }
     
+    // Connection to handle multiple dives
+    Connections {
+        target: mainWindow
+        function onMultipleDivesFound(dives) {
+            console.log("Multiple dives found, showing selection dialog")
+            diveSelectionDialog.show(dives)
+        }
+    }
+    
     Component.onCompleted: {
         // Check if FFmpeg is available and show a notification if not
         if (!videoExporter.isFFmpegAvailable()) {
@@ -982,6 +991,122 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+    
+    Dialog {
+        id: diveSelectionDialog
+        title: qsTr("Select Dive")
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 500
+        height: 400
+        
+        property var diveList: []
+        property int selectedDiveIndex: -1
+        
+        function show(dives) {
+            diveList = dives
+            selectedDiveIndex = -1
+            listView.currentIndex = -1
+            open()
+        }
+        
+        onAccepted: {
+            if (selectedDiveIndex >= 0 && selectedDiveIndex < diveList.length) {
+                // Get the selected dive data
+                var selectedDiveData = diveList[selectedDiveIndex]
+                console.log("User selected dive:", selectedDiveData.diveNumber, selectedDiveData.diveName)
+                
+                // Use the index to select the dive
+                mainWindow.selectDiveByIndex(selectedDiveData.index)
+            }
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            
+            Label {
+                text: qsTr("This file contains multiple dives. Please select one:")
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.bold: true
+            }
+            
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                
+                ListView {
+                    id: listView
+                    model: diveSelectionDialog.diveList
+                    
+                    delegate: ItemDelegate {
+                        width: listView.width
+                        height: 60
+                        
+                        Rectangle {
+                            anchors.fill: parent
+                            color: parent.hovered ? "#e0e0e0" : (listView.currentIndex === index ? "#d0d0ff" : "transparent")
+                            radius: 4
+                            
+                            ColumnLayout {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.margins: 10
+                                spacing: 2
+                                
+                                Label {
+                                    text: qsTr("Dive #%1").arg(modelData.diveNumber)
+                                    font.bold: true
+                                    Layout.fillWidth: true
+                                }
+                                
+                                Label {
+                                    text: {
+                                        var info = ""
+                                        if (modelData.startTime && modelData.startTime.toString() !== "") {
+                                            var date = new Date(modelData.startTime)
+                                            info = date.toLocaleDateString() + " " + date.toLocaleTimeString()
+                                        }
+                                        if (modelData.diveSiteName && modelData.diveSiteName !== "") {
+                                            if (info !== "") info += " - "
+                                            info += modelData.diveSiteName
+                                        } else if (modelData.location && modelData.location !== "") {
+                                            if (info !== "") info += " - "
+                                            info += modelData.location
+                                        }
+                                        return info
+                                    }
+                                    color: "#606060"
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                        
+                        onClicked: {
+                            listView.currentIndex = index
+                            diveSelectionDialog.selectedDiveIndex = index
+                        }
+                        
+                        onDoubleClicked: {
+                            listView.currentIndex = index
+                            diveSelectionDialog.selectedDiveIndex = index
+                            diveSelectionDialog.accept()
+                        }
+                    }
+                }
+            }
+            
+            Label {
+                text: qsTr("Double-click a dive to select it, or select and click OK.")
+                Layout.fillWidth: true
+                color: "#606060"
+                font.italic: true
             }
         }
     }

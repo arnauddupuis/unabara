@@ -38,14 +38,20 @@ public:
     
 public slots:
     void onDiveImported(DiveData* dive);
+    void onMultipleDivesImported(QList<DiveData*> dives);
+    void onDiveSelected(DiveData* dive);
+    
+    Q_INVOKABLE void selectDiveByIndex(int index);
     
 signals:
     void currentDiveChanged();
     void exportRequested(const QString &path);
+    void multipleDivesFound(QVariantList dives);
     
 private:
     DiveData* m_currentDive;
     QList<DiveData*> m_availableDives;
+    QList<DiveData*> m_pendingDiveSelection;
 };
 
 #endif // MAIN_WINDOW_H

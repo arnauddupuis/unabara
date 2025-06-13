@@ -3,7 +3,7 @@
 #include <cmath>
 
 DiveData::DiveData(QObject *parent)
-    : QObject(parent)
+    : QObject(parent), m_diveNumber(0)
 {
 }
 
@@ -28,6 +28,30 @@ void DiveData::setLocation(const QString &location)
     if (m_location != location) {
         m_location = location;
         emit locationChanged();
+    }
+}
+
+void DiveData::setDiveNumber(int number)
+{
+    if (m_diveNumber != number) {
+        m_diveNumber = number;
+        emit diveNumberChanged();
+    }
+}
+
+void DiveData::setDiveSiteName(const QString &siteName)
+{
+    if (m_diveSiteName != siteName) {
+        m_diveSiteName = siteName;
+        emit diveSiteNameChanged();
+    }
+}
+
+void DiveData::setDiveSiteId(const QString &siteId)
+{
+    if (m_diveSiteId != siteId) {
+        m_diveSiteId = siteId;
+        emit diveSiteIdChanged();
     }
 }
 

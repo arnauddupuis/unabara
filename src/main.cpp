@@ -62,6 +62,8 @@ int main(int argc, char *argv[])
     // Connect the LogParser signals to MainWindow slots
     QObject::connect(&logParser, &LogParser::diveImported, 
                      &mainWindow, &MainWindow::onDiveImported);
+    QObject::connect(&logParser, &LogParser::multipleImported, 
+                     &mainWindow, &MainWindow::onMultipleDivesImported);
     
     // Connect signals to update the image provider
     QObject::connect(&mainWindow, &MainWindow::currentDiveChanged, 

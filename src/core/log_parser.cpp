@@ -230,10 +230,16 @@ bool LogParser::parseSubsurfaceXML(QFile &file, QList<DiveData*> &result, int sp
     qDebug() << "Starting to parse Subsurface XML file";
     QXmlStreamReader xml(&file);
     
+    // Clear dive sites for this file
+    m_diveSites.clear();
+    
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
-        if (token == QXmlStreamReader::StartElement && xml.name() == "dive") {
+        if (token == QXmlStreamReader::StartElement && xml.name() == "divesites") {
+            qDebug() << "Found divesites element";
+            parseDiveSites(xml);
+        } else if (token == QXmlStreamReader::StartElement && xml.name() == "dive") {
             qDebug() << "Found dive element";
             // Check if we're looking for a specific dive
             if (specificDive != -1) {
@@ -292,7 +298,27 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     // Get dive number and name
     if (attrs.hasAttribute("number")) {
         QString number = attrs.value("number").toString();
+        bool ok;
+        int diveNumber = number.toInt(&ok);
+        if (ok) {
+            dive->setDiveNumber(diveNumber);
+        }
         dive->setDiveName(tr("Dive #%1").arg(number));
+    }
+    
+    // Get dive site ID and link to site info
+    if (attrs.hasAttribute("divesiteid")) {
+        QString siteId = attrs.value("divesiteid").toString();
+        dive->setDiveSiteId(siteId);
+        
+        // Look up the dive site name if available
+        if (m_diveSites.contains(siteId)) {
+            const DiveSite &site = m_diveSites[siteId];
+            dive->setDiveSiteName(site.name);
+            if (dive->location().isEmpty() && !site.name.isEmpty()) {
+                dive->setLocation(site.name);
+            }
+        }
     }
     
     // Get date and time
@@ -883,4 +909,57 @@ bool LogParser::isCylinderActiveAtTime(int cylinderIndex, double timestamp) cons
     }
     
     return (cylinderIndex == activeCylinder);
+}
+
+void LogParser::parseDiveSites(QXmlStreamReader &xml)
+{
+    qDebug() << "Parsing divesites element";
+    
+    while (!xml.atEnd()) {
+        xml.readNext();
+        
+        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "divesites") {
+            break;  // Exit when we reach the end of divesites
+        }
+        
+        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == "site") {
+            // Parse individual dive site
+            QXmlStreamAttributes attrs = xml.attributes();
+            DiveSite site;
+            
+            // Get site UUID
+            if (attrs.hasAttribute("uuid")) {
+                site.uuid = attrs.value("uuid").toString();
+            }
+            
+            // Get site name
+            if (attrs.hasAttribute("name")) {
+                site.name = attrs.value("name").toString();
+            }
+            
+            // Get GPS coordinates
+            if (attrs.hasAttribute("gps")) {
+                site.gps = attrs.value("gps").toString();
+            }
+            
+            // Get description
+            if (attrs.hasAttribute("description")) {
+                site.description = attrs.value("description").toString();
+            }
+            
+            // Store the site if we have a UUID
+            if (!site.uuid.isEmpty()) {
+                m_diveSites[site.uuid] = site;
+                qDebug() << "Parsed dive site:" << site.name << "UUID:" << site.uuid;
+            }
+            
+            // Skip to the end of this site element
+            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "site")) {
+                xml.readNext();
+                if (xml.atEnd()) break;
+            }
+        }
+    }
+    
+    qDebug() << "Finished parsing divesites, found" << m_diveSites.size() << "sites";
 }

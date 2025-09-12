@@ -44,7 +44,7 @@ private:
     // Helper functions for XML parsing
     DiveData* parseDiveElement(QXmlStreamReader &xml);
     void parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, int &sampleCount);
-    void parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures);
+    void parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures, QMap<int, double> &lastPO2Sensors);
     void parseCylinderElement(QXmlStreamReader &xml, DiveData* dive);
     void parseDiveSites(QXmlStreamReader &xml);
     bool isCylinderActiveAtTime(int cylinderIndex, double timestamp) const;

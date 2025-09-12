@@ -508,6 +508,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     // Keep track of the last pressure for each tank - use map for sparse storage
     // Initialize last pressures with the initial values for all cylinders
     QMap<int, double> lastPressures;
+    QMap<int, double> lastPO2Sensors;
     for (int i = 0; i < dive->cylinderCount(); i++) {
         double initialPressure = m_initialCylinderPressures.value(i, 0.0);
         if (initialPressure > 0.0) {
@@ -528,7 +529,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
             
             if (elementName == "sample") {
                 // Process this sample
-                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS, lastPressures);
+                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS, lastPressures, lastPO2Sensors);
                 sampleCount++;
                 
                 // Log every 10th sample for debugging
@@ -607,7 +608,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     qDebug() << "Finished parsing divecomputer element with" << sampleCount << "samples";
 }
 
-void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures)
+void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double &lastTemperature, double &lastNDL, double &lastTTS, QMap<int, double> &lastPressures, QMap<int, double> &lastPO2Sensors)
 {
     QXmlStreamAttributes attrs = xml.attributes();
     
@@ -732,6 +733,47 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
                     hasData = true;
                 }
             }
+        }
+    }
+
+    // Parse PO2 sensor values (sensor1, sensor2, sensor3, sensor4)
+    for (int i = 1; i <= 4; i++) {
+        QString sensorAttr = QString("sensor%1").arg(i);
+        
+        if (attrs.hasAttribute(sensorAttr)) {
+            QString sensorStr = attrs.value(sensorAttr).toString();
+            QRegularExpression sensorRe("(\\d+\\.?\\d*)\\s+bar");
+            QRegularExpressionMatch match = sensorRe.match(sensorStr);
+            
+            if (match.hasMatch()) {
+                double sensorValue = match.captured(1).toDouble();
+                point.addPO2Sensor(sensorValue, i - 1); // Convert to 0-based index
+                lastPO2Sensors[i - 1] = sensorValue;
+                hasData = true;
+            } else {
+                // Try direct numeric parsing as fallback
+                bool ok;
+                double sensorValue = sensorStr.toDouble(&ok);
+                if (ok) {
+                    point.addPO2Sensor(sensorValue, i - 1);
+                    lastPO2Sensors[i - 1] = sensorValue;
+                    hasData = true;
+                }
+            }
+        }
+    }
+
+    // Apply last known PO2 sensor values for continuity
+    for (auto it = lastPO2Sensors.begin(); it != lastPO2Sensors.end(); ++it) {
+        int sensorIndex = it.key();
+        double lastValue = it.value();
+        
+        // Check if this sensor already has a value set for this sample
+        bool sensorSet = attrs.hasAttribute(QString("sensor%1").arg(sensorIndex + 1));
+        
+        // If sensor not explicitly given in this sample but we have a last known value
+        if (!sensorSet && lastValue > 0.0) {
+            point.addPO2Sensor(lastValue, sensorIndex);
         }
     }
 
@@ -874,6 +916,14 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
             for (int i = 0; i < point.tankCount(); i++) {
                 qDebug() << "  Tank" << i << "pressure=" << point.getPressure(i) 
                          << "(last=" << lastPressures.value(i, 0.0) << ")";
+            }
+            // Debug PO2 sensors
+            for (int i = 0; i < point.po2SensorCount(); i++) {
+                qDebug() << "  Sensor" << (i + 1) << "PO2=" << point.getPO2Sensor(i) 
+                         << "(last=" << lastPO2Sensors.value(i, 0.0) << ")";
+            }
+            if (point.po2SensorCount() > 0) {
+                qDebug() << "  Composite PO2=" << point.getCompositePO2();
             }
         }
         

@@ -18,6 +18,7 @@ struct DiveDataPoint {
     double ceiling;             // Decompression ceiling in meters
     double o2percent;           // O2 percentage
     double tts;                 // Time To Surface in minutes
+    QVector<double> po2Sensors; // PO2 sensor values in bar (for CCR dives)
     
     // Constructor with default values
     DiveDataPoint(double time = 0.0, double d = 0.0, double temp = 0.0, 
@@ -43,6 +44,29 @@ struct DiveDataPoint {
     // Get the number of tanks with pressure data
     Q_INVOKABLE int tankCount() const {
         return pressures.size();
+    }
+    
+    // PO2 sensor access methods
+    Q_INVOKABLE double getPO2Sensor(int sensorIndex) const {
+        return (sensorIndex >= 0 && sensorIndex < po2Sensors.size()) ? po2Sensors[sensorIndex] : 0.0;
+    }
+    
+    void addPO2Sensor(double po2Value, int sensorIndex) {
+        // Resize the vector if necessary
+        if (sensorIndex >= po2Sensors.size()) {
+            po2Sensors.resize(sensorIndex + 1, 0.0);
+        }
+        po2Sensors[sensorIndex] = po2Value;
+    }
+    
+    Q_INVOKABLE int po2SensorCount() const {
+        return po2Sensors.size();
+    }
+    
+    // Get the composite PO2 (last sensor)
+    Q_INVOKABLE double getCompositePO2() const {
+        if (po2Sensors.isEmpty()) return 0.0;
+        return po2Sensors.last();
     }
 };
 

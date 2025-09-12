@@ -23,6 +23,12 @@ class OverlayGenerator : public QObject
     Q_PROPERTY(bool showPressure READ showPressure WRITE setShowPressure NOTIFY showPressureChanged)
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
     
+    // CCR properties
+    Q_PROPERTY(bool showPO2Cell1 READ showPO2Cell1 WRITE setShowPO2Cell1 NOTIFY showPO2Cell1Changed)
+    Q_PROPERTY(bool showPO2Cell2 READ showPO2Cell2 WRITE setShowPO2Cell2 NOTIFY showPO2Cell2Changed)
+    Q_PROPERTY(bool showPO2Cell3 READ showPO2Cell3 WRITE setShowPO2Cell3 NOTIFY showPO2Cell3Changed)
+    Q_PROPERTY(bool showCompositePO2 READ showCompositePO2 WRITE setShowCompositePO2 NOTIFY showCompositePO2Changed)
+    
 public:
     explicit OverlayGenerator(QObject *parent = nullptr);
     
@@ -36,6 +42,12 @@ public:
     bool showPressure() const { return m_showPressure; }
     bool showTime() const { return m_showTime; }
     
+    // CCR getters
+    bool showPO2Cell1() const { return m_showPO2Cell1; }
+    bool showPO2Cell2() const { return m_showPO2Cell2; }
+    bool showPO2Cell3() const { return m_showPO2Cell3; }
+    bool showCompositePO2() const { return m_showCompositePO2; }
+    
     // Setters
     void setTemplatePath(const QString &path);
     void setFont(const QFont &font);
@@ -45,6 +57,12 @@ public:
     void setShowNDL(bool show);
     void setShowPressure(bool show);
     void setShowTime(bool show);
+    
+    // CCR setters
+    void setShowPO2Cell1(bool show);
+    void setShowPO2Cell2(bool show);
+    void setShowPO2Cell3(bool show);
+    void setShowCompositePO2(bool show);
     
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);
@@ -62,6 +80,12 @@ signals:
     void showPressureChanged();
     void showTimeChanged();
     
+    // CCR signals
+    void showPO2Cell1Changed();
+    void showPO2Cell2Changed();
+    void showPO2Cell3Changed();
+    void showCompositePO2Changed();
+    
 private:
     QString m_templatePath;
     QFont m_font;
@@ -71,6 +95,12 @@ private:
     bool m_showNDL;
     bool m_showPressure;
     bool m_showTime;
+    
+    // CCR settings
+    bool m_showPO2Cell1;
+    bool m_showPO2Cell2;
+    bool m_showPO2Cell3;
+    bool m_showCompositePO2;
     
     // Helper methods for drawing
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
@@ -82,6 +112,10 @@ private:
     void drawDataItem(QPainter &painter, const QString &label, const QString &value, const QRect &rect, bool centerAlign);
     // Helper method to draw section headers with consistent positioning
     void drawSectionHeader(QPainter &painter, const QString &label, const QRect &rect);
+    
+    // CCR drawing methods
+    void drawPO2Cell(QPainter &painter, double po2Value, const QRect &rect, int cellNumber);
+    void drawCompositePO2(QPainter &painter, double po2Value, const QRect &rect);
 };
 
 #endif // OVERLAY_GEN_H

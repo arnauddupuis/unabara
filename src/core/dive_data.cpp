@@ -217,6 +217,27 @@ DiveDataPoint DiveData::dataAtTime(double time) const
         result.addPressure(interpolatedPressure, i);
     }
     
+    // Interpolate all PO2 sensors (CCR data)
+    // Get the maximum number of PO2 sensors between both points
+    int maxSensors = qMax(prev.po2SensorCount(), next.po2SensorCount());
+    for (int i = 0; i < maxSensors; i++) {
+        double prevPO2 = prev.getPO2Sensor(i);
+        double nextPO2 = next.getPO2Sensor(i);
+        
+        // Only interpolate if both points have valid PO2 data
+        if (prevPO2 > 0.0 && nextPO2 > 0.0) {
+            double interpolatedPO2 = prevPO2 + factor * (nextPO2 - prevPO2);
+            result.addPO2Sensor(interpolatedPO2, i);
+        } else if (prevPO2 > 0.0) {
+            // Use previous value if next is missing
+            result.addPO2Sensor(prevPO2, i);
+        } else if (nextPO2 > 0.0) {
+            // Use next value if previous is missing
+            result.addPO2Sensor(nextPO2, i);
+        }
+        // If both are 0 or missing, don't add the sensor (empty result will have 0 count)
+    }
+    
     return result;
 }
 

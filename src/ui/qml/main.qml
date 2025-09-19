@@ -339,6 +339,10 @@ ApplicationWindow {
                         target: config
                         
                         function onUnitSystemChanged() { previewImage.updatePreview() }
+                        function onShowPO2Cell1Changed() { previewImage.updatePreview() }
+                        function onShowPO2Cell2Changed() { previewImage.updatePreview() }
+                        function onShowPO2Cell3Changed() { previewImage.updatePreview() }
+                        function onShowCompositePO2Changed() { previewImage.updatePreview() }
                     }
                     
                     // Add status changes monitoring
@@ -875,7 +879,7 @@ ApplicationWindow {
         modal: true
         standardButtons: Dialog.Ok | Dialog.Cancel
         width: 400
-        height: 400
+        height: 500
 
         // Ensure settings are applied when dialog is accepted
         onAccepted: {
@@ -886,6 +890,12 @@ ApplicationWindow {
             overlayGenerator.showNDL = showNDLCheckbox.checked
             overlayGenerator.showPressure = showPressureCheckbox.checked
             
+            // Apply CCR settings to config (they update automatically via bindings)
+            config.showPO2Cell1 = showPO2Cell1Checkbox.checked
+            config.showPO2Cell2 = showPO2Cell2Checkbox.checked
+            config.showPO2Cell3 = showPO2Cell3Checkbox.checked
+            config.showCompositePO2 = showCompositePO2Checkbox.checked
+            
             // Update the preview
             previewImage.updatePreview()
             
@@ -894,7 +904,11 @@ ApplicationWindow {
                         "Temp:", overlayGenerator.showTemperature,
                         "Time:", overlayGenerator.showTime,
                         "NDL:", overlayGenerator.showNDL,
-                        "Pressure:", overlayGenerator.showPressure)
+                        "Pressure:", overlayGenerator.showPressure,
+                        "PO2 Cell1:", config.showPO2Cell1,
+                        "PO2 Cell2:", config.showPO2Cell2,
+                        "PO2 Cell3:", config.showPO2Cell3,
+                        "Composite PO2:", config.showCompositePO2)
         }
         
         ColumnLayout {
@@ -954,6 +968,55 @@ ApplicationWindow {
                         checked: overlayGenerator.showPressure
                         onCheckedChanged: {
                             overlayGenerator.showPressure = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                }
+            }
+            
+            GroupBox {
+                title: qsTr("CCR Settings")
+                Layout.fillWidth: true
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    CheckBox {
+                        id: showPO2Cell1Checkbox
+                        text: qsTr("Show Cell 1 PO2")
+                        checked: config.showPO2Cell1
+                        onCheckedChanged: {
+                            config.showPO2Cell1 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showPO2Cell2Checkbox
+                        text: qsTr("Show Cell 2 PO2")
+                        checked: config.showPO2Cell2
+                        onCheckedChanged: {
+                            config.showPO2Cell2 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showPO2Cell3Checkbox
+                        text: qsTr("Show Cell 3 PO2")
+                        checked: config.showPO2Cell3
+                        onCheckedChanged: {
+                            config.showPO2Cell3 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showCompositePO2Checkbox
+                        text: qsTr("Show Composite PO2")
+                        checked: config.showCompositePO2
+                        onCheckedChanged: {
+                            config.showCompositePO2 = checked
                             previewImage.updatePreview()
                         }
                     }

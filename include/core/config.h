@@ -27,6 +27,12 @@ class Config : public QObject
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
     Q_PROPERTY(Units::UnitSystem unitSystem READ unitSystem WRITE setUnitSystem NOTIFY unitSystemChanged)
     
+    // CCR settings
+    Q_PROPERTY(bool showPO2Cell1 READ showPO2Cell1 WRITE setShowPO2Cell1 NOTIFY showPO2Cell1Changed)
+    Q_PROPERTY(bool showPO2Cell2 READ showPO2Cell2 WRITE setShowPO2Cell2 NOTIFY showPO2Cell2Changed)
+    Q_PROPERTY(bool showPO2Cell3 READ showPO2Cell3 WRITE setShowPO2Cell3 NOTIFY showPO2Cell3Changed)
+    Q_PROPERTY(bool showCompositePO2 READ showCompositePO2 WRITE setShowCompositePO2 NOTIFY showCompositePO2Changed)
+    
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     
@@ -68,6 +74,19 @@ public:
     Units::UnitSystem unitSystem() const;
     void setUnitSystem(Units::UnitSystem system);
     
+    // CCR settings
+    bool showPO2Cell1() const;
+    void setShowPO2Cell1(bool show);
+    
+    bool showPO2Cell2() const;
+    void setShowPO2Cell2(bool show);
+    
+    bool showPO2Cell3() const;
+    void setShowPO2Cell3(bool show);
+    
+    bool showCompositePO2() const;
+    void setShowCompositePO2(bool show);
+    
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -88,6 +107,12 @@ signals:
     void showTimeChanged();
     void unitSystemChanged();
     void frameRateChanged();
+    
+    // CCR signals
+    void showPO2Cell1Changed();
+    void showPO2Cell2Changed();
+    void showPO2Cell3Changed();
+    void showCompositePO2Changed();
     
 private:
     explicit Config(QObject *parent = nullptr);
@@ -112,6 +137,12 @@ private:
     bool m_showTime;
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
+    
+    // CCR settings
+    bool m_showPO2Cell1;
+    bool m_showPO2Cell2;
+    bool m_showPO2Cell3;
+    bool m_showCompositePO2;
     
     // Load configuration from disk
     void loadConfig();

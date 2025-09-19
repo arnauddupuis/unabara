@@ -14,6 +14,10 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showNDL(true)
     , m_showPressure(true)
     , m_showTime(true)
+    , m_showPO2Cell1(false)
+    , m_showPO2Cell2(false)
+    , m_showPO2Cell3(false)
+    , m_showCompositePO2(false)
 {
 }
 
@@ -81,6 +85,39 @@ void OverlayGenerator::setShowTime(bool show)
     }
 }
 
+// CCR setter implementations
+void OverlayGenerator::setShowPO2Cell1(bool show)
+{
+    if (m_showPO2Cell1 != show) {
+        m_showPO2Cell1 = show;
+        emit showPO2Cell1Changed();
+    }
+}
+
+void OverlayGenerator::setShowPO2Cell2(bool show)
+{
+    if (m_showPO2Cell2 != show) {
+        m_showPO2Cell2 = show;
+        emit showPO2Cell2Changed();
+    }
+}
+
+void OverlayGenerator::setShowPO2Cell3(bool show)
+{
+    if (m_showPO2Cell3 != show) {
+        m_showPO2Cell3 = show;
+        emit showPO2Cell3Changed();
+    }
+}
+
+void OverlayGenerator::setShowCompositePO2(bool show)
+{
+    if (m_showCompositePO2 != show) {
+        m_showCompositePO2 = show;
+        emit showCompositePO2Changed();
+    }
+}
+
 QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
 {
     if (!dive) {
@@ -145,6 +182,40 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     if (m_showNDL && !inDeco) numSections++; // Show NDL only if not in deco
     if (inDeco) numSections++; // Show TTS when in deco
     if (m_showTime) numSections++;
+    
+    // Count CCR sensor sections (only if dive has PO2 data)
+    int po2SensorCount = dataPoint.po2SensorCount();
+    
+    // Check if CCR settings are enabled regardless of current PO2 data availability
+    // This ensures consistent layout even when PO2 data is missing at some time points
+    bool anyCCREnabled = Config::instance()->showPO2Cell1() || 
+                         Config::instance()->showPO2Cell2() ||
+                         Config::instance()->showPO2Cell3() ||
+                         Config::instance()->showCompositePO2();
+    
+    if (anyCCREnabled && po2SensorCount > 0) {
+        // Check if any individual cells should be shown
+        if (Config::instance()->showPO2Cell1() || 
+            (Config::instance()->showPO2Cell2() && po2SensorCount > 1) ||
+            (Config::instance()->showPO2Cell3() && po2SensorCount > 2)) {
+            numSections++; // All individual cells share one section (grid layout)
+        }
+        // Composite PO2 gets its own section
+        if (Config::instance()->showCompositePO2()) {
+            numSections++;
+        }
+    } else if (anyCCREnabled && po2SensorCount == 0) {
+        // Still allocate sections for CCR even if no data is available for consistent layout
+        if (Config::instance()->showPO2Cell1() || 
+            Config::instance()->showPO2Cell2() ||
+            Config::instance()->showPO2Cell3()) {
+            numSections++; // All individual cells share one section (grid layout)
+        }
+        // Composite PO2 gets its own section
+        if (Config::instance()->showCompositePO2()) {
+            numSections++;
+        }
+    }
 
     // Handle tank section sizing separately - but more consistently
     if (m_showPressure && tankCount > 0) {
@@ -302,6 +373,60 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
 
     if (m_showTime) {
         drawTime(painter, dataPoint.timestamp, sectionRects[currentSection++]);
+    }
+    
+    // Draw CCR sensors (draw if CCR is enabled, handle missing data gracefully)
+    if (anyCCREnabled) {
+        // Draw individual cells in a grid layout (if any are enabled)
+        if (Config::instance()->showPO2Cell1() || 
+            Config::instance()->showPO2Cell2() ||
+            Config::instance()->showPO2Cell3()) {
+            QRect cellGridRect = sectionRects[currentSection++];
+            
+            // Count how many cells to show - always show enabled cells, handle missing data in draw method
+            QVector<int> cellsToShow;
+            if (Config::instance()->showPO2Cell1()) cellsToShow.append(1);
+            if (Config::instance()->showPO2Cell2()) cellsToShow.append(2);
+            if (Config::instance()->showPO2Cell3()) cellsToShow.append(3);
+            
+            // Layout cells in a grid (similar to tank layout)
+            int cellCount = cellsToShow.size();
+            if (cellCount == 1) {
+                // Single cell - use full width
+                int cellNum = cellsToShow[0];
+                drawPO2Cell(painter, dataPoint.getPO2Sensor(cellNum - 1), cellGridRect, cellNum);
+            } else {
+                // Multiple cells - use grid layout
+                int cols = (cellCount <= 2) ? cellCount : 2; // Max 2 columns
+                int rows = (cellCount + cols - 1) / cols; // Ceiling division
+                
+                int cellWidth = cellGridRect.width() / cols;
+                int cellHeight = cellGridRect.height() / rows;
+                
+                for (int i = 0; i < cellCount; i++) {
+                    int row = i / cols;
+                    int col = i % cols;
+                    
+                    QRect cellRect(
+                        cellGridRect.left() + (col * cellWidth),
+                        cellGridRect.top() + (row * cellHeight),
+                        cellWidth,
+                        cellHeight
+                    );
+                    
+                    // Add small margin for better separation
+                    cellRect.adjust(2, 2, -2, -2);
+                    
+                    int cellNum = cellsToShow[i];
+                    drawPO2Cell(painter, dataPoint.getPO2Sensor(cellNum - 1), cellRect, cellNum);
+                }
+            }
+        }
+        
+        // Draw composite PO2 in its own section
+        if (Config::instance()->showCompositePO2()) {
+            drawCompositePO2(painter, dataPoint.getCompositePO2(), sectionRects[currentSection++]);
+        }
     }
     
     painter.end();
@@ -627,4 +752,85 @@ void OverlayGenerator::drawSectionHeader(QPainter &painter, const QString &label
     painter.setFont(labelFont);
     
     painter.drawText(labelRect, Qt::AlignCenter, label);
+}
+
+// CCR PO2 sensor drawing methods
+void OverlayGenerator::drawPO2Cell(QPainter &painter, double po2Value, const QRect &rect, int cellNumber) {
+    painter.save();
+    
+    // Determine if this is a small cell (grid layout) based on rect size
+    bool isSmallCell = (rect.width() < 150 || rect.height() < 80);
+    
+    // Adjust font sizes for small cells
+    QFont headerFont = painter.font();
+    QFont valueFont = painter.font();
+    
+    if (isSmallCell) {
+        headerFont.setPixelSize(14);
+        valueFont.setPixelSize(18);
+    } else {
+        headerFont.setPixelSize(20);
+        valueFont.setPixelSize(24);
+    }
+    
+    painter.setFont(headerFont);
+    
+    // Draw header
+    int padding = isSmallCell ? 2 : 5;
+    QRect labelRect(rect.left() + padding, rect.top() + padding, 
+                   rect.width() - 2*padding, isSmallCell ? 16 : 20);
+    
+    QString label = tr("CELL %1").arg(cellNumber);
+    painter.drawText(labelRect, Qt::AlignCenter, label);
+    
+    // Draw the value
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    // Format PO2 value - handle missing data gracefully
+    QString po2Str;
+    if (po2Value > 0.0) {
+        po2Str = QString("%1").arg(po2Value, 0, 'f', 2);
+    } else {
+        po2Str = "--"; // Show placeholder when no data is available
+    }
+    
+    // Position value
+    QRect valueRect(rect.left() + padding, 
+                    rect.top() + (isSmallCell ? 20 : 35), 
+                    rect.width() - 2*padding, 
+                    isSmallCell ? 16 : 20);
+    
+    painter.drawText(valueRect, Qt::AlignCenter, po2Str);
+    
+    painter.restore();
+}
+
+void OverlayGenerator::drawCompositePO2(QPainter &painter, double po2Value, const QRect &rect) {
+    painter.save();
+    
+    // Draw the header using the helper function
+    drawSectionHeader(painter, tr("PO2"), rect);
+    
+    // Draw the value in the middle portion
+    QFont valueFont = painter.font();
+    valueFont.setPixelSize(24);
+    valueFont.setBold(true);
+    painter.setFont(valueFont);
+    
+    // Format PO2 value - handle missing data gracefully
+    QString po2Str;
+    if (po2Value > 0.0) {
+        po2Str = QString("%1").arg(po2Value, 0, 'f', 2);
+    } else {
+        po2Str = "--"; // Show placeholder when no data is available
+    }
+    
+    // Position value in the middle of the rect
+    QRect valueRect(rect.left() + 5, rect.top() + 35, 
+                    rect.width() - 10, 20); // Fixed position and height
+    
+    painter.drawText(valueRect, Qt::AlignCenter, po2Str);
+    
+    painter.restore();
 }

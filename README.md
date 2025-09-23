@@ -8,11 +8,11 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Features
 
-- **Import Dive Logs**: Import Subsurface (XML/SSRF) dive logs to extract comprehensive diving telemetry
-- **Visual Timeline**: View and navigate your dive data on an interactive timeline
-- **Video Import**: Import video footage and sync it with your dive data
-- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time)
-- **Template Selection**: Choose from built-in overlay templates or import your own designs
+- **Import Dive Logs**: Import Subsurface (XML/SSRF) dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
+- **Visual Timeline**: View and navigate your dive data on an interactive timeline.
+- **Video Import**: Import video footage and sync it with your dive data.
+- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time).
+- **Template Selection**: Choose from built-in overlay templates or import your own designs.
 - **Export Options**:
   - Export as image sequence for video editing software
   - Export directly as video file (requires FFmpeg)

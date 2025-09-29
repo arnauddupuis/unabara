@@ -224,16 +224,21 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         if (tankCount == 1) {
             numSections++; // One standard section for a single tank
             tankSectionWidth = 0; // We'll use standard section width
-        } 
-        // For 2+ tanks, allocate proportional space
+        }
+        // For 2+ tanks, allocate sections to accommodate the grid layout
         else if (tankCount > 1) {
             // Use 2 columns for layout
             int cols = 2;
             int rows = (tankCount + cols - 1) / cols; // Ceiling division
-            
-            // For multiple tanks, allocate space based on rows needed
-            tankSectionWidth = width / (numSections + rows);
-            numSections += rows; // Reserve space for rows of tanks
+
+            // For multiple tanks, allocate enough sections for proper display
+            // For 2 tanks: allocate 2 sections (one per tank in horizontal layout)
+            // For 3+ tanks: allocate sections based on grid rows, but ensure adequate space
+            if (tankCount == 2) {
+                numSections += 2; // Allocate 2 sections for 2 tanks side-by-side
+            } else {
+                numSections += rows; // For 3+ tanks, use row-based allocation
+            }
         }
     } else if (m_showPressure) {
         numSections++; // Single pressure section with no data
@@ -299,12 +304,22 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
             // Calculate how many section slots we need for tanks
             int cols = 2;
             int rows = (tankCount + cols - 1) / cols;
-            int tanksWidth = sectionWidth * rows;
+
+            // Calculate tank grid width based on tank count
+            int tanksWidth;
+            if (tankCount == 2) {
+                // For 2 tanks, use 2 sections side-by-side
+                tanksWidth = sectionWidth * 2;
+            } else {
+                // For 3+ tanks, use rows-based calculation
+                tanksWidth = sectionWidth * rows;
+            }
+
             qDebug() << "Tank grid - rows:" << rows << "cols:" << cols << "width:" << tanksWidth;
-            
+
             // Create a wider rectangle that spans multiple sections
             QRect tankGridRect(currentSection * sectionWidth, 0, tanksWidth, height);
-            
+
             // Calculate cell dimensions
             int cellWidth = tankGridRect.width() / cols;
             int cellHeight = height / ((tankCount > 2) ? ((tankCount + 1) / 2) : 1);
@@ -361,9 +376,13 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
 
                 drawPressure(painter, pressure, tankRect, i, dive);
             }
-            
+
             // Move current section past the tank grid
-            currentSection += rows;
+            if (tankCount == 2) {
+                currentSection += 2; // For 2 tanks, we used 2 sections
+            } else {
+                currentSection += rows; // For 3+ tanks, use rows
+            }
         }
         else {
             // No pressure data available
@@ -520,8 +539,8 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
             }
         }
         
-        // Use shorter labels for multi-tank displays
-        if (tankCount > 2) {
+        // Use shorter labels for multi-tank displays (2 or more tanks)
+        if (tankCount > 1) {
             if (!gasMix.isEmpty()) {
                 label = tr("T%1 %2").arg(tankIndex + 1).arg(gasMix);
             } else {
@@ -540,7 +559,7 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     
     // Adjust font size based on number of tanks
     QFont headerFont = painter.font();
-    if (tankCount > 2) {
+    if (tankCount > 1) {
         headerFont.setPixelSize(16); // Smaller for multi-tank
     } else {
         headerFont.setPixelSize(20); // Normal size
@@ -563,7 +582,7 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     
     // Draw pressure value with adaptive sizing
     QFont valueFont = painter.font();
-    if (tankCount > 2) {
+    if (tankCount > 1) {
         valueFont.setPixelSize(20); // Smaller for multi-tank
     } else {
         valueFont.setPixelSize(24); // Normal size
@@ -576,11 +595,11 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     
     // Position value - adjust for multi-tank
     QRect valueRect;
-    if (tankCount > 2) {
-        valueRect = QRect(rect.left() + padding, rect.top() + 25, 
+    if (tankCount > 1) {
+        valueRect = QRect(rect.left() + padding, rect.top() + 25,
                         rect.width() - 2*padding, 20);
     } else {
-        valueRect = QRect(rect.left() + 5, rect.top() + 35, 
+        valueRect = QRect(rect.left() + 5, rect.top() + 35,
                         rect.width() - 10, 20);
     }
     

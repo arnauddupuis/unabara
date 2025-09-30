@@ -17,6 +17,7 @@ class OverlayGenerator : public QObject
     Q_PROPERTY(QString templatePath READ templatePath WRITE setTemplatePath NOTIFY templateChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
+    Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(bool showDepth READ showDepth WRITE setShowDepth NOTIFY showDepthChanged)
     Q_PROPERTY(bool showTemperature READ showTemperature WRITE setShowTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(bool showNDL READ showNDL WRITE setShowNDL NOTIFY showNDLChanged)
@@ -36,6 +37,7 @@ public:
     QString templatePath() const { return m_templatePath; }
     QFont font() const { return m_font; }
     QColor textColor() const { return m_textColor; }
+    double backgroundOpacity() const { return m_backgroundOpacity; }
     bool showDepth() const { return m_showDepth; }
     bool showTemperature() const { return m_showTemperature; }
     bool showNDL() const { return m_showNDL; }
@@ -52,6 +54,7 @@ public:
     void setTemplatePath(const QString &path);
     void setFont(const QFont &font);
     void setTextColor(const QColor &color);
+    void setBackgroundOpacity(double opacity);
     void setShowDepth(bool show);
     void setShowTemperature(bool show);
     void setShowNDL(bool show);
@@ -74,6 +77,7 @@ signals:
     void templateChanged();
     void fontChanged();
     void textColorChanged();
+    void backgroundOpacityChanged();
     void showDepthChanged();
     void showTemperatureChanged();
     void showNDLChanged();
@@ -90,6 +94,7 @@ private:
     QString m_templatePath;
     QFont m_font;
     QColor m_textColor;
+    double m_backgroundOpacity;
     bool m_showDepth;
     bool m_showTemperature;
     bool m_showNDL;

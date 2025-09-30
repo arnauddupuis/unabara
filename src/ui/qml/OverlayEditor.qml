@@ -2,14 +2,18 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Unabara.Core 1.0
 
 Item {
     id: root
-    
+
     property var generator
     
+    implicitHeight: mainColumn.implicitHeight
+
     ColumnLayout {
-        anchors.fill: parent
+        id: mainColumn
+        width: parent.width
         spacing: 20
         
         // Template preview
@@ -19,13 +23,63 @@ Item {
             
             Rectangle {
                 anchors.fill: parent
-                color: "black"
+                color: "#5a5a5a"
                 
                 Image {
                     id: templatePreview
                     anchors.fill: parent
-                    source: generator ? generator.templatePath : ""
+                    source: "image://overlay/preview/" + Date.now()
                     fillMode: Image.PreserveAspectFit
+                    cache: false
+                    asynchronous: true
+
+                    // Update preview when generator properties change
+                    Connections {
+                        target: generator
+
+                        function onTemplateChanged() { templatePreview.updatePreview() }
+                        function onFontChanged() { templatePreview.updatePreview() }
+                        function onTextColorChanged() { templatePreview.updatePreview() }
+                        function onBackgroundOpacityChanged() { templatePreview.updatePreview() }
+                        function onShowDepthChanged() { templatePreview.updatePreview() }
+                        function onShowTemperatureChanged() { templatePreview.updatePreview() }
+                        function onShowTimeChanged() { templatePreview.updatePreview() }
+                        function onShowNDLChanged() { templatePreview.updatePreview() }
+                        function onShowPressureChanged() { templatePreview.updatePreview() }
+                    }
+
+                    // Update preview when config properties change (unit system only)
+                    Connections {
+                        target: config
+                        enabled: config !== null
+
+                        function onUnitSystemChanged() { templatePreview.updatePreview() }
+                    }
+
+                    // Update preview when generator CCR properties change
+                    Connections {
+                        target: generator
+                        enabled: generator !== null
+
+                        function onShowPO2Cell1Changed() { templatePreview.updatePreview() }
+                        function onShowPO2Cell2Changed() { templatePreview.updatePreview() }
+                        function onShowPO2Cell3Changed() { templatePreview.updatePreview() }
+                        function onShowCompositePO2Changed() { templatePreview.updatePreview() }
+                    }
+
+                    function updatePreview() {
+                        // Force preview refresh
+                        source = ""
+                        Qt.callLater(function() {
+                            source = "image://overlay/preview/" + Date.now()
+                        })
+                    }
+
+                    Component.onCompleted: {
+                        Qt.callLater(function() {
+                            updatePreview()
+                        })
+                    }
                 }
             }
         }
@@ -41,11 +95,34 @@ Item {
                 ComboBox {
                     id: templateSelector
                     Layout.fillWidth: true
-                    model: ["Default", "Modern", "Classic", "Minimal"]
-                    
+                    model: ["Default", "Default New", "Default Old"]
+
+                    Component.onCompleted: {
+                        if (generator) {
+                            // Set initial selection based on generator's current template
+                            var currentPath = generator.templatePath
+                            if (currentPath === ":/resources/templates/default_overlay_new.png") {
+                                currentIndex = 1
+                            } else if (currentPath === ":/resources/templates/default_overlay_old.png") {
+                                currentIndex = 2
+                            } else {
+                                currentIndex = 0 // Default
+                            }
+                        }
+                    }
+
                     onCurrentTextChanged: {
-                        var path = "qrc:/resources/templates/" + currentText.toLowerCase() + "_overlay.png"
-                        if (generator) generator.templatePath = path
+                        var path
+                        if (currentText === "Default") {
+                            path = ":/default_overlay.png"
+                        } else if (currentText === "Default New") {
+                            path = ":/resources/templates/default_overlay_new.png"
+                        } else if (currentText === "Default Old") {
+                            path = ":/resources/templates/default_overlay_old.png"
+                        }
+                        if (generator && path) {
+                            generator.templatePath = path
+                        }
                     }
                 }
                 
@@ -92,12 +169,12 @@ Item {
                     id: fontSizeSpinBox
                     from: 8
                     to: 72
-                    value: generator ? generator.font.pixelSize : 12
-                    
+                    value: generator ? generator.font.pointSize : 12
+
                     onValueChanged: {
-                        if (generator) {
+                        if (generator && generator.font.pointSize !== value) {
                             var font = generator.font
-                            font.pixelSize = value
+                            font.pointSize = value
                             generator.font = font
                         }
                     }
@@ -107,14 +184,39 @@ Item {
                 Button {
                     id: colorButton
                     Layout.fillWidth: true
-                    
+
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 4
                         color: generator ? generator.textColor : "white"
                     }
-                    
+
                     onClicked: colorDialog.open()
+                }
+
+                Label { text: qsTr("Background Opacity:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Slider {
+                        id: opacitySlider
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.01
+                        value: generator ? generator.backgroundOpacity : 1.0
+
+                        onValueChanged: {
+                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
+                                generator.backgroundOpacity = value
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(opacitySlider.value * 100) + "%"
+                        Layout.preferredWidth: 40
+                    }
                 }
             }
         }
@@ -132,7 +234,9 @@ Item {
                     text: qsTr("Show Depth")
                     checked: generator ? generator.showDepth : true
                     onCheckedChanged: {
-                        if (generator) generator.showDepth = checked
+                        if (generator && generator.showDepth !== checked) {
+                            generator.showDepth = checked
+                        }
                     }
                 }
                 
@@ -141,7 +245,9 @@ Item {
                     text: qsTr("Show Temperature")
                     checked: generator ? generator.showTemperature : true
                     onCheckedChanged: {
-                        if (generator) generator.showTemperature = checked
+                        if (generator && generator.showTemperature !== checked) {
+                            generator.showTemperature = checked
+                        }
                     }
                 }
                 
@@ -150,7 +256,9 @@ Item {
                     text: qsTr("Show Time")
                     checked: generator ? generator.showTime : true
                     onCheckedChanged: {
-                        if (generator) generator.showTime = checked
+                        if (generator && generator.showTime !== checked) {
+                            generator.showTime = checked
+                        }
                     }
                 }
                 
@@ -159,7 +267,9 @@ Item {
                     text: qsTr("Show No Decompression Limit")
                     checked: generator ? generator.showNDL : true
                     onCheckedChanged: {
-                        if (generator) generator.showNDL = checked
+                        if (generator && generator.showNDL !== checked) {
+                            generator.showNDL = checked
+                        }
                     }
                 }
                 
@@ -168,7 +278,95 @@ Item {
                     text: qsTr("Show Tank Pressure")
                     checked: generator ? generator.showPressure : true
                     onCheckedChanged: {
-                        if (generator) generator.showPressure = checked
+                        if (generator && generator.showPressure !== checked) {
+                            generator.showPressure = checked
+                        }
+                    }
+                }
+            }
+        }
+
+        // CCR Settings
+        GroupBox {
+            title: qsTr("CCR Settings")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+
+                CheckBox {
+                    id: showPO2Cell1Checkbox
+                    text: qsTr("Show Cell 1 PO2")
+                    checked: generator ? generator.showPO2Cell1 : false
+                    onCheckedChanged: {
+                        if (generator && generator.showPO2Cell1 !== checked) {
+                            generator.showPO2Cell1 = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showPO2Cell2Checkbox
+                    text: qsTr("Show Cell 2 PO2")
+                    checked: generator ? generator.showPO2Cell2 : false
+                    onCheckedChanged: {
+                        if (generator && generator.showPO2Cell2 !== checked) {
+                            generator.showPO2Cell2 = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showPO2Cell3Checkbox
+                    text: qsTr("Show Cell 3 PO2")
+                    checked: generator ? generator.showPO2Cell3 : false
+                    onCheckedChanged: {
+                        if (generator && generator.showPO2Cell3 !== checked) {
+                            generator.showPO2Cell3 = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showCompositePO2Checkbox
+                    text: qsTr("Show Composite PO2")
+                    checked: generator ? generator.showCompositePO2 : false
+                    onCheckedChanged: {
+                        if (generator && generator.showCompositePO2 !== checked) {
+                            generator.showCompositePO2 = checked
+                        }
+                    }
+                }
+            }
+        }
+
+        // Units Settings
+        GroupBox {
+            title: qsTr("Units")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+
+                RadioButton {
+                    id: metricUnitsRadio
+                    text: qsTr("Metric (m, °C, bar)")
+                    checked: config ? config.unitSystem === Units.Metric : true
+                    onCheckedChanged: {
+                        if (checked && config && config.unitSystem !== Units.Metric) {
+                            config.unitSystem = Units.Metric
+                        }
+                    }
+                }
+
+                RadioButton {
+                    id: imperialUnitsRadio
+                    text: qsTr("Imperial (ft, °F, psi)")
+                    checked: config ? config.unitSystem === Units.Imperial : false
+                    onCheckedChanged: {
+                        if (checked && config && config.unitSystem !== Units.Imperial) {
+                            config.unitSystem = Units.Imperial
+                        }
                     }
                 }
             }
@@ -181,7 +379,18 @@ Item {
         title: qsTr("Select Template Image")
         nameFilters: ["Image files (*.png *.jpg *.jpeg)"]
         onAccepted: {
-            if (generator) generator.templatePath = selectedFile
+            if (generator) {
+                // Convert file URL to local path
+                var rootWindow = root
+                while (rootWindow.parent) {
+                    rootWindow = rootWindow.parent
+                }
+                var localPath = rootWindow.urlToLocalFile ?
+                    rootWindow.urlToLocalFile(selectedFile.toString()) :
+                    selectedFile.toString().replace("file://", "")
+
+                generator.templatePath = localPath
+            }
         }
     }
     

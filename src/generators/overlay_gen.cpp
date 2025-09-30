@@ -9,6 +9,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_templatePath(":/default_overlay.png")
     , m_font(QFont("Arial", 12))
     , m_textColor(Qt::white)
+    , m_backgroundOpacity(1.0)
     , m_showDepth(true)
     , m_showTemperature(true)
     , m_showNDL(true)
@@ -19,6 +20,27 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
 {
+    // Initialize with values from Config
+    Config* config = Config::instance();
+    m_templatePath = config->templatePath();
+    m_font = config->font();
+    m_textColor = config->textColor();
+    m_backgroundOpacity = config->backgroundOpacity();
+    m_showDepth = config->showDepth();
+    m_showTemperature = config->showTemperature();
+    m_showNDL = config->showNDL();
+    m_showPressure = config->showPressure();
+    m_showTime = config->showTime();
+    m_showPO2Cell1 = config->showPO2Cell1();
+    m_showPO2Cell2 = config->showPO2Cell2();
+    m_showPO2Cell3 = config->showPO2Cell3();
+    m_showCompositePO2 = config->showCompositePO2();
+
+    // Connect to config changes to stay in sync
+    connect(config, &Config::backgroundOpacityChanged, this, [this]() {
+        m_backgroundOpacity = Config::instance()->backgroundOpacity();
+        emit backgroundOpacityChanged();
+    });
 }
 
 void OverlayGenerator::setTemplatePath(const QString &path)
@@ -42,6 +64,16 @@ void OverlayGenerator::setTextColor(const QColor &color)
     if (m_textColor != color) {
         m_textColor = color;
         emit textColorChanged();
+    }
+}
+
+void OverlayGenerator::setBackgroundOpacity(double opacity)
+{
+    opacity = qBound(0.0, opacity, 1.0); // Clamp between 0.0 and 1.0
+    if (qAbs(m_backgroundOpacity - opacity) > 0.001) { // Use floating point comparison
+        m_backgroundOpacity = opacity;
+        Config::instance()->setBackgroundOpacity(opacity); // Update Config
+        emit backgroundOpacityChanged();
     }
 }
 
@@ -136,8 +168,17 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         templateImage.fill(QColor(0, 0, 0, 180));
     }
     
-    // Create the result image
+    // Create the result image and apply background opacity
     QImage result = templateImage.copy();
+
+    // Apply background opacity if needed
+    if (m_backgroundOpacity < 1.0) {
+        QPainter opacityPainter(&result);
+        opacityPainter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+        QColor opacityColor(255, 255, 255, static_cast<int>(m_backgroundOpacity * 255));
+        opacityPainter.fillRect(result.rect(), opacityColor);
+        opacityPainter.end();
+    }
     
     // Get the data for the current time point
     DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
@@ -188,31 +229,31 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     
     // Check if CCR settings are enabled regardless of current PO2 data availability
     // This ensures consistent layout even when PO2 data is missing at some time points
-    bool anyCCREnabled = Config::instance()->showPO2Cell1() || 
-                         Config::instance()->showPO2Cell2() ||
-                         Config::instance()->showPO2Cell3() ||
-                         Config::instance()->showCompositePO2();
+    bool anyCCREnabled = m_showPO2Cell1 ||
+                         m_showPO2Cell2 ||
+                         m_showPO2Cell3 ||
+                         m_showCompositePO2;
     
     if (anyCCREnabled && po2SensorCount > 0) {
         // Check if any individual cells should be shown
-        if (Config::instance()->showPO2Cell1() || 
-            (Config::instance()->showPO2Cell2() && po2SensorCount > 1) ||
-            (Config::instance()->showPO2Cell3() && po2SensorCount > 2)) {
+        if (m_showPO2Cell1 ||
+            (m_showPO2Cell2 && po2SensorCount > 1) ||
+            (m_showPO2Cell3 && po2SensorCount > 2)) {
             numSections++; // All individual cells share one section (grid layout)
         }
         // Composite PO2 gets its own section
-        if (Config::instance()->showCompositePO2()) {
+        if (m_showCompositePO2) {
             numSections++;
         }
     } else if (anyCCREnabled && po2SensorCount == 0) {
         // Still allocate sections for CCR even if no data is available for consistent layout
-        if (Config::instance()->showPO2Cell1() || 
-            Config::instance()->showPO2Cell2() ||
-            Config::instance()->showPO2Cell3()) {
+        if (m_showPO2Cell1 ||
+            m_showPO2Cell2 ||
+            m_showPO2Cell3) {
             numSections++; // All individual cells share one section (grid layout)
         }
         // Composite PO2 gets its own section
-        if (Config::instance()->showCompositePO2()) {
+        if (m_showCompositePO2) {
             numSections++;
         }
     }
@@ -397,16 +438,16 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     // Draw CCR sensors (draw if CCR is enabled, handle missing data gracefully)
     if (anyCCREnabled) {
         // Draw individual cells in a grid layout (if any are enabled)
-        if (Config::instance()->showPO2Cell1() || 
-            Config::instance()->showPO2Cell2() ||
-            Config::instance()->showPO2Cell3()) {
+        if (m_showPO2Cell1 ||
+            m_showPO2Cell2 ||
+            m_showPO2Cell3) {
             QRect cellGridRect = sectionRects[currentSection++];
-            
+
             // Count how many cells to show - always show enabled cells, handle missing data in draw method
             QVector<int> cellsToShow;
-            if (Config::instance()->showPO2Cell1()) cellsToShow.append(1);
-            if (Config::instance()->showPO2Cell2()) cellsToShow.append(2);
-            if (Config::instance()->showPO2Cell3()) cellsToShow.append(3);
+            if (m_showPO2Cell1) cellsToShow.append(1);
+            if (m_showPO2Cell2) cellsToShow.append(2);
+            if (m_showPO2Cell3) cellsToShow.append(3);
             
             // Layout cells in a grid (similar to tank layout)
             int cellCount = cellsToShow.size();
@@ -443,7 +484,7 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         }
         
         // Draw composite PO2 in its own section
-        if (Config::instance()->showCompositePO2()) {
+        if (m_showCompositePO2) {
             drawCompositePO2(painter, dataPoint.getCompositePO2(), sectionRects[currentSection++]);
         }
     }

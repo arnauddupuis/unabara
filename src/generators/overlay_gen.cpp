@@ -55,6 +55,7 @@ void OverlayGenerator::setFont(const QFont &font)
 {
     if (m_font != font) {
         m_font = font;
+        Config::instance()->setFont(font); // Update Config
         emit fontChanged();
     }
 }
@@ -63,6 +64,7 @@ void OverlayGenerator::setTextColor(const QColor &color)
 {
     if (m_textColor != color) {
         m_textColor = color;
+        Config::instance()->setTextColor(color); // Update Config
         emit textColorChanged();
     }
 }
@@ -505,6 +507,20 @@ QImage OverlayGenerator::generatePreview(DiveData* dive)
     return generateOverlay(dive, timePoint);
 }
 
+int OverlayGenerator::getScaledFontSize(double scale) const {
+    int baseSize = m_font.pointSize();
+    if (baseSize <= 0) {
+        // Fallback to pixel size if point size is not set
+        baseSize = m_font.pixelSize();
+        if (baseSize <= 0) {
+            baseSize = 12; // Final fallback
+        }
+    }
+
+    // Convert point size to approximate pixel size and apply scale
+    return static_cast<int>(baseSize * 1.33 * scale); // 1.33 is approximate point-to-pixel ratio
+}
+
 void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect) {
     Units::UnitSystem unitSystem = Config::instance()->unitSystem();
     QString depthStr = Units::formatDepthValue(depth, unitSystem);
@@ -516,8 +532,7 @@ void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &r
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -541,8 +556,7 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -601,9 +615,11 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     // Adjust font size based on number of tanks
     QFont headerFont = painter.font();
     if (tankCount > 1) {
-        headerFont.setPixelSize(16); // Smaller for multi-tank
+        // headerFont.setPixelSize(16); // Smaller for multi-tank
+        headerFont.setPixelSize(getScaledFontSize(1.2)); // Smaller for multi-tank
     } else {
-        headerFont.setPixelSize(20); // Normal size
+        // headerFont.setPixelSize(20); // Normal size
+        headerFont.setPixelSize(getScaledFontSize(1.5)); // Scale up for headers
     }
     painter.setFont(headerFont);
     
@@ -624,9 +640,11 @@ void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QR
     // Draw pressure value with adaptive sizing
     QFont valueFont = painter.font();
     if (tankCount > 1) {
-        valueFont.setPixelSize(20); // Smaller for multi-tank
+        // valueFont.setPixelSize(20); // Smaller for multi-tank
+        valueFont.setPixelSize(getScaledFontSize(1.5)); // Smaller for multi-tank
     } else {
-        valueFont.setPixelSize(24); // Normal size
+        // valueFont.setPixelSize(24); // Normal size
+        valueFont.setPixelSize(getScaledFontSize(1.8)); // Normal size
     }
     valueFont.setBold(true);
     painter.setFont(valueFont);
@@ -663,8 +681,7 @@ void OverlayGenerator::drawTime(QPainter &painter, double timestamp, const QRect
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -686,8 +703,7 @@ void OverlayGenerator::drawNDL(QPainter &painter, double ndl, const QRect &rect)
     
     // Draw NDL value at SAME POSITION as other values
     QFont valueFont = painter.font();
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -710,8 +726,7 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
     
     // Draw TTS value at SAME POSITION as other values
     QFont valueFont = painter.font();
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -726,7 +741,7 @@ void OverlayGenerator::drawTTS(QPainter &painter, double tts, const QRect &rect,
     // Draw DECO text in the bottom portion
     QFont decoFont = painter.font();
     // decoFont.setPointSize(10);
-    decoFont.setPixelSize(14);
+    decoFont.setPixelSize(getScaledFontSize(1.0)); // Base size for small text
     decoFont.setBold(true);
     painter.setFont(decoFont);
     
@@ -772,7 +787,7 @@ void OverlayGenerator::drawDataItem(QPainter &painter, const QString &label, con
     // Draw label with fixed font size
     QFont labelFont = painter.font();
     // labelFont.setPointSize(10);
-    labelFont.setPixelSize(20);
+    labelFont.setPixelSize(getScaledFontSize(1.5));
     painter.setFont(labelFont);
     
     // Calculate if we need to elide the text
@@ -787,8 +802,7 @@ void OverlayGenerator::drawDataItem(QPainter &painter, const QString &label, con
     
     // Draw value with fixed font size
     QFont valueFont = labelFont;
-    // valueFont.setPointSize(12);
-    valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8)); // Scale up for values
     valueFont.setBold(true);
     painter.setFont(valueFont);
     
@@ -808,7 +822,7 @@ void OverlayGenerator::drawSectionHeader(QPainter &painter, const QString &label
     // Use consistent font for all labels
     QFont labelFont = painter.font();
     // labelFont.setPointSize(10);
-    labelFont.setPixelSize(20);
+    labelFont.setPixelSize(getScaledFontSize(1.5));
     painter.setFont(labelFont);
     
     painter.drawText(labelRect, Qt::AlignCenter, label);
@@ -826,11 +840,15 @@ void OverlayGenerator::drawPO2Cell(QPainter &painter, double po2Value, const QRe
     QFont valueFont = painter.font();
     
     if (isSmallCell) {
-        headerFont.setPixelSize(14);
-        valueFont.setPixelSize(18);
+        // headerFont.setPixelSize(14);
+        // valueFont.setPixelSize(18);
+        headerFont.setPixelSize(getScaledFontSize(1.0));
+        valueFont.setPixelSize(getScaledFontSize(1.4));
     } else {
-        headerFont.setPixelSize(20);
-        valueFont.setPixelSize(24);
+        headerFont.setPixelSize(getScaledFontSize(1.5));
+        valueFont.setPixelSize(getScaledFontSize(1.8));
+        // headerFont.setPixelSize(20);
+        // valueFont.setPixelSize(24);
     }
     
     painter.setFont(headerFont);
@@ -874,7 +892,8 @@ void OverlayGenerator::drawCompositePO2(QPainter &painter, double po2Value, cons
     
     // Draw the value in the middle portion
     QFont valueFont = painter.font();
-    valueFont.setPixelSize(24);
+    // valueFont.setPixelSize(24);
+    valueFont.setPixelSize(getScaledFontSize(1.8));
     valueFont.setBold(true);
     painter.setFont(valueFont);
     

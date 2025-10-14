@@ -108,6 +108,7 @@ private:
     bool m_showCompositePO2;
     
     // Helper methods for drawing
+    int getScaledFontSize(double scale = 1.0) const;
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
     void drawTemperature(QPainter &painter, double temp, const QRect &rect);
     void drawNDL(QPainter &painter, double ndl, const QRect &rect);

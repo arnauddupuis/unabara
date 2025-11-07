@@ -211,28 +211,49 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     // Get the maximum number of tanks between both points
     int maxTanks = qMax(prev.tankCount(), next.tankCount());
     for (int i = 0; i < maxTanks; i++) {
-        double prevPressure = prev.getPressure(i);
-        double nextPressure = next.getPressure(i);
+        double pressure = 0.0;
 
-        // If both samples have pressure data, interpolate between them
-        if (prevPressure > 0.0 && nextPressure > 0.0) {
-            qDebug() << "DiveData::DataAtTime() [both >0.0] Interpolating pressure for tank" << i 
-                    << "prev:" << prevPressure << "next:" << nextPressure 
-                    << "cylinderCount:" << cylinderCount();
-            double interpolatedPressure = prevPressure + factor * (nextPressure - prevPressure);
-            result.addPressure(interpolatedPressure, i);
-        }
-        // If no sample data available, use cylinder start/end pressure interpolation
-        else {
-            qDebug() << "DiveData::DataAtTime() [1+ is 0.0] Interpolating pressure for tank" << i 
-                    << "prev:" << prevPressure << "next:" << nextPressure 
-                    << "cylinderCount:" << cylinderCount();
-            if (i < cylinderCount()) {
-                double interpolatedPressure = interpolateCylinderPressure(i, time);
-                if (interpolatedPressure > 0.0) {
-                    result.addPressure(interpolatedPressure, i);
+        // Check if we have cylinder information
+        if (i < cylinderCount()) {
+            const CylinderInfo &cylinder = cylinderInfo(i);
+
+            // If cylinder has valid start/end pressure, use cylinder-based interpolation
+            // This is the primary method as it respects gas switches and handles missing samples
+            if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+                if (isCylinderActiveAtTime(i, time)) {
+                    // Active cylinder: use cylinder-based interpolation
+                    pressure = interpolateCylinderPressure(i, time);
+                } else {
+                    // Inactive cylinder: use last interpolated value for continuity
+                    double lastInterpolated = getLastInterpolatedPressure(i);
+                    if (lastInterpolated > 0.0) {
+                        pressure = lastInterpolated;
+                    } else {
+                        // Fallback: use start pressure if cylinder was never used
+                        pressure = cylinder.startPressure;
+                    }
                 }
             }
+            // If no cylinder data available, fall back to sample-based interpolation
+            else {
+                double prevPressure = prev.getPressure(i);
+                double nextPressure = next.getPressure(i);
+                if (prevPressure > 0.0 && nextPressure > 0.0) {
+                    pressure = prevPressure + factor * (nextPressure - prevPressure);
+                }
+            }
+        }
+        // No cylinder info - use sample-based interpolation
+        else {
+            double prevPressure = prev.getPressure(i);
+            double nextPressure = next.getPressure(i);
+            if (prevPressure > 0.0 && nextPressure > 0.0) {
+                pressure = prevPressure + factor * (nextPressure - prevPressure);
+            }
+        }
+
+        if (pressure > 0.0) {
+            result.addPressure(pressure, i);
         }
     }
     

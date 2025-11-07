@@ -701,18 +701,8 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         
         if (tankCount == 1) {
             // For single tank, treat it like a regular section
+            // Trust the pressure from dataPoint - it's already properly interpolated by dataAtTime()
             double pressure = dataPoint.getPressure(0);
-            
-            // If no explicit pressure data but we have start/end pressures, interpolate
-            qDebug() << "Tank count:" << tankCount << "Pressure:" << pressure;
-            const CylinderInfo &cylinder = dive->cylinderInfo(0);
-            if (pressure == cylinder.startPressure && dive->cylinderCount() > 0) {
-                if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
-                    pressure = dive->interpolateCylinderPressure(0, dataPoint.timestamp);
-                    qDebug() << "Using interpolated pressure for display:" << pressure;
-                }
-            }
-            
             drawPressure(painter, pressure, sectionRects[currentSection++], 0, dive);
         } 
         else if (tankCount > 1) {
@@ -760,36 +750,12 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
                 qDebug() << "Drawing tank" << i << "at row" << row << "col" << col 
                  << "rect:" << tankRect;
 
+                // Trust the pressure from dataPoint - it's already properly interpolated by dataAtTime()
+                // The dataAtTime() method now handles:
+                // - Active cylinders: uses cylinder-based interpolation
+                // - Inactive cylinders: uses last interpolated value for continuity
+                // - Gas switches: respects cylinder active periods
                 double pressure = dataPoint.getPressure(i);
-                // // Check if the pressure equals the start pressure (suggesting it needs interpolation)
-                // const CylinderInfo &cylinder = dive->cylinderInfo(i);
-                // if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
-                //     // Check if this cylinder is active at the current time
-                //     if (dive->isCylinderActiveAtTime(i, dataPoint.timestamp)) {
-                //         pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
-                //         qDebug() << "Using interpolated pressure for tank" << i << ":" << pressure;
-                //     }
-                // }
-
-                const CylinderInfo &cylinder = dive->cylinderInfo(i);
-                // If the cylinder has valid pressure values for interpolation
-                if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
-                    // Check if this cylinder is active at the current time
-                    if (dive->isCylinderActiveAtTime(i, dataPoint.timestamp)) {
-                        // Active tank - use interpolation
-                        pressure = dive->interpolateCylinderPressure(i, dataPoint.timestamp);
-                        qDebug() << "Using interpolated pressure for active tank" << i << ":" << pressure;
-                    } else {
-                        // Inactive tank - check if we have a previously interpolated value
-                        double lastInterpolated = dive->getLastInterpolatedPressure(i);
-                        if (lastInterpolated > 0.0) {
-                            // Use the last known interpolated value for continuity
-                            pressure = lastInterpolated;
-                            qDebug() << "Using last interpolated pressure for inactive tank" << i << ":" << pressure;
-                        }
-                    }
-                }
-
                 drawPressure(painter, pressure, tankRect, i, dive);
             }
 

@@ -3,84 +3,162 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Unabara.Core 1.0
+import Unabara.UI 1.0
 
 Item {
     id: root
 
     property var generator
-    
+    property var timeline: null
+    property var dive: null
+
     implicitHeight: mainColumn.implicitHeight
+
+    // Cell model for interactive preview
+    CellModel {
+        id: cellModel
+    }
 
     ColumnLayout {
         id: mainColumn
         width: parent.width
         spacing: 20
         
-        // Template preview
+        // Interactive overlay preview
         Item {
+            id: previewContainer
             Layout.fillWidth: true
             Layout.preferredHeight: width * 0.5625  // 16:9 aspect ratio
-            
-            Rectangle {
+
+            function updateCellModel() {
+                if (root.generator && root.dive && root.timeline) {
+                    console.log("Updating cell model with current time: ", root.timeline.currentTime)
+                    cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                }
+            }
+
+            InteractiveOverlayPreview {
+                id: interactivePreview
                 anchors.fill: parent
-                color: "#5a5a5a"
-                
-                Image {
-                    id: templatePreview
-                    anchors.fill: parent
-                    source: "image://overlay/preview/" + Date.now()
-                    fillMode: Image.PreserveAspectFit
-                    cache: false
-                    asynchronous: true
+                generator: root.generator
+                dive: root.dive
+                timePoint: root.timeline ? root.timeline.currentTime : 0.0
+                cellModel: cellModel
 
-                    // Update preview when generator properties change
-                    Connections {
-                        target: generator
+                onCellSelected: function(cellId) {
+                    console.log("Cell selected:", cellId)
+                    // TODO: Update cell editor panel to show this cell's properties
+                }
 
-                        function onTemplateChanged() { templatePreview.updatePreview() }
-                        function onFontChanged() { templatePreview.updatePreview() }
-                        function onTextColorChanged() { templatePreview.updatePreview() }
-                        function onBackgroundOpacityChanged() { templatePreview.updatePreview() }
-                        function onShowDepthChanged() { templatePreview.updatePreview() }
-                        function onShowTemperatureChanged() { templatePreview.updatePreview() }
-                        function onShowTimeChanged() { templatePreview.updatePreview() }
-                        function onShowNDLChanged() { templatePreview.updatePreview() }
-                        function onShowPressureChanged() { templatePreview.updatePreview() }
+                onCellDeselected: {
+                    console.log("Cell deselected")
+                    // TODO: Clear cell editor panel
+                }
+
+                onCellPositionChanged: function(cellId, newPosition) {
+                    console.log("Cell position changed:", cellId, newPosition)
+                    // Position is already updated via CellModel
+                }
+            }
+
+            // Update cell model when properties change
+            Connections {
+                target: root
+
+                function onGeneratorChanged() { previewContainer.updateCellModel() }
+                function onDiveChanged() {
+                    // Regenerate cells when dive changes to handle multi-tank layout
+                    if (root.generator && root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
                     }
+                    previewContainer.updateCellModel()
+                }
+                function onTimelineChanged() { previewContainer.updateCellModel() }
+            }
 
-                    // Update preview when config properties change (unit system only)
-                    Connections {
-                        target: config
-                        enabled: config !== null
+            Connections {
+                target: root.timeline
+                enabled: root.timeline !== null
 
-                        function onUnitSystemChanged() { templatePreview.updatePreview() }
+                function onCurrentTimeChanged() { previewContainer.updateCellModel() }
+            }
+
+            Connections {
+                target: root.generator
+                enabled: root.generator !== null
+
+                function onCellsChanged() { previewContainer.updateCellModel() }
+                function onCellLayoutChanged() { previewContainer.updateCellModel() }
+                function onFontChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
                     }
-
-                    // Update preview when generator CCR properties change
-                    Connections {
-                        target: generator
-                        enabled: generator !== null
-
-                        function onShowPO2Cell1Changed() { templatePreview.updatePreview() }
-                        function onShowPO2Cell2Changed() { templatePreview.updatePreview() }
-                        function onShowPO2Cell3Changed() { templatePreview.updatePreview() }
-                        function onShowCompositePO2Changed() { templatePreview.updatePreview() }
+                    previewContainer.updateCellModel()
+                }
+                function onTextColorChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
                     }
+                    previewContainer.updateCellModel()
+                }
 
-                    function updatePreview() {
-                        // Force preview refresh
-                        source = ""
-                        Qt.callLater(function() {
-                            source = "image://overlay/preview/" + Date.now()
-                        })
-                    }
-
-                    Component.onCompleted: {
-                        Qt.callLater(function() {
-                            updatePreview()
-                        })
+                // Regenerate cells when display options change
+                function onShowDepthChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
                     }
                 }
+                function onShowTemperatureChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowNDLChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowPressureChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowTimeChanged() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowPO2Cell1Changed() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowPO2Cell2Changed() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowPO2Cell3Changed() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+                function onShowCompositePO2Changed() {
+                    if (root.dive) {
+                        root.generator.initializeDefaultCellLayout(root.dive)
+                    }
+                }
+            }
+
+            Connections {
+                target: config
+                enabled: config !== null
+
+                function onUnitSystemChanged() { previewContainer.updateCellModel() }
+            }
+
+            Component.onCompleted: {
+                Qt.callLater(previewContainer.updateCellModel)
             }
         }
         

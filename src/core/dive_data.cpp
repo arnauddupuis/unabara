@@ -213,8 +213,27 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     for (int i = 0; i < maxTanks; i++) {
         double prevPressure = prev.getPressure(i);
         double nextPressure = next.getPressure(i);
-        double interpolatedPressure = prevPressure + factor * (nextPressure - prevPressure);
-        result.addPressure(interpolatedPressure, i);
+
+        // If both samples have pressure data, interpolate between them
+        if (prevPressure > 0.0 && nextPressure > 0.0) {
+            qDebug() << "DiveData::DataAtTime() [both >0.0] Interpolating pressure for tank" << i 
+                    << "prev:" << prevPressure << "next:" << nextPressure 
+                    << "cylinderCount:" << cylinderCount();
+            double interpolatedPressure = prevPressure + factor * (nextPressure - prevPressure);
+            result.addPressure(interpolatedPressure, i);
+        }
+        // If no sample data available, use cylinder start/end pressure interpolation
+        else {
+            qDebug() << "DiveData::DataAtTime() [1+ is 0.0] Interpolating pressure for tank" << i 
+                    << "prev:" << prevPressure << "next:" << nextPressure 
+                    << "cylinderCount:" << cylinderCount();
+            if (i < cylinderCount()) {
+                double interpolatedPressure = interpolateCylinderPressure(i, time);
+                if (interpolatedPressure > 0.0) {
+                    result.addPressure(interpolatedPressure, i);
+                }
+            }
+        }
     }
     
     // Interpolate all PO2 sensors (CCR data)

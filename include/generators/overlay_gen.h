@@ -6,9 +6,12 @@
 #include <QImage>
 #include <QFont>
 #include <QColor>
+#include <QVector>
 #include "include/core/dive_data.h"
 #include "include/core/config.h"
 #include "include/core/units.h"
+#include "include/core/cell_data.h"
+#include "include/core/overlay_template.h"
 
 class OverlayGenerator : public QObject
 {
@@ -66,10 +69,27 @@ public:
     void setShowPO2Cell2(bool show);
     void setShowPO2Cell3(bool show);
     void setShowCompositePO2(bool show);
-    
+
+    // Cell-based layout management
+    Unabara::CellData* getCellData(const QString& cellId);
+    const Unabara::CellData* getCellData(const QString& cellId) const;
+    QVector<Unabara::CellData> cells() const { return m_cells; }
+    void setCellPosition(const QString& cellId, const QPointF& pos);
+    void setCellFont(const QString& cellId, const QFont& font);
+    void setCellColor(const QString& cellId, const QColor& color);
+    void setCellVisible(const QString& cellId, bool visible);
+    bool useCellBasedLayout() const { return m_useCellBasedLayout; }
+    void setUseCellBasedLayout(bool use);
+
+    // Template management
+    Q_INVOKABLE void loadTemplate(const Unabara::OverlayTemplate& templ);
+    Q_INVOKABLE Unabara::OverlayTemplate exportTemplate() const;
+    Q_INVOKABLE void initializeDefaultCellLayout(DiveData* dive = nullptr);
+    Q_INVOKABLE void migrateLegacySettings();
+
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);
-    
+
     // Generate a preview image
     Q_INVOKABLE QImage generatePreview(DiveData* dive);
     
@@ -89,7 +109,11 @@ signals:
     void showPO2Cell2Changed();
     void showPO2Cell3Changed();
     void showCompositePO2Changed();
-    
+
+    // Cell-based layout signals
+    void cellsChanged();
+    void cellLayoutChanged();
+
 private:
     QString m_templatePath;
     QFont m_font;
@@ -106,7 +130,11 @@ private:
     bool m_showPO2Cell2;
     bool m_showPO2Cell3;
     bool m_showCompositePO2;
-    
+
+    // Cell-based layout
+    QVector<Unabara::CellData> m_cells;
+    bool m_useCellBasedLayout;
+
     // Helper methods for drawing
     int getScaledFontSize(double scale = 1.0) const;
     void drawDepth(QPainter &painter, double depth, const QRect &rect);

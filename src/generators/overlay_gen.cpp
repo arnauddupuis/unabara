@@ -19,6 +19,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
+    , m_useCellBasedLayout(false)
 {
     // Initialize with values from Config
     Config* config = Config::instance();
@@ -41,6 +42,9 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
         m_backgroundOpacity = Config::instance()->backgroundOpacity();
         emit backgroundOpacityChanged();
     });
+
+    // Initialize default cell layout
+    initializeDefaultCellLayout();
 }
 
 void OverlayGenerator::setTemplatePath(const QString &path)
@@ -56,6 +60,7 @@ void OverlayGenerator::setFont(const QFont &font)
     if (m_font != font) {
         m_font = font;
         Config::instance()->setFont(font); // Update Config
+        // Note: Cell regeneration is handled by QML with dive data
         emit fontChanged();
     }
 }
@@ -65,6 +70,7 @@ void OverlayGenerator::setTextColor(const QColor &color)
     if (m_textColor != color) {
         m_textColor = color;
         Config::instance()->setTextColor(color); // Update Config
+        // Note: Cell regeneration is handled by QML with dive data
         emit textColorChanged();
     }
 }
@@ -83,6 +89,7 @@ void OverlayGenerator::setShowDepth(bool show)
 {
     if (m_showDepth != show) {
         m_showDepth = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showDepthChanged();
     }
 }
@@ -91,6 +98,7 @@ void OverlayGenerator::setShowTemperature(bool show)
 {
     if (m_showTemperature != show) {
         m_showTemperature = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showTemperatureChanged();
     }
 }
@@ -99,6 +107,7 @@ void OverlayGenerator::setShowNDL(bool show)
 {
     if (m_showNDL != show) {
         m_showNDL = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showNDLChanged();
     }
 }
@@ -107,6 +116,7 @@ void OverlayGenerator::setShowPressure(bool show)
 {
     if (m_showPressure != show) {
         m_showPressure = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showPressureChanged();
     }
 }
@@ -115,6 +125,7 @@ void OverlayGenerator::setShowTime(bool show)
 {
     if (m_showTime != show) {
         m_showTime = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showTimeChanged();
     }
 }
@@ -124,6 +135,7 @@ void OverlayGenerator::setShowPO2Cell1(bool show)
 {
     if (m_showPO2Cell1 != show) {
         m_showPO2Cell1 = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showPO2Cell1Changed();
     }
 }
@@ -132,6 +144,7 @@ void OverlayGenerator::setShowPO2Cell2(bool show)
 {
     if (m_showPO2Cell2 != show) {
         m_showPO2Cell2 = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showPO2Cell2Changed();
     }
 }
@@ -140,6 +153,7 @@ void OverlayGenerator::setShowPO2Cell3(bool show)
 {
     if (m_showPO2Cell3 != show) {
         m_showPO2Cell3 = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showPO2Cell3Changed();
     }
 }
@@ -148,9 +162,368 @@ void OverlayGenerator::setShowCompositePO2(bool show)
 {
     if (m_showCompositePO2 != show) {
         m_showCompositePO2 = show;
+        // Note: Cell regeneration is handled by QML with dive data
         emit showCompositePO2Changed();
     }
 }
+
+// Cell-based layout management methods
+
+Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId)
+{
+    for (int i = 0; i < m_cells.size(); ++i) {
+        if (m_cells[i].cellId() == cellId) {
+            return &m_cells[i];
+        }
+    }
+    return nullptr;
+}
+
+const Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId) const
+{
+    for (int i = 0; i < m_cells.size(); ++i) {
+        if (m_cells[i].cellId() == cellId) {
+            return &m_cells[i];
+        }
+    }
+    return nullptr;
+}
+
+void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setPosition(pos);
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellPosition: Cell not found:" << cellId;
+    }
+}
+
+void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setFont(font, true);  // true = custom font
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellFont: Cell not found:" << cellId;
+    }
+}
+
+void OverlayGenerator::setCellColor(const QString& cellId, const QColor& color)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setTextColor(color, true);  // true = custom color
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellColor: Cell not found:" << cellId;
+    }
+}
+
+void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setVisible(visible);
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellVisible: Cell not found:" << cellId;
+    }
+}
+
+void OverlayGenerator::setUseCellBasedLayout(bool use)
+{
+    if (m_useCellBasedLayout != use) {
+        m_useCellBasedLayout = use;
+        if (use && m_cells.isEmpty()) {
+            // Auto-initialize cells if switching to cell-based layout with no cells
+            initializeDefaultCellLayout();
+        }
+        emit cellLayoutChanged();
+    }
+}
+
+void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
+{
+    m_templatePath = templ.backgroundImagePath();
+    m_backgroundOpacity = templ.backgroundOpacity();
+    m_font = templ.defaultFont();
+    m_textColor = templ.defaultTextColor();
+    m_cells = templ.cells();
+    m_useCellBasedLayout = true;
+
+    // Update visibility flags from cells
+    for (const auto& cell : m_cells) {
+        if (cell.cellType() == Unabara::CellType::Depth) {
+            m_showDepth = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::Temperature) {
+            m_showTemperature = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::Time) {
+            m_showTime = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::NDL) {
+            m_showNDL = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::Pressure) {
+            m_showPressure = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
+            m_showPO2Cell1 = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
+            m_showPO2Cell2 = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::PO2Cell3) {
+            m_showPO2Cell3 = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::CompositePO2) {
+            m_showCompositePO2 = cell.visible();
+        }
+    }
+
+    emit templateChanged();
+    emit cellsChanged();
+    emit cellLayoutChanged();
+}
+
+Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
+{
+    Unabara::OverlayTemplate templ;
+    templ.setTemplateName("Custom Overlay");
+    templ.setBackgroundImagePath(m_templatePath);
+    templ.setBackgroundOpacity(m_backgroundOpacity);
+    templ.setDefaultFont(m_font);
+    templ.setDefaultTextColor(m_textColor);
+    templ.setCells(m_cells);
+    return templ;
+}
+
+void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
+{
+    m_cells.clear();
+
+    // This layout calculation mimics the section-based approach from generateOverlay()
+    // to ensure the interactive preview matches the main preview exactly.
+
+    // Count sections needed (similar to generateOverlay logic)
+    int numSections = 0;
+    int tankCount = dive ? dive->cylinderCount() : 0;
+
+    // Standard single-cell sections
+    if (m_showDepth) numSections++;
+    if (m_showTemperature) numSections++;
+    if (m_showNDL) numSections++;  // NDL/TTS share the same section
+    if (m_showTime) numSections++;
+
+    // Tank sections (multi-tank uses grid, gets multiple sections)
+    if (m_showPressure) {
+        if (tankCount <= 1) {
+            numSections++;  // Single tank = 1 section
+        } else if (tankCount == 2) {
+            numSections += 2;  // 2 tanks side-by-side = 2 sections
+        } else {
+            // 3+ tanks: use row-based allocation
+            int cols = 2;
+            int rows = (tankCount + cols - 1) / cols;
+            numSections += rows;
+        }
+    }
+
+    // CCR PO2 sections (placed on second row, not in section count)
+
+    if (numSections == 0) {
+        numSections = 1;  // Avoid division by zero
+    }
+
+    // Calculate section width (normalized)
+    double sectionWidth = 1.0 / numSections;
+    int currentSection = 0;
+
+    // First row Y position
+    double yPos = 0.05;
+
+    // Create cells in section order
+    if (m_showDepth) {
+        Unabara::CellData cell("depth", Unabara::CellType::Depth);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showTemperature) {
+        Unabara::CellData cell("temperature", Unabara::CellType::Temperature);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showNDL) {
+        Unabara::CellData cell("ndl", Unabara::CellType::NDL);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    // Track maximum Y position for placing second row
+    double maxYPos = yPos;
+
+    // Create tank pressure cells
+    if (m_showPressure && tankCount > 0) {
+        if (tankCount == 1) {
+            // Single tank: one section
+            Unabara::CellData cell("pressure", Unabara::CellType::Pressure);
+            cell.setTankIndex(0);
+            cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+            cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setVisible(true);
+            m_cells.append(cell);
+            currentSection++;
+        } else {
+            // Multi-tank: grid layout
+            int cols = 2;
+            int rows = (tankCount + cols - 1) / cols;
+
+            // Grid spans multiple sections
+            int gridSections = (tankCount == 2) ? 2 : rows;
+            double gridWidth = gridSections * sectionWidth;
+            double gridStartX = currentSection * sectionWidth;
+
+            // Cell dimensions within grid
+            double cellWidth = gridWidth / cols;
+            double cellHeight = 1.0 / rows;
+
+            for (int i = 0; i < tankCount; ++i) {
+                int row = i / cols;
+                int col = i % cols;
+
+                double tankX = gridStartX + (col * cellWidth);
+                double tankY = yPos + (row * cellHeight);
+
+                QString cellId = QString("tank_%1").arg(i);
+                Unabara::CellData cell(cellId, Unabara::CellType::Pressure);
+                cell.setTankIndex(i);
+                cell.setPosition(QPointF(tankX, tankY));
+                cell.setCalculatedSize(QSizeF(cellWidth, 0.0));  // Width = grid cell width, height auto
+                cell.setFont(m_font, false);
+                cell.setTextColor(m_textColor, false);
+                cell.setVisible(true);
+                m_cells.append(cell);
+
+                // Track max Y for second row placement
+                maxYPos = qMax(maxYPos, tankY + cellHeight);
+            }
+
+            currentSection += gridSections;
+        }
+    } else if (m_showPressure) {
+        // No dive data: create default pressure cell
+        Unabara::CellData cell("pressure", Unabara::CellType::Pressure);
+        cell.setTankIndex(0);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showTime) {
+        Unabara::CellData cell("time", Unabara::CellType::Time);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    // CCR PO2 cells - second row
+    // Count how many PO2 cells to show
+    int po2CellCount = 0;
+    if (m_showPO2Cell1) po2CellCount++;
+    if (m_showPO2Cell2) po2CellCount++;
+    if (m_showPO2Cell3) po2CellCount++;
+    if (m_showCompositePO2) po2CellCount++;
+
+    if (po2CellCount > 0) {
+        double po2YPos = 0.5;  // Below first row with spacing
+        double po2SectionWidth = 1.0 / po2CellCount;  // Divide second row by PO2 cell count
+        int po2Section = 0;
+
+        if (m_showPO2Cell1) {
+            Unabara::CellData cell("po2_cell1", Unabara::CellType::PO2Cell1);
+            cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
+            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setVisible(true);
+            m_cells.append(cell);
+            po2Section++;
+        }
+
+        if (m_showPO2Cell2) {
+            Unabara::CellData cell("po2_cell2", Unabara::CellType::PO2Cell2);
+            cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
+            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setVisible(true);
+            m_cells.append(cell);
+            po2Section++;
+        }
+
+        if (m_showPO2Cell3) {
+            Unabara::CellData cell("po2_cell3", Unabara::CellType::PO2Cell3);
+            cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
+            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setVisible(true);
+            m_cells.append(cell);
+            po2Section++;
+        }
+
+        if (m_showCompositePO2) {
+            Unabara::CellData cell("composite_po2", Unabara::CellType::CompositePO2);
+            cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
+            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setVisible(true);
+            m_cells.append(cell);
+            po2Section++;
+        }
+    }
+
+    qDebug() << "Initialized" << m_cells.size() << "cells for default layout (sections:" << numSections << ")";
+
+    emit cellsChanged();
+}
+
+void OverlayGenerator::migrateLegacySettings()
+{
+    // This converts the current auto-layout settings to cell-based layout
+    // by initializing cells with positions calculated from the current layout
+
+    initializeDefaultCellLayout();
+    m_useCellBasedLayout = true;
+
+    qDebug() << "Migrated legacy settings to cell-based layout";
+    emit cellLayoutChanged();
+}
+
 
 QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
 {

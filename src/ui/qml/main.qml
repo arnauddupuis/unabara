@@ -284,7 +284,7 @@ ApplicationWindow {
                 SplitView.fillWidth: true
                 SplitView.minimumWidth: 400
 
-                // Overlay preview (placeholder)
+                // Overlay preview
                 Rectangle {
                     id: overlayPreview
                     anchors.centerIn: parent
@@ -406,8 +406,8 @@ ApplicationWindow {
                 id: overlayEditorPanel
                 SplitView.preferredWidth: 350
                 SplitView.minimumWidth: 300
-                SplitView.maximumWidth: 500
-                visible: false
+                // Removed maximumWidth to allow free resizing
+                visible: true  // Start with overlay editor visible
                 color: "#f5f5f5"
                 border.color: "#d0d0d0"
                 border.width: 1
@@ -423,6 +423,8 @@ ApplicationWindow {
                         id: overlayEditor
                         width: overlayEditorPanel.width - 10
                         generator: overlayGenerator
+                        timeline: timelineView.timeline
+                        dive: mainWindow.currentDive
                     }
                 }
             }

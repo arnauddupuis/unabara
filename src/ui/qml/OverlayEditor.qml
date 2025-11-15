@@ -56,8 +56,13 @@ Item {
                 }
 
                 onCellPositionChanged: function(cellId, newPosition) {
-                    console.log("Cell position changed:", cellId, newPosition)
-                    // Position is already updated via CellModel
+                    console.log("Cell position changed:", cellId, "to", newPosition)
+                    // Update generator with new position
+                    if (root.generator) {
+                        root.generator.setCellPosition(cellId, newPosition)
+                        // Update cell model to reflect the change
+                        previewContainer.updateCellModel()
+                    }
                 }
             }
 

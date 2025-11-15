@@ -301,6 +301,16 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     // This layout calculation mimics the section-based approach from generateOverlay()
     // to ensure the interactive preview matches the main preview exactly.
 
+    // Load template to get dimensions for size calculation
+    QImage templateImage(m_templatePath);
+    QSizeF templateSize;
+    if (templateImage.isNull()) {
+        // Use default dimensions if template can't be loaded
+        templateSize = QSizeF(640, 120);
+    } else {
+        templateSize = QSizeF(templateImage.width(), templateImage.height());
+    }
+
     // Count sections needed (similar to generateOverlay logic)
     int numSections = 0;
     int tankCount = dive ? dive->cylinderCount() : 0;
@@ -342,9 +352,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showDepth) {
         Unabara::CellData cell("depth", Unabara::CellType::Depth);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Depth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -353,9 +363,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showTemperature) {
         Unabara::CellData cell("temperature", Unabara::CellType::Temperature);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Temperature, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -364,9 +374,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showNDL) {
         Unabara::CellData cell("ndl", Unabara::CellType::NDL);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::NDL, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -382,9 +392,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             Unabara::CellData cell("pressure", Unabara::CellType::Pressure);
             cell.setTankIndex(0);
             cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-            cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
             cell.setFont(m_font, false);
             cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             currentSection++;
@@ -413,9 +423,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
                 Unabara::CellData cell(cellId, Unabara::CellType::Pressure);
                 cell.setTankIndex(i);
                 cell.setPosition(QPointF(tankX, tankY));
-                cell.setCalculatedSize(QSizeF(cellWidth, 0.0));  // Width = grid cell width, height auto
                 cell.setFont(m_font, false);
                 cell.setTextColor(m_textColor, false);
+                cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
                 cell.setVisible(true);
                 m_cells.append(cell);
 
@@ -430,9 +440,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("pressure", Unabara::CellType::Pressure);
         cell.setTankIndex(0);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -441,9 +451,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showTime) {
         Unabara::CellData cell("time", Unabara::CellType::Time);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
-        cell.setCalculatedSize(QSizeF(sectionWidth, 0.0));  // Width = section width, height auto
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Time, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -465,9 +475,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         if (m_showPO2Cell1) {
             Unabara::CellData cell("po2_cell1", Unabara::CellType::PO2Cell1);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
-            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
             cell.setFont(m_font, false);
             cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell1, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             po2Section++;
@@ -476,9 +486,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         if (m_showPO2Cell2) {
             Unabara::CellData cell("po2_cell2", Unabara::CellType::PO2Cell2);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
-            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
             cell.setFont(m_font, false);
             cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell2, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             po2Section++;
@@ -487,9 +497,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         if (m_showPO2Cell3) {
             Unabara::CellData cell("po2_cell3", Unabara::CellType::PO2Cell3);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
-            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
             cell.setFont(m_font, false);
             cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell3, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             po2Section++;
@@ -498,9 +508,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         if (m_showCompositePO2) {
             Unabara::CellData cell("composite_po2", Unabara::CellType::CompositePO2);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
-            cell.setCalculatedSize(QSizeF(po2SectionWidth, 0.0));  // Width = PO2 section width, height auto
             cell.setFont(m_font, false);
             cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CompositePO2, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             po2Section++;
@@ -858,6 +868,106 @@ int OverlayGenerator::getScaledFontSize(double scale) const {
 
     // Convert point size to approximate pixel size and apply scale
     return static_cast<int>(baseSize * 1.33 * scale); // 1.33 is approximate point-to-pixel ratio
+}
+
+QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFont& font, const QSizeF& templateSize, const QString& sampleText) const {
+    // Base padding
+    int padding = 5;
+
+    // Create fonts for header and value
+    QFont headerFont = font;
+    headerFont.setPixelSize(getScaledFontSize(1.5));
+
+    QFont valueFont = font;
+    valueFont.setPixelSize(getScaledFontSize(1.8));
+    valueFont.setBold(true);
+
+    // Get font metrics
+    QFontMetrics headerMetrics(headerFont);
+    QFontMetrics valueMetrics(valueFont);
+
+    // Calculate dimensions based on cell type
+    QString header;
+    QString value = sampleText;
+
+    // Set default sample values if not provided
+    // Values chosen to accommodate maximum expected display formats
+    if (value.isEmpty()) {
+        switch (cellType) {
+            case Unabara::CellType::Depth:
+                header = tr("DEPTH");
+                value = "399.99 m";  // Max expected depth (current record: 332m)
+                break;
+            case Unabara::CellType::Temperature:
+                header = tr("TEMP");
+                value = "99.9°C";    // Max expected temp format
+                break;
+            case Unabara::CellType::Time:
+                header = tr("TIME");
+                value = "999:99";    // Max time format (consistent with 999 min for NDL/TTS)
+                break;
+            case Unabara::CellType::NDL:
+                header = tr("NDL");
+                value = "999 min";   // Max NDL format
+                break;
+            case Unabara::CellType::TTS:
+                header = tr("TTS");
+                value = "999 min\n99.99 m";  // TTS + ceiling (ceiling max: 99.99m)
+                break;
+            case Unabara::CellType::Pressure:
+                header = tr("TANK 9");  // Max tank number
+                value = "999 bar";      // Max pressure format
+                break;
+            case Unabara::CellType::PO2Cell1:
+            case Unabara::CellType::PO2Cell2:
+            case Unabara::CellType::PO2Cell3:
+                header = tr("CELL 9");
+                value = "40.99 bar";    // Max PO2 for CCR cells
+                break;
+            case Unabara::CellType::CompositePO2:
+                header = tr("PPO2");
+                value = "40.99 bar";    // Max composite PO2
+                break;
+            default:
+                header = "UNKNOWN";
+                value = "999.99";
+                break;
+        }
+    }
+
+    // Calculate header size
+    QRect headerBounds = headerMetrics.boundingRect(header);
+
+    // Calculate value size (handle multi-line for TTS)
+    QRect valueBounds;
+    if (value.contains('\n')) {
+        // Multi-line text (TTS with ceiling)
+        QStringList lines = value.split('\n');
+        int maxWidth = 0;
+        int totalHeight = 0;
+        for (const QString& line : lines) {
+            QRect lineBounds = valueMetrics.boundingRect(line);
+            maxWidth = qMax(maxWidth, lineBounds.width());
+            totalHeight += lineBounds.height();
+        }
+        valueBounds = QRect(0, 0, maxWidth, totalHeight);
+    } else {
+        valueBounds = valueMetrics.boundingRect(value);
+    }
+
+    // Calculate total dimensions in pixels
+    int pixelWidth = qMax(headerBounds.width(), valueBounds.width()) + 2 * padding;
+    int pixelHeight = headerBounds.height() + valueBounds.height() + 4 * padding;  // Extra padding between header and value
+
+    // Ensure minimum size for readability
+    pixelWidth = qMax(pixelWidth, 80);
+    pixelHeight = qMax(pixelHeight, 60);
+
+    // Normalize to template dimensions (0.0-1.0 range)
+    double normalizedWidth = templateSize.width() > 0 ? static_cast<double>(pixelWidth) / templateSize.width() : 0.0;
+    double normalizedHeight = templateSize.height() > 0 ? static_cast<double>(pixelHeight) / templateSize.height() : 0.0;
+
+    return QSizeF(normalizedWidth, normalizedHeight);
 }
 
 void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect) {

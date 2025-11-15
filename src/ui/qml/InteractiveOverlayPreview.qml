@@ -35,13 +35,21 @@ Item {
                 var path = generator.templatePath
                 console.log("InteractiveOverlayPreview: Loading background image:", path)
 
-                // Qt resource paths starting with :/ should be converted to qrc:/ format
-                // But if we pass :/ directly, Qt Image adds qrc:/ automatically making it qrc:/:/
-                // So we need to explicitly use qrc:/ format
+                // Handle different path formats:
+                // 1. Qt resource paths (:/...) should be converted to qrc:/ format
+                // 2. Absolute filesystem paths (/...) need file:// prefix
+                // 3. Already prefixed paths should be used as-is
                 if (path.startsWith(":/")) {
                     path = "qrc" + path
+                } else if (path.startsWith("/")) {
+                    // Absolute filesystem path - add file:// prefix
+                    path = "file://" + path
+                } else if (path.startsWith("file://") || path.startsWith("qrc:/")) {
+                    // Already properly prefixed - use as-is
+                    path = path
                 }
 
+                console.log("InteractiveOverlayPreview: Final image source:", path)
                 return path
             }
             fillMode: Image.PreserveAspectFit

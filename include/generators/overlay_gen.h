@@ -74,10 +74,10 @@ public:
     Unabara::CellData* getCellData(const QString& cellId);
     const Unabara::CellData* getCellData(const QString& cellId) const;
     QVector<Unabara::CellData> cells() const { return m_cells; }
-    void setCellPosition(const QString& cellId, const QPointF& pos);
-    void setCellFont(const QString& cellId, const QFont& font);
-    void setCellColor(const QString& cellId, const QColor& color);
-    void setCellVisible(const QString& cellId, bool visible);
+    Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
+    Q_INVOKABLE void setCellFont(const QString& cellId, const QFont& font);
+    Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
+    Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
     bool useCellBasedLayout() const { return m_useCellBasedLayout; }
     void setUseCellBasedLayout(bool use);
 
@@ -137,6 +137,7 @@ private:
 
     // Helper methods for drawing
     int getScaledFontSize(double scale = 1.0) const;
+    QSizeF calculateCellSize(Unabara::CellType cellType, const QFont& font, const QSizeF& templateSize, const QString& sampleText = "") const;
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
     void drawTemperature(QPainter &painter, double temp, const QRect &rect);
     void drawNDL(QPainter &painter, double ndl, const QRect &rect);

@@ -32,10 +32,9 @@ Rectangle {
 
     // Visual appearance
     visible: cellVisible
-    // Width: use calculated size or default (should be set by parent based on section width)
+    // Use dynamically calculated dimensions from CellData
     width: cellCalculatedSize.width > 0 ? cellCalculatedSize.width : 100
-    // Height: auto-size to fit content with padding
-    height: cellText.implicitHeight + 8
+    height: cellCalculatedSize.height > 0 ? cellCalculatedSize.height : 60
     color: "transparent"
     border.color: selected ? "lime" : "transparent"
     border.width: selected ? 3 : 0
@@ -64,49 +63,73 @@ Rectangle {
         }
     }
 
-    // Selection handler
+    // Drag and selection handler
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+        cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+        // Enable drag
+        drag.target: cellRoot
+        drag.axis: Drag.XAndYAxis
 
         onClicked: {
             cellRoot.clicked()
         }
 
-        // Drag behavior will be added in Phase 3
-        // For now, just handle selection
+        onReleased: {
+            if (drag.active) {
+                // Calculate normalized position relative to parent container
+                // Parent is the cellContainer in InteractiveOverlayPreview
+                var containerWidth = cellRoot.parent.width
+                var containerHeight = cellRoot.parent.height
+
+                // Clamp position to boundaries [0, container size - cell size]
+                var clampedX = Math.max(0, Math.min(cellRoot.x, containerWidth - cellRoot.width))
+                var clampedY = Math.max(0, Math.min(cellRoot.y, containerHeight - cellRoot.height))
+
+                // Convert to normalized coordinates (0.0 to 1.0)
+                var normalizedX = clampedX / containerWidth
+                var normalizedY = clampedY / containerHeight
+
+                // Emit position change signal
+                cellRoot.positionChanged(Qt.point(normalizedX, normalizedY))
+
+                // Snap to clamped position for visual feedback
+                cellRoot.x = clampedX
+                cellRoot.y = clampedY
+            }
+        }
     }
 
-    // Visual feedback on hover
+    // Visual feedback on hover and drag
     states: [
         State {
             name: "hovered"
-            when: mouseArea.containsMouse && !selected
+            when: mouseArea.containsMouse && !selected && !mouseArea.drag.active
             PropertyChanges {
                 target: cellRoot
                 border.color: "#40FFFFFF"  // Subtle white border on hover
                 border.width: 2
+            }
+        },
+        State {
+            name: "dragging"
+            when: mouseArea.drag.active
+            PropertyChanges {
+                target: cellRoot
+                opacity: 0.7
+                border.color: "cyan"
+                border.width: 3
             }
         }
     ]
 
     transitions: Transition {
         PropertyAnimation {
-            properties: "border.color,border.width"
+            properties: "border.color,border.width,opacity"
             duration: 150
-        }
-    }
-
-    // MouseArea for hover detection
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        propagateComposedEvents: true
-
-        onClicked: function(mouse) {
-            cellRoot.clicked()
-            mouse.accepted = true
         }
     }
 }

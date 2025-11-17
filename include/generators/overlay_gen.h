@@ -18,6 +18,8 @@ class OverlayGenerator : public QObject
     Q_OBJECT
     
     Q_PROPERTY(QString templatePath READ templatePath WRITE setTemplatePath NOTIFY templateChanged)
+    Q_PROPERTY(int templateWidth READ templateWidth NOTIFY templateChanged)
+    Q_PROPERTY(int templateHeight READ templateHeight NOTIFY templateChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
     Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
@@ -38,6 +40,8 @@ public:
     
     // Getters
     QString templatePath() const { return m_templatePath; }
+    int templateWidth() const { return m_templateWidth; }
+    int templateHeight() const { return m_templateHeight; }
     QFont font() const { return m_font; }
     QColor textColor() const { return m_textColor; }
     double backgroundOpacity() const { return m_backgroundOpacity; }
@@ -116,6 +120,8 @@ signals:
 
 private:
     QString m_templatePath;
+    int m_templateWidth;
+    int m_templateHeight;
     QFont m_font;
     QColor m_textColor;
     double m_backgroundOpacity;
@@ -138,6 +144,7 @@ private:
     // Helper methods for drawing
     int getScaledFontSize(double scale = 1.0) const;
     QSizeF calculateCellSize(Unabara::CellType cellType, const QFont& font, const QSizeF& templateSize, const QString& sampleText = "") const;
+    void updateTemplateDimensions();
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
     void drawTemperature(QPainter &painter, double temp, const QRect &rect);
     void drawNDL(QPainter &painter, double ndl, const QRect &rect);

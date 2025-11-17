@@ -107,11 +107,16 @@ Item {
                         cellFont: model.font
                         cellTextColor: model.textColor
                         displayText: model.displayText
-                        // Convert normalized size to pixels
-                        cellCalculatedSize: Qt.size(
-                            model.calculatedSize.width * cellContainer.width,
-                            model.calculatedSize.height * cellContainer.height
-                        )
+                        // Scale pixel size to current container size
+                        // calculatedSize is in pixels, scale proportionally to fit container
+                        cellCalculatedSize: {
+                            var scaleX = root.generator.templateWidth > 0 ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var scaleY = root.generator.templateHeight > 0 ? cellContainer.height / root.generator.templateHeight : 1.0
+                            return Qt.size(
+                                model.calculatedSize.width * scaleX,
+                                model.calculatedSize.height * scaleY
+                            )
+                        }
                         hasCustomFont: model.hasCustomFont
                         hasCustomColor: model.hasCustomColor
 

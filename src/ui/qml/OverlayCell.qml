@@ -32,9 +32,9 @@ Rectangle {
 
     // Visual appearance
     visible: cellVisible
-    // Use dynamically calculated dimensions from CellData
-    width: cellCalculatedSize.width > 0 ? cellCalculatedSize.width : 100
-    height: cellCalculatedSize.height > 0 ? cellCalculatedSize.height : 60
+    // Size based on the actual text content, not precalculated size
+    width: cellText.width + 8  // Text width + margins
+    height: cellText.height + 8  // Text height + margins
     color: "transparent"
     border.color: selected ? "lime" : "transparent"
     border.width: selected ? 3 : 0
@@ -42,10 +42,8 @@ Rectangle {
     // Cell content
     Text {
         id: cellText
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 4
+        x: 4
+        y: 4
         text: displayText
         font: cellFont
         color: cellTextColor

@@ -7,6 +7,8 @@
 OverlayGenerator::OverlayGenerator(QObject *parent)
     : QObject(parent)
     , m_templatePath(":/default_overlay.png")
+    , m_templateWidth(640)
+    , m_templateHeight(120)
     , m_font(QFont("Arial", 12))
     , m_textColor(Qt::white)
     , m_backgroundOpacity(1.0)
@@ -24,6 +26,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     // Initialize with values from Config
     Config* config = Config::instance();
     m_templatePath = config->templatePath();
+    updateTemplateDimensions();
     m_font = config->font();
     m_textColor = config->textColor();
     m_backgroundOpacity = config->backgroundOpacity();
@@ -51,7 +54,24 @@ void OverlayGenerator::setTemplatePath(const QString &path)
 {
     if (m_templatePath != path) {
         m_templatePath = path;
+        updateTemplateDimensions();
         emit templateChanged();
+    }
+}
+
+void OverlayGenerator::updateTemplateDimensions()
+{
+    // Load template image to get dimensions
+    QImage templateImage(m_templatePath);
+    if (templateImage.isNull()) {
+        // Use default dimensions if template can't be loaded
+        m_templateWidth = 640;
+        m_templateHeight = 120;
+        qWarning() << "Could not load template for dimensions, using defaults:" << m_templatePath;
+    } else {
+        m_templateWidth = templateImage.width();
+        m_templateHeight = templateImage.height();
+        qDebug() << "Template dimensions:" << m_templateWidth << "x" << m_templateHeight;
     }
 }
 
@@ -891,46 +911,46 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
     QString value = sampleText;
 
     // Set default sample values if not provided
-    // Values chosen to accommodate maximum expected display formats
+    // Values chosen to represent typical display values for reasonable sizing
     if (value.isEmpty()) {
         switch (cellType) {
             case Unabara::CellType::Depth:
                 header = tr("DEPTH");
-                value = "399.99 m";  // Max expected depth (current record: 332m)
+                value = "99.9 m";    // Typical recreational diving depth
                 break;
             case Unabara::CellType::Temperature:
                 header = tr("TEMP");
-                value = "99.9°C";    // Max expected temp format
+                value = "25.5°C";    // Typical water temperature
                 break;
             case Unabara::CellType::Time:
                 header = tr("TIME");
-                value = "999:99";    // Max time format (consistent with 999 min for NDL/TTS)
+                value = "99:99";     // Typical dive time format
                 break;
             case Unabara::CellType::NDL:
                 header = tr("NDL");
-                value = "999 min";   // Max NDL format
+                value = "99 min";    // Typical NDL value
                 break;
             case Unabara::CellType::TTS:
                 header = tr("TTS");
-                value = "999 min\n99.99 m";  // TTS + ceiling (ceiling max: 99.99m)
+                value = "99 min\n9.9 m";  // Typical TTS + ceiling
                 break;
             case Unabara::CellType::Pressure:
-                header = tr("TANK 9");  // Max tank number
-                value = "999 bar";      // Max pressure format
+                header = tr("TANK 1");   // Typical tank number
+                value = "199 bar";       // Typical pressure value
                 break;
             case Unabara::CellType::PO2Cell1:
             case Unabara::CellType::PO2Cell2:
             case Unabara::CellType::PO2Cell3:
-                header = tr("CELL 9");
-                value = "40.99 bar";    // Max PO2 for CCR cells
+                header = tr("CELL 1");
+                value = "1.29 bar";      // Typical PO2 for CCR cells
                 break;
             case Unabara::CellType::CompositePO2:
                 header = tr("PPO2");
-                value = "40.99 bar";    // Max composite PO2
+                value = "1.29 bar";      // Typical composite PO2
                 break;
             default:
                 header = "UNKNOWN";
-                value = "999.99";
+                value = "99.99";
                 break;
         }
     }
@@ -963,11 +983,9 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
     pixelWidth = qMax(pixelWidth, 80);
     pixelHeight = qMax(pixelHeight, 60);
 
-    // Normalize to template dimensions (0.0-1.0 range)
-    double normalizedWidth = templateSize.width() > 0 ? static_cast<double>(pixelWidth) / templateSize.width() : 0.0;
-    double normalizedHeight = templateSize.height() > 0 ? static_cast<double>(pixelHeight) / templateSize.height() : 0.0;
-
-    return QSizeF(normalizedWidth, normalizedHeight);
+    // Return pixel dimensions (not normalized)
+    // QML will normalize these based on actual template dimensions
+    return QSizeF(pixelWidth, pixelHeight);
 }
 
 void OverlayGenerator::drawDepth(QPainter &painter, double depth, const QRect &rect) {

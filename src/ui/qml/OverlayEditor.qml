@@ -11,8 +11,111 @@ Item {
     property var generator
     property var timeline: null
     property var dive: null
+    property bool hasSelection: root.generator ? root.generator.selectedCellId !== "" : false
+    property string selectedCellId: root.generator ? root.generator.selectedCellId : ""
+
+    // Reactive properties that update when selection or cells change
+    property var currentFont: getCurrentFont()
+    property var currentColor: getCurrentColor()
+    property bool currentHasCustomFont: getSelectedCellHasCustomFont()
+    property bool currentHasCustomColor: getSelectedCellHasCustomColor()
 
     implicitHeight: mainColumn.implicitHeight
+
+    // Get cell properties from the repeater
+    function getCellProperty(cellId, propertyName) {
+        if (!cellId) return null
+
+        // Access the cell from the preview's repeater
+        if (interactivePreview && interactivePreview.cellRepeater) {
+            for (var i = 0; i < interactivePreview.cellRepeater.count; i++) {
+                var cell = interactivePreview.cellRepeater.itemAt(i)
+                if (cell && cell.cellId === cellId) {
+                    return cell[propertyName]
+                }
+            }
+        }
+        return null
+    }
+
+    // Get the effective font (selected cell or global)
+    function getCurrentFont() {
+        if (!generator) return Qt.font({family: "Arial", pointSize: 12})
+
+        if (hasSelection && selectedCellId) {
+            var cellFont = getCellProperty(selectedCellId, "cellFont")
+            if (cellFont) return cellFont
+        }
+
+        // Return global font
+        return generator.font
+    }
+
+    // Get the effective color (selected cell or global)
+    function getCurrentColor() {
+        if (!generator) return "white"
+
+        if (hasSelection && selectedCellId) {
+            var cellColor = getCellProperty(selectedCellId, "cellTextColor")
+            if (cellColor) return cellColor
+        }
+
+        // Return global color
+        return generator.textColor
+    }
+
+    function getSelectedCellHasCustomFont() {
+        if (!hasSelection || !selectedCellId) return false
+
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomFont")
+        return hasCustom === true
+    }
+
+    function getSelectedCellHasCustomColor() {
+        if (!hasSelection || !selectedCellId) return false
+
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomColor")
+        return hasCustom === true
+    }
+
+    // Update reactive properties when selection or cells change
+    onSelectedCellIdChanged: {
+        console.log("Selection changed to:", selectedCellId)
+        updateCurrentProperties()
+    }
+
+    Connections {
+        target: generator
+        function onCellsChanged() {
+            console.log(">>> onCellsChanged triggered")
+            console.log("Cells changed, updating properties")
+            updateCurrentProperties()
+        }
+
+        function onFontChanged() {
+            if (!hasSelection) {
+                console.log("Global font changed")
+                updateCurrentProperties()
+            }
+        }
+
+        function onTextColorChanged() {
+            if (!hasSelection) {
+                console.log("Global color changed")
+                updateCurrentProperties()
+            }
+        }
+    }
+
+    function updateCurrentProperties() {
+        var newFont = getCurrentFont()
+        var newColor = getCurrentColor()
+        console.log("Updating properties - Font:", newFont ? newFont.family : "null", "Size:", newFont ? newFont.pointSize : "null", "Color:", newColor)
+        currentFont = newFont
+        currentColor = newColor
+        currentHasCustomFont = getSelectedCellHasCustomFont()
+        currentHasCustomColor = getSelectedCellHasCustomColor()
+    }
 
     // Cell model for interactive preview
     CellModel {
@@ -23,7 +126,48 @@ Item {
         id: mainColumn
         width: parent.width
         spacing: 20
-        
+
+        // Editing mode indicator
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
+            color: root.hasSelection ? "#2a4a2a" : "#4a4a4a"
+            border.color: root.hasSelection ? "lime" : "#808080"
+            border.width: 2
+            radius: 4
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 8
+                spacing: 12
+
+                Label {
+                    text: root.hasSelection ? "✓ Cell Selected:" : "⊞ Editing All Cells"
+                    font.bold: true
+                    color: root.hasSelection ? "lime" : "white"
+                }
+
+                Label {
+                    text: root.hasSelection ? root.selectedCellId : ""
+                    font.family: "monospace"
+                    color: "white"
+                    visible: root.hasSelection
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: "Deselect"
+                    visible: root.hasSelection
+                    onClicked: {
+                        if (root.generator) {
+                            root.generator.selectedCellId = ""
+                        }
+                    }
+                }
+            }
+        }
+
         // Interactive overlay preview
         Item {
             id: previewContainer
@@ -31,6 +175,7 @@ Item {
             Layout.preferredHeight: width * 0.5625  // 16:9 aspect ratio
 
             function updateCellModel() {
+                console.log(">>> updateCellModel called")
                 if (root.generator && root.dive && root.timeline) {
                     console.log("Updating cell model with current time: ", root.timeline.currentTime)
                     cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
@@ -45,14 +190,31 @@ Item {
                 timePoint: root.timeline ? root.timeline.currentTime : 0.0
                 cellModel: cellModel
 
+                // Sync preview selection when generator selection changes externally
+                // (e.g., from Deselect button or other UI)
+                Connections {
+                    target: root.generator
+                    function onSelectedCellIdChanged() {
+                        if (root.generator) {
+                            interactivePreview.selectedCellId = root.generator.selectedCellId
+                        }
+                    }
+                }
+
                 onCellSelected: function(cellId) {
                     console.log("Cell selected:", cellId)
-                    // TODO: Update cell editor panel to show this cell's properties
+                    // Update generator's selected cell
+                    if (root.generator) {
+                        root.generator.selectedCellId = cellId
+                    }
                 }
 
                 onCellDeselected: {
                     console.log("Cell deselected")
-                    // TODO: Clear cell editor panel
+                    // Clear generator's selected cell
+                    if (root.generator) {
+                        root.generator.selectedCellId = ""
+                    }
                 }
 
                 onCellPositionChanged: function(cellId, newPosition) {
@@ -95,15 +257,9 @@ Item {
                 function onCellsChanged() { previewContainer.updateCellModel() }
                 function onCellLayoutChanged() { previewContainer.updateCellModel() }
                 function onFontChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
                     previewContainer.updateCellModel()
                 }
                 function onTextColorChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
                     previewContainer.updateCellModel()
                 }
 
@@ -215,34 +371,146 @@ Item {
                 }
             }
         }
-        
+
+        // Template Save/Load
+        GroupBox {
+            title: qsTr("Template Management")
+            Layout.fillWidth: true
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 10
+
+                Button {
+                    text: qsTr("Save Template...")
+                    Layout.fillWidth: true
+                    icon.name: "document-save"
+                    onClicked: saveTemplateDialog.open()
+                }
+
+                Button {
+                    text: qsTr("Load Template...")
+                    Layout.fillWidth: true
+                    icon.name: "document-open"
+                    onClicked: loadTemplateDialog.open()
+                }
+
+                Button {
+                    text: qsTr("Reset Layout")
+                    Layout.fillWidth: true
+                    icon.name: "edit-undo"
+                    onClicked: {
+                        if (root.generator && root.dive) {
+                            root.generator.initializeDefaultCellLayout(root.dive)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Grid Settings
+        GroupBox {
+            title: qsTr("Grid Settings")
+            Layout.fillWidth: true
+
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+
+                Label { text: qsTr("Snap to Grid:") }
+                CheckBox {
+                    id: snapToGridCheckBox
+                    checked: generator ? generator.snapToGrid : false
+                    onCheckedChanged: {
+                        if (generator) {
+                            generator.snapToGrid = checked
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Grid Spacing (px):") }
+                SpinBox {
+                    id: gridSpacingSpinBox
+                    from: 5
+                    to: 100
+                    stepSize: 5
+                    value: generator ? generator.gridSpacing : 10
+                    onValueModified: {
+                        if (generator) {
+                            generator.gridSpacing = value
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Show Grid:") }
+                CheckBox {
+                    id: showGridCheckBox
+                    checked: generator ? generator.showGrid : false
+                    onCheckedChanged: {
+                        if (generator) {
+                            generator.showGrid = checked
+                        }
+                    }
+                }
+            }
+        }
+
         // Text settings
         GroupBox {
-            title: qsTr("Text Settings")
+            title: root.hasSelection ?
+                qsTr("Text Settings - Cell: ") + root.selectedCellId :
+                qsTr("Text Settings - All Cells")
             Layout.fillWidth: true
             
             GridLayout {
                 anchors.fill: parent
-                columns: 2
-                
+                columns: 3
+
                 Label { text: qsTr("Font:") }
                 ComboBox {
                     id: fontSelector
                     Layout.fillWidth: true
                     model: Qt.fontFamilies()
-                    
-                    onCurrentTextChanged: {
+
+                    Component.onCompleted: {
+                        updateFontSelector()
+                    }
+
+                    Connections {
+                        target: root
+                        function onCurrentFontChanged() {
+                            fontSelector.updateFontSelector()
+                        }
+                    }
+
+                    function updateFontSelector() {
+                        if (root.currentFont) {
+                            var index = model.indexOf(root.currentFont.family)
+                            if (index !== -1) {
+                                currentIndex = index
+                            }
+                        }
+                    }
+
+                    onActivated: {
                         if (generator) {
-                            var font = generator.font
+                            var font = root.currentFont
                             font.family = currentText
                             generator.font = font
                         }
                     }
-                    
-                    Component.onCompleted: {
-                        if (generator) {
-                            currentIndex = model.indexOf(generator.font.family)
-                            if (currentIndex === -1) currentIndex = 0
+                }
+
+                Button {
+                    text: "↺"
+                    Layout.preferredWidth: 40
+                    enabled: root.hasSelection && root.currentHasCustomFont
+                    opacity: enabled ? 1.0 : 0.3
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ? qsTr("Reset to global font") : qsTr("No custom font")
+                    onClicked: {
+                        if (root.generator && root.selectedCellId) {
+                            root.generator.resetCellFont(root.selectedCellId)
                         }
                     }
                 }
@@ -252,17 +520,28 @@ Item {
                     id: fontSizeSpinBox
                     from: 8
                     to: 72
-                    value: generator ? generator.font.pointSize : 12
+                    value: root.currentFont ? root.currentFont.pointSize : 12
 
-                    onValueChanged: {
-                        if (generator && generator.font.pointSize !== value) {
-                            var font = generator.font
+                    Connections {
+                        target: root
+                        function onCurrentFontChanged() {
+                            if (root.currentFont) {
+                                fontSizeSpinBox.value = root.currentFont.pointSize
+                            }
+                        }
+                    }
+
+                    onValueModified: {
+                        if (generator) {
+                            var font = root.currentFont
                             font.pointSize = value
                             generator.font = font
                         }
                     }
                 }
-                
+                // No reset button for size - it's part of the font property
+                Item { Layout.preferredWidth: 40 }
+
                 Label { text: qsTr("Color:") }
                 Button {
                     id: colorButton
@@ -271,10 +550,24 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 4
-                        color: generator ? generator.textColor : "white"
+                        color: root.currentColor
                     }
 
                     onClicked: colorDialog.open()
+                }
+
+                Button {
+                    text: "↺"
+                    Layout.preferredWidth: 40
+                    enabled: root.hasSelection && root.currentHasCustomColor
+                    opacity: enabled ? 1.0 : 0.3
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ? qsTr("Reset to global color") : qsTr("No custom color")
+                    onClicked: {
+                        if (root.generator && root.selectedCellId) {
+                            root.generator.resetCellColor(root.selectedCellId)
+                        }
+                    }
                 }
 
                 Label { text: qsTr("Background Opacity:") }
@@ -301,6 +594,8 @@ Item {
                         Layout.preferredWidth: 40
                     }
                 }
+                // No reset button for opacity - it's a global property
+                Item { Layout.preferredWidth: 40 }
             }
         }
         
@@ -480,9 +775,76 @@ Item {
     ColorDialog {
         id: colorDialog
         title: qsTr("Select Text Color")
-        selectedColor: generator ? generator.textColor : "white"
+        selectedColor: root.currentColor
+
+        Connections {
+            target: root
+            function onCurrentColorChanged() {
+                colorDialog.selectedColor = root.currentColor
+            }
+        }
+
         onAccepted: {
             if (generator) generator.textColor = selectedColor
+        }
+    }
+
+    FileDialog {
+        id: saveTemplateDialog
+        title: qsTr("Save Template As")
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["Unabara Template (*.utp)", "All Files (*)"]
+        defaultSuffix: "utp"
+        onAccepted: {
+            if (generator) {
+                // Convert file URL to local path
+                var rootWindow = root
+                while (rootWindow.parent) {
+                    rootWindow = rootWindow.parent
+                }
+                var localPath = rootWindow.urlToLocalFile ?
+                    rootWindow.urlToLocalFile(selectedFile.toString()) :
+                    selectedFile.toString().replace("file://", "")
+
+                console.log("Saving template to:", localPath)
+                var success = generator.saveTemplateToFile(localPath)
+                if (success) {
+                    console.log("Template saved successfully!")
+                } else {
+                    console.error("Failed to save template")
+                }
+            }
+        }
+    }
+
+    FileDialog {
+        id: loadTemplateDialog
+        title: qsTr("Load Template")
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Unabara Template (*.utp)", "All Files (*)"]
+        onAccepted: {
+            if (generator) {
+                // Convert file URL to local path
+                var rootWindow = root
+                while (rootWindow.parent) {
+                    rootWindow = rootWindow.parent
+                }
+                var localPath = rootWindow.urlToLocalFile ?
+                    rootWindow.urlToLocalFile(selectedFile.toString()) :
+                    selectedFile.toString().replace("file://", "")
+
+                console.log("Loading template from:", localPath)
+                var success = generator.loadTemplateFromFile(localPath)
+                if (success) {
+                    console.log("Template loaded successfully!")
+                    // Update cell model to reflect loaded template
+                    if (root.timeline && root.dive) {
+                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                    }
+                } else {
+                    console.error("Failed to load template")
+                }
+            }
         }
     }
 }

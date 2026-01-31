@@ -23,8 +23,11 @@ Rectangle {
     property string displayText: ""
     property size cellCalculatedSize: Qt.size(100, 40)
     property bool selected: false
+    property bool overlapping: false
     property bool hasCustomFont: false
     property bool hasCustomColor: false
+    property bool dragging: mouseArea.drag.active  // Expose drag state
+    property var generator: null  // Reference to overlay generator for snap settings
 
     // Signals
     signal clicked()
@@ -61,6 +64,50 @@ Rectangle {
         }
     }
 
+    // Custom property indicators
+    Row {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 2
+        spacing: 2
+
+        // Custom font indicator
+        Rectangle {
+            width: 8
+            height: 8
+            radius: 4
+            color: "cyan"
+            visible: hasCustomFont
+
+            ToolTip.visible: customFontMouseArea.containsMouse
+            ToolTip.text: "Custom font"
+
+            MouseArea {
+                id: customFontMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+        }
+
+        // Custom color indicator
+        Rectangle {
+            width: 8
+            height: 8
+            radius: 4
+            color: "magenta"
+            visible: hasCustomColor
+
+            ToolTip.visible: customColorMouseArea.containsMouse
+            ToolTip.text: "Custom color"
+
+            MouseArea {
+                id: customColorMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+        }
+    }
+
     // Drag and selection handler
     MouseArea {
         id: mouseArea
@@ -83,9 +130,25 @@ Rectangle {
                 var containerWidth = cellRoot.parent.width
                 var containerHeight = cellRoot.parent.height
 
+                var finalX = cellRoot.x
+                var finalY = cellRoot.y
+
+                // Apply snap-to-grid if enabled
+                if (generator && generator.snapToGrid) {
+                    // Calculate grid spacing scaled to current container size
+                    var scaleX = generator.templateWidth > 0 ? containerWidth / generator.templateWidth : 1.0
+                    var scaleY = generator.templateHeight > 0 ? containerHeight / generator.templateHeight : 1.0
+                    var spacingX = generator.gridSpacing * scaleX
+                    var spacingY = generator.gridSpacing * scaleY
+
+                    // Snap to nearest grid intersection
+                    finalX = Math.round(finalX / spacingX) * spacingX
+                    finalY = Math.round(finalY / spacingY) * spacingY
+                }
+
                 // Clamp position to boundaries [0, container size - cell size]
-                var clampedX = Math.max(0, Math.min(cellRoot.x, containerWidth - cellRoot.width))
-                var clampedY = Math.max(0, Math.min(cellRoot.y, containerHeight - cellRoot.height))
+                var clampedX = Math.max(0, Math.min(finalX, containerWidth - cellRoot.width))
+                var clampedY = Math.max(0, Math.min(finalY, containerHeight - cellRoot.height))
 
                 // Convert to normalized coordinates (0.0 to 1.0)
                 var normalizedX = clampedX / containerWidth
@@ -104,8 +167,17 @@ Rectangle {
     // Visual feedback on hover and drag
     states: [
         State {
+            name: "overlapping"
+            when: overlapping && !selected && !mouseArea.drag.active
+            PropertyChanges {
+                target: cellRoot
+                border.color: "red"
+                border.width: 3
+            }
+        },
+        State {
             name: "hovered"
-            when: mouseArea.containsMouse && !selected && !mouseArea.drag.active
+            when: mouseArea.containsMouse && !selected && !overlapping && !mouseArea.drag.active
             PropertyChanges {
                 target: cellRoot
                 border.color: "#40FFFFFF"  // Subtle white border on hover
@@ -118,7 +190,7 @@ Rectangle {
             PropertyChanges {
                 target: cellRoot
                 opacity: 0.7
-                border.color: "cyan"
+                border.color: overlapping ? "red" : "cyan"
                 border.width: 3
             }
         }

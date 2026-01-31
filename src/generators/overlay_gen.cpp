@@ -3,6 +3,7 @@
 #include <QFontMetrics>
 #include <QDateTime>
 #include <QDebug>
+#include <QFileInfo>
 
 OverlayGenerator::OverlayGenerator(QObject *parent)
     : QObject(parent)
@@ -22,6 +23,9 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
     , m_useCellBasedLayout(false)
+    , m_snapToGrid(false)
+    , m_gridSpacing(10)
+    , m_showGrid(false)
 {
     // Initialize with values from Config
     Config* config = Config::instance();
@@ -77,21 +81,57 @@ void OverlayGenerator::updateTemplateDimensions()
 
 void OverlayGenerator::setFont(const QFont &font)
 {
-    if (m_font != font) {
-        m_font = font;
-        Config::instance()->setFont(font); // Update Config
-        // Note: Cell regeneration is handled by QML with dive data
-        emit fontChanged();
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_font != font) {
+            m_font = font;
+            Config::instance()->setFont(font); // Update Config
+
+            // Apply to all cells that don't have custom fonts
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomFont()) {
+                    cell.setFont(font, false); // false = not custom, inherited from global
+                }
+            }
+
+            emit fontChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->font() != font) {
+            cell->setFont(font, true); // true = custom font
+            emit cellsChanged();
+        }
     }
 }
 
 void OverlayGenerator::setTextColor(const QColor &color)
 {
-    if (m_textColor != color) {
-        m_textColor = color;
-        Config::instance()->setTextColor(color); // Update Config
-        // Note: Cell regeneration is handled by QML with dive data
-        emit textColorChanged();
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_textColor != color) {
+            m_textColor = color;
+            Config::instance()->setTextColor(color); // Update Config
+
+            // Apply to all cells that don't have custom colors
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomColor()) {
+                    cell.setTextColor(color, false); // false = not custom, inherited from global
+                }
+            }
+
+            emit textColorChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->textColor() != color) {
+            cell->setTextColor(color, true); // true = custom color
+            emit cellsChanged();
+        }
     }
 }
 
@@ -187,6 +227,58 @@ void OverlayGenerator::setShowCompositePO2(bool show)
     }
 }
 
+void OverlayGenerator::setSelectedCellId(const QString& cellId)
+{
+    if (m_selectedCellId != cellId) {
+        m_selectedCellId = cellId;
+        emit selectedCellIdChanged();
+    }
+}
+
+void OverlayGenerator::setSnapToGrid(bool enabled)
+{
+    if (m_snapToGrid != enabled) {
+        m_snapToGrid = enabled;
+        emit snapToGridChanged();
+    }
+}
+
+void OverlayGenerator::setGridSpacing(int spacing)
+{
+    if (m_gridSpacing != spacing && spacing > 0) {
+        m_gridSpacing = spacing;
+        emit gridSpacingChanged();
+    }
+}
+
+void OverlayGenerator::setShowGrid(bool show)
+{
+    if (m_showGrid != show) {
+        m_showGrid = show;
+        emit showGridChanged();
+    }
+}
+
+void OverlayGenerator::resetCellFont(const QString& cellId)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell && cell->hasCustomFont()) {
+        // Reset to global default font
+        cell->setFont(m_font, false);  // false = inherited from global
+        emit cellsChanged();
+    }
+}
+
+void OverlayGenerator::resetCellColor(const QString& cellId)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell && cell->hasCustomColor()) {
+        // Reset to global default color
+        cell->setTextColor(m_textColor, false);  // false = inherited from global
+        emit cellsChanged();
+    }
+}
+
 // Cell-based layout management methods
 
 Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId)
@@ -268,6 +360,7 @@ void OverlayGenerator::setUseCellBasedLayout(bool use)
 void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
 {
     m_templatePath = templ.backgroundImagePath();
+    updateTemplateDimensions();  // Update width/height for new template image
     m_backgroundOpacity = templ.backgroundOpacity();
     m_font = templ.defaultFont();
     m_textColor = templ.defaultTextColor();
@@ -312,6 +405,58 @@ Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
     templ.setDefaultTextColor(m_textColor);
     templ.setCells(m_cells);
     return templ;
+}
+
+bool OverlayGenerator::saveTemplateToFile(const QString& filePath)
+{
+    qDebug() << "Saving template to file:" << filePath;
+
+    // Export current state to template
+    Unabara::OverlayTemplate templ = exportTemplate();
+
+    // Extract filename without extension for template name
+    QFileInfo fileInfo(filePath);
+    QString templateName = fileInfo.completeBaseName();
+    templ.setTemplateName(templateName);
+
+    // Save to file
+    bool success = templ.saveToFile(filePath);
+
+    if (success) {
+        qDebug() << "Template saved successfully";
+        emit templateSaved(filePath);
+    } else {
+        qWarning() << "Failed to save template";
+    }
+
+    return success;
+}
+
+bool OverlayGenerator::loadTemplateFromFile(const QString& filePath)
+{
+    qDebug() << "Loading template from file:" << filePath;
+
+    QString errorMessage;
+    Unabara::OverlayTemplate templ = Unabara::OverlayTemplate::loadFromFile(filePath, &errorMessage);
+
+    // Check if load was successful (template has cells)
+    if (templ.cellCount() == 0) {
+        qWarning() << "Failed to load template or template is empty";
+        if (!errorMessage.isEmpty()) {
+            qWarning() << "Error:" << errorMessage;
+        }
+        return false;
+    }
+
+    // Load template into generator
+    loadTemplate(templ);
+
+    qDebug() << "Template loaded successfully";
+    qDebug() << "  Name:" << templ.templateName();
+    qDebug() << "  Cells:" << templ.cellCount();
+
+    emit templateLoaded(filePath);
+    return true;
 }
 
 void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)

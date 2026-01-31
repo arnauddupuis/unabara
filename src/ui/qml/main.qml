@@ -10,8 +10,8 @@ import QtMultimedia
 
 ApplicationWindow {
     id: window
-    width: 1200
-    height: 800
+    width: 1280
+    height: 1024
     visible: true
     title: qsTr("Unabara - Dive Telemetry Overlay")
     
@@ -404,7 +404,7 @@ ApplicationWindow {
             // Overlay Editor Panel
             Rectangle {
                 id: overlayEditorPanel
-                SplitView.preferredWidth: 350
+                SplitView.preferredWidth: 750
                 SplitView.minimumWidth: 300
                 // Removed maximumWidth to allow free resizing
                 visible: true  // Start with overlay editor visible

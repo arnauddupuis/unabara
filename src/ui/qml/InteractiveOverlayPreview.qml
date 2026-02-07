@@ -20,6 +20,14 @@ Item {
     property alias cellRepeater: cellRepeater  // Expose repeater for property access
     property int detectOverlapsCount: 0
 
+    // Alignment guides properties
+    property var alignmentGuides: []  // Array of alignment guide objects
+    property int alignmentThreshold: 5  // Pixels within which cells are considered aligned
+
+    // Counter-based drag detection (QML bindings can't track dependencies in loops)
+    property int draggingCellCount: 0  // Incremented/decremented by cell delegates
+    property bool anyDragging: draggingCellCount > 0
+
     // Signals
     signal cellSelected(string cellId)
     signal cellDeselected()
@@ -64,6 +72,105 @@ Item {
         }
 
         overlappingCells = overlaps
+    }
+
+    // Function to detect alignment between the dragging cell and other cells
+    function detectAlignments() {
+        var guides = []
+
+        // Find the dragging cell
+        var draggingCell = null
+        for (var i = 0; i < cellRepeater.count; i++) {
+            var cell = cellRepeater.itemAt(i)
+            if (cell && cell.dragging) {
+                draggingCell = cell
+                break
+            }
+        }
+
+        if (!draggingCell) {
+            alignmentGuides = []
+            return
+        }
+
+        // Scale threshold based on current preview size vs template size
+        // This ensures alignment detection works consistently regardless of zoom level
+        var scaleX = (generator && generator.templateWidth > 0) ?
+            cellContainer.width / generator.templateWidth : 1.0
+        var threshold = alignmentThreshold * Math.max(scaleX, 0.5)  // Ensure min threshold
+        var dc = draggingCell  // Shorthand
+
+        // Check against all other visible cells
+        for (var j = 0; j < cellRepeater.count; j++) {
+            var other = cellRepeater.itemAt(j)
+            if (!other || !other.cellVisible || other === draggingCell) continue
+
+            // Top edge alignment
+            if (Math.abs(dc.y - other.y) < threshold) {
+                guides.push({
+                    type: "horizontal",
+                    y: other.y,
+                    x1: Math.min(dc.x, other.x),
+                    x2: Math.max(dc.x + dc.width, other.x + other.width)
+                })
+            }
+
+            // Bottom edge alignment
+            if (Math.abs((dc.y + dc.height) - (other.y + other.height)) < threshold) {
+                guides.push({
+                    type: "horizontal",
+                    y: other.y + other.height,
+                    x1: Math.min(dc.x, other.x),
+                    x2: Math.max(dc.x + dc.width, other.x + other.width)
+                })
+            }
+
+            // Left edge alignment
+            if (Math.abs(dc.x - other.x) < threshold) {
+                guides.push({
+                    type: "vertical",
+                    x: other.x,
+                    y1: Math.min(dc.y, other.y),
+                    y2: Math.max(dc.y + dc.height, other.y + other.height)
+                })
+            }
+
+            // Right edge alignment
+            if (Math.abs((dc.x + dc.width) - (other.x + other.width)) < threshold) {
+                guides.push({
+                    type: "vertical",
+                    x: other.x + other.width,
+                    y1: Math.min(dc.y, other.y),
+                    y2: Math.max(dc.y + dc.height, other.y + other.height)
+                })
+            }
+
+            // Center-X alignment (vertical centers aligned)
+            var dcCenterX = dc.x + dc.width / 2
+            var otherCenterX = other.x + other.width / 2
+            if (Math.abs(dcCenterX - otherCenterX) < threshold) {
+                guides.push({
+                    type: "vertical-center",
+                    x: otherCenterX,
+                    y1: Math.min(dc.y, other.y),
+                    y2: Math.max(dc.y + dc.height, other.y + other.height)
+                })
+            }
+
+            // Center-Y alignment (horizontal centers aligned)
+            var dcCenterY = dc.y + dc.height / 2
+            var otherCenterY = other.y + other.height / 2
+            if (Math.abs(dcCenterY - otherCenterY) < threshold) {
+                guides.push({
+                    type: "horizontal-center",
+                    y: otherCenterY,
+                    x1: Math.min(dc.x, other.x),
+                    x2: Math.max(dc.x + dc.width, other.x + other.width)
+                })
+            }
+        }
+
+        alignmentGuides = guides
     }
 
     // Background image
@@ -206,6 +313,53 @@ Item {
                     }
                 }
 
+                // Alignment guides overlay
+                Canvas {
+                    id: alignmentCanvas
+                    anchors.fill: parent
+                    visible: interactivePreview.anyDragging && interactivePreview.alignmentGuides.length > 0
+                    z: 0.5  // Between grid and cells
+
+                    // Repaint when visibility changes
+                    onVisibleChanged: requestPaint()
+
+                    // Repaint when alignment guides change
+                    Connections {
+                        target: interactivePreview
+                        function onAlignmentGuidesChanged() {
+                            alignmentCanvas.requestPaint()
+                        }
+                    }
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+
+                        var guides = interactivePreview.alignmentGuides
+                        for (var i = 0; i < guides.length; i++) {
+                            var guide = guides[i]
+
+                            // Choose color based on alignment type
+                            if (guide.type.includes("center")) {
+                                ctx.strokeStyle = "rgba(255, 215, 0, 0.9)"  // Gold for center alignment
+                            } else {
+                                ctx.strokeStyle = "rgba(0, 255, 255, 0.9)"  // Cyan for edge alignment
+                            }
+                            ctx.lineWidth = 2
+
+                            ctx.beginPath()
+                            if (guide.type.startsWith("horizontal")) {
+                                ctx.moveTo(guide.x1, guide.y)
+                                ctx.lineTo(guide.x2, guide.y)
+                            } else {
+                                ctx.moveTo(guide.x, guide.y1)
+                                ctx.lineTo(guide.x, guide.y2)
+                            }
+                            ctx.stroke()
+                        }
+                    }
+                }
+
                 // Repeater for cells
                 Repeater {
                     id: cellRepeater
@@ -246,11 +400,27 @@ Item {
                         x: model.position.x * cellContainer.width
                         y: model.position.y * cellContainer.height
 
-                        // Trigger overlap detection when position or size changes
-                        onXChanged: Qt.callLater(interactivePreview.detectOverlaps)
-                        onYChanged: Qt.callLater(interactivePreview.detectOverlaps)
+                        // Trigger overlap and alignment detection when position or size changes
+                        onXChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
+                        onYChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
                         onWidthChanged: Qt.callLater(interactivePreview.detectOverlaps)
                         onHeightChanged: Qt.callLater(interactivePreview.detectOverlaps)
+
+                        // Clear alignment guides when drag ends
+                        onDraggingChanged: {
+                            if (dragging) {
+                                interactivePreview.draggingCellCount++
+                            } else {
+                                interactivePreview.draggingCellCount--
+                                interactivePreview.alignmentGuides = []
+                            }
+                        }
 
                         // Handle cell selection
                         onClicked: {

@@ -4,7 +4,12 @@
         <file alias="main.qml">src/ui/qml/main.qml</file>
         <file alias="TimelineView.qml">src/ui/qml/TimelineView.qml</file>
         <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
+        <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
+        <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file>resources/styles/style.qss</file>
         <file alias="default_overlay.png">resources/templates/default_overlay.png</file>
+        <file alias="default_overlay.png">resources/templates/default_overlay.png</file>
+        <file alias="resources/templates/default_overlay_old.png">resources/templates/default_overlay_old.png</file>
+        <file alias="resources/templates/default_overlay_new.png">resources/templates/default_overlay_new.png</file>
     </qresource>
 </RCC>

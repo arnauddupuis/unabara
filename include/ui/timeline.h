@@ -84,11 +84,6 @@ private:
     // Helper methods
     void updateViewRange();
     void ensureTimeIsVisible(double time);
-
-    // Standardize time precision to milliseconds (3 decimals)
-    static inline double roundToMilliseconds(double time) {
-        return qRound(time * 1000.0) / 1000.0;
-    }
 };
 
 #endif // TIMELINE_H

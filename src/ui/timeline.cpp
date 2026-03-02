@@ -46,23 +46,19 @@ void Timeline::setDiveData(DiveData* data)
 void Timeline::setCurrentTime(double time)
 {
     if (m_diveData) {
-        // Round to milliseconds (3 decimals) for consistency across all components
-        // This prevents precision mismatch between main preview and interactive preview
-        time = roundToMilliseconds(time);
-
         // Ensure time is within valid range
         time = std::max(0.0, std::min(time, static_cast<double>(m_diveData->durationSeconds())));
-
+        
         if (m_currentTime != time) {
             m_currentTime = time;
             ensureTimeIsVisible(time);
-
+            
             // Update the image provider with the new time
             extern OverlayImageProvider* g_imageProvider;
             if (g_imageProvider) {
                 g_imageProvider->setCurrentTime(time);
             }
-
+            
             emit currentTimeChanged();
         }
     }

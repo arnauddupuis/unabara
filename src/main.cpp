@@ -12,7 +12,6 @@
 #include "include/core/dive_data.h"
 #include "include/core/log_parser.h"
 #include "include/ui/timeline.h"
-#include "include/ui/cell_model.h"
 #include "include/generators/overlay_gen.h"
 #include "include/export/image_export.h"
 #include "include/export/video_export.h"
@@ -36,7 +35,6 @@ int main(int argc, char *argv[])
     
     // Register C++ types with QML
     qmlRegisterType<Timeline>("Unabara.UI", 1, 0, "Timeline");
-    qmlRegisterType<CellModel>("Unabara.UI", 1, 0, "CellModel");
     qmlRegisterType<OverlayGenerator>("Unabara.Generators", 1, 0, "OverlayGenerator");
     qmlRegisterType<ImageExporter>("Unabara.Export", 1, 0, "ImageExporter");
     qmlRegisterType<VideoExporter>("Unabara.Export", 1, 0, "VideoExporter");

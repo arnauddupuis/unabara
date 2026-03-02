@@ -10,8 +10,8 @@ import QtMultimedia
 
 ApplicationWindow {
     id: window
-    width: 1280
-    height: 1024
+    width: 1200
+    height: 800
     visible: true
     title: qsTr("Unabara - Dive Telemetry Overlay")
     
@@ -245,13 +245,10 @@ ApplicationWindow {
             }
             
             ToolButton {
-                text: qsTr("Overlay Editor")
+                text: qsTr("Settings")
                 icon.name: "configure"
-                checkable: true
-                checked: overlayEditorPanel.visible
-                onClicked: overlayEditorPanel.visible = !overlayEditorPanel.visible
+                onClicked: settingsDialog.open()
             }
-
             
             Item { Layout.fillWidth: true }
             
@@ -271,34 +268,27 @@ ApplicationWindow {
         anchors.fill: parent
         orientation: Qt.Vertical
         
-        // Main content area with horizontal split for overlay editor panel
-        SplitView {
+        // Main content area - will contain the overlay preview
+        Item {
             id: mainContentArea
             SplitView.fillHeight: true
             SplitView.minimumHeight: 300
-            orientation: Qt.Horizontal
-
-            // Main preview area
-            Item {
-                id: previewArea
-                SplitView.fillWidth: true
-                SplitView.minimumWidth: 400
-
-                // Overlay preview
-                Rectangle {
-                    id: overlayPreview
-                    anchors.centerIn: parent
-                    width: parent.width * 0.8
-                    height: parent.height * 0.8
-                    color: "#5a5a5a"
-                    visible: mainWindow.hasActiveDive
-
-                    Image {
-                        id: previewImage
-                        anchors.fill: parent
-                        fillMode: Image.PreserveAspectFit
-                        cache: false
-                        asynchronous: true
+            
+            // Overlay preview (placeholder)
+            Rectangle {
+                id: overlayPreview
+                anchors.centerIn: parent
+                width: parent.width * 0.8
+                height: parent.height * 0.8
+                color: "black"
+                visible: mainWindow.hasActiveDive
+                
+                Image {
+                    id: previewImage
+                    anchors.fill: parent
+                    fillMode: Image.PreserveAspectFit
+                    cache: false
+                    asynchronous: true
                     
                     // Add a timer to handle the update with proper delay
                     Timer {
@@ -333,7 +323,7 @@ ApplicationWindow {
                     // Monitor changes to overlay generator properties
                     Connections {
                         target: overlayGenerator
-
+                        
                         function onShowDepthChanged() { previewImage.updatePreview() }
                         function onShowTemperatureChanged() { previewImage.updatePreview() }
                         function onShowTimeChanged() { previewImage.updatePreview() }
@@ -342,20 +332,13 @@ ApplicationWindow {
                         function onTemplateChanged() { previewImage.updatePreview() }
                         function onFontChanged() { previewImage.updatePreview() }
                         function onTextColorChanged() { previewImage.updatePreview() }
-                        function onBackgroundOpacityChanged() { previewImage.updatePreview() }
                     }
                     
-                    // Monitor changes to config properties (unit system only)
+                    // Monitor changes to config properties
                     Connections {
                         target: config
-
+                        
                         function onUnitSystemChanged() { previewImage.updatePreview() }
-                    }
-
-                    // Monitor changes to overlay generator CCR properties
-                    Connections {
-                        target: overlayGenerator
-
                         function onShowPO2Cell1Changed() { previewImage.updatePreview() }
                         function onShowPO2Cell2Changed() { previewImage.updatePreview() }
                         function onShowPO2Cell3Changed() { previewImage.updatePreview() }
@@ -373,58 +356,29 @@ ApplicationWindow {
                 }
             }
             
-                // Placeholder when no dive is loaded
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width * 0.6
-                    height: parent.height * 0.4
-                    color: "#f0f0f0"
-                    radius: 10
-                    visible: !mainWindow.hasActiveDive
-
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: 20
-
-                        Label {
-                            text: qsTr("No Dive Data Loaded")
-                            font.pixelSize: 24
-                            Layout.alignment: Qt.AlignHCenter
-                        }
-
-                        Button {
-                            text: qsTr("Import Dive Log")
-                            Layout.alignment: Qt.AlignHCenter
-                            onClicked: importDiveLogFileDialog.open()
-                        }
-                    }
-                }
-            }
-
-            // Overlay Editor Panel
+            // Placeholder when no dive is loaded
             Rectangle {
-                id: overlayEditorPanel
-                SplitView.preferredWidth: 750
-                SplitView.minimumWidth: 300
-                // Removed maximumWidth to allow free resizing
-                visible: true  // Start with overlay editor visible
-                color: "#f5f5f5"
-                border.color: "#d0d0d0"
-                border.width: 1
-
-                ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: 5
-                    clip: true
-                    contentWidth: overlayEditorPanel.width - 10
-                    contentHeight: overlayEditor.implicitHeight
-
-                    OverlayEditor {
-                        id: overlayEditor
-                        width: overlayEditorPanel.width - 10
-                        generator: overlayGenerator
-                        timeline: timelineView.timeline
-                        dive: mainWindow.currentDive
+                anchors.centerIn: parent
+                width: parent.width * 0.6
+                height: parent.height * 0.4
+                color: "#f0f0f0"
+                radius: 10
+                visible: !mainWindow.hasActiveDive
+                
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: 20
+                    
+                    Label {
+                        text: qsTr("No Dive Data Loaded")
+                        font.pixelSize: 24
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+                    
+                    Button {
+                        text: qsTr("Import Dive Log")
+                        Layout.alignment: Qt.AlignHCenter
+                        onClicked: importDiveLogFileDialog.open()
                     }
                 }
             }
@@ -919,6 +873,190 @@ ApplicationWindow {
         }
     }
     
+    Dialog {
+        id: settingsDialog
+        title: qsTr("Settings")
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 400
+        height: 500
+
+        // Ensure settings are applied when dialog is accepted
+        onAccepted: {
+            // Explicitly apply all settings to the generator
+            overlayGenerator.showDepth = showDepthCheckbox.checked
+            overlayGenerator.showTemperature = showTempCheckbox.checked
+            overlayGenerator.showTime = showTimeCheckbox.checked
+            overlayGenerator.showNDL = showNDLCheckbox.checked
+            overlayGenerator.showPressure = showPressureCheckbox.checked
+            
+            // Apply CCR settings to config (they update automatically via bindings)
+            config.showPO2Cell1 = showPO2Cell1Checkbox.checked
+            config.showPO2Cell2 = showPO2Cell2Checkbox.checked
+            config.showPO2Cell3 = showPO2Cell3Checkbox.checked
+            config.showCompositePO2 = showCompositePO2Checkbox.checked
+            
+            // Update the preview
+            previewImage.updatePreview()
+            
+            // For debugging
+            console.log("Settings applied - Depth:", overlayGenerator.showDepth, 
+                        "Temp:", overlayGenerator.showTemperature,
+                        "Time:", overlayGenerator.showTime,
+                        "NDL:", overlayGenerator.showNDL,
+                        "Pressure:", overlayGenerator.showPressure,
+                        "PO2 Cell1:", config.showPO2Cell1,
+                        "PO2 Cell2:", config.showPO2Cell2,
+                        "PO2 Cell3:", config.showPO2Cell3,
+                        "Composite PO2:", config.showCompositePO2)
+        }
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            
+            GroupBox {
+                title: qsTr("Overlay Settings")
+                Layout.fillWidth: true
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    CheckBox {
+                        id: showDepthCheckbox
+                        text: qsTr("Show Depth")
+                        checked: overlayGenerator.showDepth
+                        onCheckedChanged: {
+                            overlayGenerator.showDepth = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showTempCheckbox
+                        text: qsTr("Show Temperature")
+                        checked: overlayGenerator.showTemperature
+                        onCheckedChanged: {
+                            overlayGenerator.showTemperature = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showTimeCheckbox
+                        text: qsTr("Show Time")
+                        checked: overlayGenerator.showTime
+                        onCheckedChanged: {
+                            overlayGenerator.showTime = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showNDLCheckbox
+                        text: qsTr("Show NDL")
+                        checked: overlayGenerator.showNDL
+                        onCheckedChanged: {
+                            overlayGenerator.showNDL = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showPressureCheckbox
+                        text: qsTr("Show Pressure")
+                        checked: overlayGenerator.showPressure
+                        onCheckedChanged: {
+                            overlayGenerator.showPressure = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                }
+            }
+            
+            GroupBox {
+                title: qsTr("CCR Settings")
+                Layout.fillWidth: true
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    CheckBox {
+                        id: showPO2Cell1Checkbox
+                        text: qsTr("Show Cell 1 PO2")
+                        checked: config.showPO2Cell1
+                        onCheckedChanged: {
+                            config.showPO2Cell1 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showPO2Cell2Checkbox
+                        text: qsTr("Show Cell 2 PO2")
+                        checked: config.showPO2Cell2
+                        onCheckedChanged: {
+                            config.showPO2Cell2 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showPO2Cell3Checkbox
+                        text: qsTr("Show Cell 3 PO2")
+                        checked: config.showPO2Cell3
+                        onCheckedChanged: {
+                            config.showPO2Cell3 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                    
+                    CheckBox {
+                        id: showCompositePO2Checkbox
+                        text: qsTr("Show Composite PO2")
+                        checked: config.showCompositePO2
+                        onCheckedChanged: {
+                            config.showCompositePO2 = checked
+                            previewImage.updatePreview()
+                        }
+                    }
+                }
+            }
+            
+            GroupBox {
+                title: qsTr("Units")
+                Layout.fillWidth: true
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    
+                    RadioButton {
+                        id: metricUnitsRadio
+                        text: qsTr("Metric (m, °C, bar)")
+                        checked: config.unitSystem === Units.Metric
+                        onCheckedChanged: {
+                            if (checked) {
+                                config.unitSystem = Units.Metric
+                                previewImage.updatePreview()
+                            }
+                        }
+                    }
+                    
+                    RadioButton {
+                        id: imperialUnitsRadio
+                        text: qsTr("Imperial (ft, °F, psi)")
+                        checked: config.unitSystem === Units.Imperial
+                        onCheckedChanged: {
+                            if (checked) {
+                                config.unitSystem = Units.Imperial
+                                previewImage.updatePreview()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     Dialog {
         id: diveSelectionDialog

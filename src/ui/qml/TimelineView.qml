@@ -485,6 +485,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                     
+                    // Define the function first
                     function updateDetailsText() {
                         var dataPoint = timeline.getCurrentDataPoint();
                         if (!dataPoint) return;
@@ -547,10 +548,10 @@ Item {
                     Connections {
                         target: timeline
                         function onCurrentTimeChanged() {
-                            detailsText.updateDetailsText();
+                            detailsText.updateDetailsText();  // Use detailsText. prefix
                         }
                         function onDiveDataChanged() {
-                            detailsText.updateDetailsText();
+                            detailsText.updateDetailsText();  // Use detailsText. prefix
                         }
                     }
                     

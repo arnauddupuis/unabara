@@ -18,7 +18,6 @@ Config::Config(QObject *parent)
     , m_settings("UnabaraProject", "Unabara")
     , m_font("Arial", 12)
     , m_textColor(Qt::white)
-    , m_backgroundOpacity(1.0)
     , m_showDepth(true)
     , m_showTemperature(true)
     , m_showNDL(true)
@@ -103,20 +102,6 @@ void Config::setTextColor(const QColor &color)
     if (m_textColor != color) {
         m_textColor = color;
         emit textColorChanged();
-    }
-}
-
-double Config::backgroundOpacity() const
-{
-    return m_backgroundOpacity;
-}
-
-void Config::setBackgroundOpacity(double opacity)
-{
-    opacity = qBound(0.0, opacity, 1.0); // Clamp between 0.0 and 1.0
-    if (qAbs(m_backgroundOpacity - opacity) > 0.001) { // Use floating point comparison
-        m_backgroundOpacity = opacity;
-        emit backgroundOpacityChanged();
     }
 }
 
@@ -290,10 +275,7 @@ void Config::loadConfig()
     int g = m_settings.value("overlay/textColorG", 255).toInt();
     int b = m_settings.value("overlay/textColorB", 255).toInt();
     m_textColor = QColor(r, g, b);
-
-    // Load background opacity
-    m_backgroundOpacity = m_settings.value("overlay/backgroundOpacity", 1.0).toDouble();
-
+    
     // Load display flags
     m_showDepth = m_settings.value("overlay/showDepth", true).toBool();
     m_showTemperature = m_settings.value("overlay/showTemperature", true).toBool();
@@ -334,10 +316,7 @@ void Config::saveConfig()
     m_settings.setValue("overlay/textColorR", m_textColor.red());
     m_settings.setValue("overlay/textColorG", m_textColor.green());
     m_settings.setValue("overlay/textColorB", m_textColor.blue());
-
-    // Save background opacity
-    m_settings.setValue("overlay/backgroundOpacity", m_backgroundOpacity);
-
+    
     // Save display flags
     m_settings.setValue("overlay/showDepth", m_showDepth);
     m_settings.setValue("overlay/showTemperature", m_showTemperature);

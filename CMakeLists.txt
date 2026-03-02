@@ -38,11 +38,8 @@ set(PROJECT_SOURCES
     src/core/log_parser.cpp
     src/core/config.cpp
     src/core/units.cpp
-    src/core/cell_data.cpp
-    src/core/overlay_template.cpp
     src/ui/main_window.cpp
     src/ui/timeline.cpp
-    src/ui/cell_model.cpp
     src/generators/overlay_gen.cpp
     src/generators/overlay_image_provider.cpp
     src/export/image_export.cpp
@@ -55,11 +52,8 @@ set(PROJECT_HEADERS
     include/core/log_parser.h
     include/core/config.h
     include/core/units.h
-    include/core/cell_data.h
-    include/core/overlay_template.h
     include/ui/main_window.h
     include/ui/timeline.h
-    include/ui/cell_model.h
     include/generators/overlay_gen.h
     include/generators/overlay_image_provider.h
     include/export/image_export.h

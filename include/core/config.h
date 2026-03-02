@@ -20,7 +20,6 @@ class Config : public QObject
     Q_PROPERTY(QString templatePath READ templatePath WRITE setTemplatePath NOTIFY templatePathChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
-    Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(bool showDepth READ showDepth WRITE setShowDepth NOTIFY showDepthChanged)
     Q_PROPERTY(bool showTemperature READ showTemperature WRITE setShowTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(bool showNDL READ showNDL WRITE setShowNDL NOTIFY showNDLChanged)
@@ -56,10 +55,7 @@ public:
     
     QColor textColor() const;
     void setTextColor(const QColor &color);
-
-    double backgroundOpacity() const;
-    void setBackgroundOpacity(double opacity);
-
+    
     bool showDepth() const;
     void setShowDepth(bool show);
     
@@ -104,7 +100,6 @@ signals:
     void templatePathChanged();
     void fontChanged();
     void textColorChanged();
-    void backgroundOpacityChanged();
     void showDepthChanged();
     void showTemperatureChanged();
     void showNDLChanged();
@@ -135,7 +130,6 @@ private:
     QString m_templatePath;
     QFont m_font;
     QColor m_textColor;
-    double m_backgroundOpacity;
     bool m_showDepth;
     bool m_showTemperature;
     bool m_showNDL;

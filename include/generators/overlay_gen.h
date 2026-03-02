@@ -190,7 +190,7 @@ private:
     bool m_showGrid;
 
     // Helper methods for drawing
-    int getScaledFontSize(double scale = 1.0) const;
+    int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;
     QSizeF calculateCellSize(Unabara::CellType cellType, const QFont& font, const QSizeF& templateSize, const QString& sampleText = "") const;
     void updateTemplateDimensions();
     void drawDepth(QPainter &painter, double depth, const QRect &rect);
@@ -202,10 +202,20 @@ private:
     void drawDataItem(QPainter &painter, const QString &label, const QString &value, const QRect &rect, bool centerAlign);
     // Helper method to draw section headers with consistent positioning
     void drawSectionHeader(QPainter &painter, const QString &label, const QRect &rect);
-    
+
     // CCR drawing methods
     void drawPO2Cell(QPainter &painter, double po2Value, const QRect &rect, int cellNumber);
     void drawCompositePO2(QPainter &painter, double po2Value, const QRect &rect);
+
+    // Cell-based vs section-based rendering
+    void renderCellBasedOverlay(QPainter& painter, const QSize& imageSize,
+                                const DiveDataPoint& dataPoint, DiveData* dive);
+    void renderSectionBasedOverlay(QPainter& painter, const QSize& imageSize,
+                                   const DiveDataPoint& dataPoint, DiveData* dive);
+
+    // Generate display text for a cell (matches CellModel::formatValue for QML consistency)
+    QString generateCellDisplayText(Unabara::CellType cellType, const DiveDataPoint& dataPoint,
+                                    int tankIndex, DiveData* dive) const;
 };
 
 #endif // OVERLAY_GEN_H

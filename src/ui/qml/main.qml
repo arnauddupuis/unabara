@@ -290,7 +290,7 @@ ApplicationWindow {
                     anchors.centerIn: parent
                     width: parent.width * 0.8
                     height: parent.height * 0.8
-                    // color: "#5a5a5a"
+                    color: palette.dark
                     visible: mainWindow.hasActiveDive
 
                     Image {
@@ -378,7 +378,7 @@ ApplicationWindow {
                     anchors.centerIn: parent
                     width: parent.width * 0.6
                     height: parent.height * 0.4
-                    color: "#f0f0f0"
+                    color: palette.window
                     radius: 10
                     visible: !mainWindow.hasActiveDive
 
@@ -408,8 +408,8 @@ ApplicationWindow {
                 SplitView.minimumWidth: 300
                 // Removed maximumWidth to allow free resizing
                 visible: true  // Start with overlay editor visible
-                // color: "#f5f5f5"
-                border.color: "#d0d0d0"
+                color: palette.window
+                border.color: palette.mid
                 border.width: 1
 
                 ScrollView {
@@ -435,8 +435,8 @@ ApplicationWindow {
             id: timelineArea
             SplitView.preferredHeight: 200
             SplitView.minimumHeight: 150
-            color: "#e0e0e0"
-            
+            color: palette.mid
+
             TimelineView {
                 id: timelineView
                 anchors.fill: parent
@@ -460,7 +460,7 @@ ApplicationWindow {
                 text: qsTr("Import a dive log to view timeline data")
                 visible: !mainWindow.hasActiveDive
                 font.pixelSize: 16
-                color: "#606060"
+                color: palette.placeholderText
             }
         }
     }
@@ -984,7 +984,7 @@ ApplicationWindow {
                         
                         Rectangle {
                             anchors.fill: parent
-                            color: parent.hovered ? "#e0e0e0" : (listView.currentIndex === index ? "#d0d0ff" : "transparent")
+                            color: parent.hovered ? palette.midlight : (listView.currentIndex === index ? palette.highlight : "transparent")
                             radius: 4
                             
                             ColumnLayout {
@@ -1016,7 +1016,7 @@ ApplicationWindow {
                                         }
                                         return info
                                     }
-                                    color: "#606060"
+                                    color: palette.windowText
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
@@ -1040,7 +1040,7 @@ ApplicationWindow {
             Label {
                 text: qsTr("Double-click a dive to select it, or select and click OK.")
                 Layout.fillWidth: true
-                color: "#606060"
+                color: palette.placeholderText
                 font.italic: true
             }
         }

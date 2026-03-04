@@ -176,7 +176,7 @@ Item {
     // Background image
     Rectangle {
         anchors.fill: parent
-        color: "#5a5a5a"  // Gray background
+        color: palette.dark
 
         Image {
             id: backgroundImage
@@ -459,7 +459,7 @@ Item {
     Text {
         anchors.centerIn: parent
         text: dive ? "" : "Load a dive to preview overlay"
-        color: "white"
+        color: palette.windowText
         font.pointSize: 14
         visible: !dive
     }

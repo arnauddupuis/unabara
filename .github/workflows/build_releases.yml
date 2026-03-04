@@ -17,8 +17,8 @@ jobs:
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Get version from VERSION file
         id: get-version
         run: |
@@ -34,8 +34,8 @@ jobs:
     needs: determine-version
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -43,7 +43,7 @@ jobs:
         sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         sudo flatpak install -y flathub org.kde.Sdk//6.8
         sudo flatpak install -y org.kde.Platform//6.8
-    
+
     - name: Set up Flatpak manifest
       run: |
         cat > org.unabara.unabara.yml << EOF
@@ -67,18 +67,18 @@ jobs:
               - type: dir
                 path: .
         EOF
-    
+
     - name: Build Flatpak
       run: |
         flatpak-builder --repo=repo --force-clean build-dir org.unabara.unabara.yml
         flatpak build-bundle repo ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak ${{ env.APP_ID }}
-    
+
     - name: Upload Linux Flatpak Artifact
       uses: actions/upload-artifact@v4
       with:
         name: unabara-linux-flatpak-${{ needs.determine-version.outputs.version }}
         path: ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak
-        
+
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
@@ -94,7 +94,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v4.1.1
       with:
@@ -103,8 +103,8 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2022_64'
-        modules: 'qtmultimedia qtpositioning qtwebview'
- 
+        modules: 'qtmultimedia'
+
     - name: Install MSBuild
       run: choco install visualstudio2022buildtools --package-parameters "--add Microsoft.Component.MSBuild"
 
@@ -113,13 +113,13 @@ jobs:
       with:
         vs-version: '14.36'
         msbuild-architecture: x64
-        
+
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-      
+
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --verbose
-      
+
     - name: Package with windeployqt
       working-directory: ${{github.workspace}}/build
       run: |
@@ -136,28 +136,26 @@ jobs:
         $env:PATH = "$env:Qt6_DIR\bin;$env:PATH"
         windeployqt unabara.exe --release --no-translations --qmldir=../../src/ui/qml
         cd ..
-        mv package ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
+        mv package unabara-windows-${{ needs.determine-version.outputs.version }}
 
-    # - name: Create ZIP Archive (Direct)
-    #   working-directory: ${{github.workspace}}/build
-    #   run: |
-    #     cd package
-    #     7z a -tzip ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}.zip ./unabara-windows-${{ needs.determine-version.outputs.version }}/*
-    
+    - name: Create ZIP Archive
+      working-directory: ${{github.workspace}}/build
+      run: |
+        7z a -tzip unabara-windows-${{ needs.determine-version.outputs.version }}.zip ./unabara-windows-${{ needs.determine-version.outputs.version }}/*
 
     - name: Upload Windows Artifact
       uses: actions/upload-artifact@v4
       with:
         name: unabara-windows-${{ needs.determine-version.outputs.version }}
         path: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
-        
+
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}
-        asset_name: unabara-windows-${{ needs.determine-version.outputs.version }}.exe
+        file: ${{github.workspace}}/build/unabara-windows-${{ needs.determine-version.outputs.version }}.zip
+        asset_name: unabara-windows-${{ needs.determine-version.outputs.version }}.zip
         tag: ${{ github.ref }}
         overwrite: true
 
@@ -166,7 +164,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v4.1.1
       with:
@@ -176,30 +174,19 @@ jobs:
         target: desktop
         arch: clang_64
         modules: qtmultimedia
-    
+
     - name: Configure CMake for Intel Build
       run: cmake -B ${{github.workspace}}/build-x86_64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_OSX_ARCHITECTURES=x86_64
-      
+
     - name: Build Intel Version
       run: cmake --build ${{github.workspace}}/build-x86_64 --config ${{env.BUILD_TYPE}}
-    
+
     - name: Configure CMake for ARM Build
       run: cmake -B ${{github.workspace}}/build-arm64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_OSX_ARCHITECTURES=arm64
-      
+
     - name: Build ARM Version
       run: cmake --build ${{github.workspace}}/build-arm64 --config ${{env.BUILD_TYPE}}
 
-    - name: Debug - List directory contents
-      run: |
-        echo "Checking x86_64 build output:"
-        ls -la ${{github.workspace}}/build-x86_64/bin
-        echo "Checking app bundle structure:"
-        ls -la ${{github.workspace}}/build-x86_64/bin/unabara.app/Contents/MacOS
-        echo "Checking arm64 build output:"
-        ls -la ${{github.workspace}}/build-arm64/bin
-        echo "Checking app bundle structure:"
-        ls -la ${{github.workspace}}/build-arm64/bin/unabara.app/Contents/MacOS
-    
     - name: Create Universal Binary and App Bundle
       run: |
         mkdir -p ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS
@@ -210,10 +197,9 @@ jobs:
           -output ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
 
         chmod +x ${{github.workspace}}/build-universal/bin/unabara.app/Contents/MacOS/unabara
-        
-        # Create Info.plist
-        mkdir -p package/Unabara.app/Contents/
-        cat > package/Unabara.app/Contents/Info.plist << EOF
+
+        # Create Info.plist in the correct app bundle location
+        cat > ${{github.workspace}}/build-universal/bin/unabara.app/Contents/Info.plist << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -250,23 +236,23 @@ jobs:
         </dict>
         </plist>
         EOF
-    
+
     - name: Package Universal App with macdeployqt
       run: |
         cd ${{github.workspace}}/build-universal
-        
+
         # Use macdeployqt to create the DMG with all dependencies
         macdeployqt bin/unabara.app -dmg -verbose=3
-        
+
         # Rename DMG to include version
         mv bin/unabara.dmg unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
-        
+
     - name: Upload macOS Universal Artifact
       uses: actions/upload-artifact@v4
       with:
         name: unabara-macos-universal-${{ needs.determine-version.outputs.version }}
         path: ${{github.workspace}}/build-universal/unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg
-        
+
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2

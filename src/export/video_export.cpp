@@ -11,7 +11,7 @@ VideoExporter::VideoExporter(QObject *parent)
     : QObject(parent)
     , m_frameRate(30.0)  // Default 30 frames per second for video
     , m_videoBitrate(8000) // Default 8Mbps
-    , m_videoCodec("h264") // Default H.264 codec
+    , m_videoCodec("vp9") // Default VP9 codec (supports transparency for compositing)
     , m_progress(0)
     , m_busy(false)
     , m_ffmpegProcess(nullptr)
@@ -154,7 +154,12 @@ QString VideoExporter::findFFmpegPath()
 QStringList VideoExporter::getAvailableCodecs()
 {
     // Return a list of supported codecs
-    return QStringList() << "h264" << "prores" << "vp9" << "hevc";
+    return QStringList() << "vp9" << "prores" << "h264" << "hevc";
+}
+
+bool VideoExporter::codecSupportsAlpha(const QString &codec)
+{
+    return (codec == "prores" || codec == "vp9");
 }
 
 QString VideoExporter::getFileExtensionForCodec(const QString &codec)

@@ -63,6 +63,7 @@ public:
     
     // Get information about available codecs and formats
     Q_INVOKABLE QStringList getAvailableCodecs();
+    Q_INVOKABLE bool codecSupportsAlpha(const QString &codec);
     Q_INVOKABLE QString getFileExtensionForCodec(const QString &codec);
     
 signals:

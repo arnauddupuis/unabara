@@ -823,27 +823,37 @@ ApplicationWindow {
                         ComboBox {
                             id: codecComboBox
                             model: videoExporter.getAvailableCodecs()
+                            currentIndex: model.indexOf(videoExporter.videoCodec)
                             Layout.fillWidth: true
-                            
+
                             ToolTip {
                                 visible: codecComboBox.hovered
                                 text: {
-                                    if (codecComboBox.currentText === "h264") 
-                                        return qsTr("H.264 - most compatible format")
-                                    else if (codecComboBox.currentText === "prores") 
-                                        return qsTr("ProRes - high quality with alpha channel")
-                                    else if (codecComboBox.currentText === "vp9") 
-                                        return qsTr("VP9 - good for web with alpha support")
-                                    else if (codecComboBox.currentText === "hevc") 
-                                        return qsTr("HEVC - better compression, newer hardware")
-                                    else 
+                                    if (codecComboBox.currentText === "h264")
+                                        return qsTr("H.264 - most compatible, no transparency support")
+                                    else if (codecComboBox.currentText === "prores")
+                                        return qsTr("ProRes 4444 - high quality with transparent background")
+                                    else if (codecComboBox.currentText === "vp9")
+                                        return qsTr("VP9 - compact format with transparent background (recommended)")
+                                    else if (codecComboBox.currentText === "hevc")
+                                        return qsTr("HEVC - better compression, no transparency support")
+                                    else
                                         return ""
                                 }
                                 delay: 500
                             }
                         }
                     }
-                    
+
+                    Label {
+                        visible: !videoExporter.codecSupportsAlpha(codecComboBox.currentText)
+                        text: qsTr("This codec does not support transparency. The overlay background will be opaque.")
+                        color: "#FF8800"
+                        font.italic: true
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         

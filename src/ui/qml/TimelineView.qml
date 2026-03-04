@@ -16,6 +16,11 @@ Item {
     property alias videoPath: timeline.videoPath
     property alias videoDuration: timeline.videoDuration
     property alias videoOffset: timeline.videoOffset
+
+    // Palette-bound colors for canvas drawing
+    property color canvasBackground: palette.base
+    property color canvasGridColor: palette.mid
+    property color canvasTextColor: palette.windowText
     
     // Reference to C++ Timeline object
     Timeline {
@@ -39,7 +44,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 40
-            color: "#d0d0d0"
+            color: palette.mid
             
             RowLayout {
                 anchors.fill: parent
@@ -93,7 +98,7 @@ Item {
                 
                 Label {
                     text: qsTr("Time: ") + formatTime(timeline.currentTime)
-                    color: "darkgrey"
+                    color: palette.windowText
                     font.bold: true
                     
                     function formatTime(seconds) {
@@ -112,7 +117,7 @@ Item {
                     
                     Label {
                         text: qsTr("Video Offset:")
-                        color: "black"
+                        color: palette.windowText
                     }
                     
                     SpinBox {
@@ -184,11 +189,11 @@ Item {
                     var height = depthCanvas.height;
                     
                     // Draw background
-                    ctx.fillStyle = "#f0f8ff";
+                    ctx.fillStyle = root.canvasBackground;
                     ctx.fillRect(0, 0, width, height);
-                    
+
                     // Draw grid lines
-                    ctx.strokeStyle = "#c0c0c0";
+                    ctx.strokeStyle = root.canvasGridColor;
                     ctx.lineWidth = 1;
                     
                     // Draw time grid lines
@@ -203,7 +208,7 @@ Item {
                         ctx.stroke();
                         
                         // Draw time labels
-                        ctx.fillStyle = "#404040";
+                        ctx.fillStyle = root.canvasTextColor;
                         ctx.font = "10px sans-serif";
                         var mins = Math.floor(t / 60);
                         var secs = Math.floor(t % 60);
@@ -223,7 +228,7 @@ Item {
                         ctx.stroke();
                         
                         // Draw depth labels
-                        ctx.fillStyle = "#404040";
+                        ctx.fillStyle = root.canvasTextColor;
                         ctx.font = "10px sans-serif";
                         ctx.fillText(d + "m", 2, y - 2);
                     }
@@ -348,6 +353,14 @@ Item {
                     function onVideoOffsetChanged() {
                         depthCanvas.requestPaint()
                     }
+                }
+
+                // Repaint when palette colors change
+                Connections {
+                    target: root
+                    function onCanvasBackgroundChanged() { depthCanvas.requestPaint() }
+                    function onCanvasGridColorChanged() { depthCanvas.requestPaint() }
+                    function onCanvasTextColorChanged() { depthCanvas.requestPaint() }
                 }
                 
                 function updateTimelineData() {

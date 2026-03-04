@@ -131,8 +131,8 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
-            color: root.hasSelection ? "#2a4a2a" : "#4a4a4a"
-            border.color: root.hasSelection ? "lime" : "#808080"
+            color: root.hasSelection ? Qt.rgba(0, 0.5, 0, 0.15) : palette.mid
+            border.color: root.hasSelection ? "lime" : palette.mid
             border.width: 2
             radius: 4
 
@@ -144,13 +144,13 @@ Item {
                 Label {
                     text: root.hasSelection ? "✓ Cell Selected:" : "⊞ Editing All Cells"
                     font.bold: true
-                    color: root.hasSelection ? "lime" : "white"
+                    color: root.hasSelection ? "lime" : palette.windowText
                 }
 
                 Label {
                     text: root.hasSelection ? root.selectedCellId : ""
                     font.family: "monospace"
-                    color: "white"
+                    color: palette.windowText
                     visible: root.hasSelection
                 }
 

@@ -7,9 +7,9 @@
         <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file>resources/styles/style.qss</file>
-        <file alias="default_overlay.png">resources/templates/default_overlay.png</file>
-        <file alias="default_overlay.png">resources/templates/default_overlay.png</file>
-        <file alias="resources/templates/default_overlay_old.png">resources/templates/default_overlay_old.png</file>
-        <file alias="resources/templates/default_overlay_new.png">resources/templates/default_overlay_new.png</file>
+        <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
+        <file alias="templates/CCR_Tek_Rugged.utp">resources/templates/CCR_Tek_Rugged.utp</file>
+        <file alias="images/DC_Faces/unabara_round_ocean.png">resources/images/DC_Faces/unabara_round_ocean.png</file>
+        <file alias="images/DC_Faces/unabara_rect_rugged.png">resources/images/DC_Faces/unabara_rect_rugged.png</file>
     </qresource>
 </RCC>

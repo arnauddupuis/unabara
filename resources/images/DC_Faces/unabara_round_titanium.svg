@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Unabara Round Titanium — dive computer background
+  Style: Watch-form factor, brushed titanium/steel, premium finish
+  Screen area: very dark fill, telemetry cells render on top
+  Transparent overall background (no background rect)
+  ViewBox: 500 × 600  |  Center: 250, 300
+-->
+<svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brushed titanium — warm grey, top-left highlight -->
+    <radialGradient id="t_case" cx="34%" cy="26%" r="76%" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#C0CAD4"/>
+      <stop offset="35%"  stop-color="#7A8896"/>
+      <stop offset="70%"  stop-color="#3E4E5C"/>
+      <stop offset="100%" stop-color="#1E2830"/>
+    </radialGradient>
+
+    <!-- Bezel ring — slightly darker / cooler titanium -->
+    <linearGradient id="t_ring" x1="20%" y1="5%" x2="80%" y2="95%">
+      <stop offset="0%"   stop-color="#8A9AA8"/>
+      <stop offset="45%"  stop-color="#4E5E6A"/>
+      <stop offset="100%" stop-color="#28363E"/>
+    </linearGradient>
+
+    <!-- Inner dark bevel between tick ring and screen -->
+    <radialGradient id="t_inner" cx="50%" cy="44%" r="56%">
+      <stop offset="75%"  stop-color="#0C141C"/>
+      <stop offset="100%" stop-color="#020408"/>
+    </radialGradient>
+
+    <!-- Screen fill — very dark, cold blue-black -->
+    <radialGradient id="t_screen" cx="40%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#07090E"/>
+      <stop offset="100%" stop-color="#020305"/>
+    </radialGradient>
+
+    <!-- Rubber strap — jet-black with subtle side sheen -->
+    <linearGradient id="t_strap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#050507"/>
+      <stop offset="18%"  stop-color="#131418"/>
+      <stop offset="50%"  stop-color="#1A1C22"/>
+      <stop offset="82%"  stop-color="#131418"/>
+      <stop offset="100%" stop-color="#050507"/>
+    </linearGradient>
+
+    <!-- Side buttons — near-black with slight warm highlight -->
+    <linearGradient id="t_btn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#040507"/>
+      <stop offset="50%"  stop-color="#1A1E22"/>
+      <stop offset="100%" stop-color="#040507"/>
+    </linearGradient>
+
+    <!-- Chrome screws — bright silver highlight -->
+    <radialGradient id="t_screw" cx="30%" cy="28%" r="68%">
+      <stop offset="0%"   stop-color="#D8E4EC"/>
+      <stop offset="40%"  stop-color="#8A9EAC"/>
+      <stop offset="100%" stop-color="#1C2830"/>
+    </radialGradient>
+
+    <!-- Subtle titanium case shadow -->
+    <filter id="t_shadow" filterUnits="userSpaceOnUse"
+            x="0" y="40" width="520" height="520">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur"/>
+      <feOffset dx="3" dy="6" result="offsetBlur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.70" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Screen-edge glow (very subtle cyan) -->
+    <filter id="t_glow" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Brand text arc: 9-o'clock → 6-o'clock → 3-o'clock (counter-clockwise via bottom)
+         sweep=0 in SVG y-down = counter-clockwise visually.
+         Travel direction at 6-o'clock = +x → glyph-up = -y (toward center) → upright ✓ -->
+    <path id="t_brand" d="M 50,300 A 200,200 0 0,0 450,300"/>
+  </defs>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- TOP STRAP (jet-black rubber)           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="183" y="10" width="134" height="122" rx="9" fill="url(#t_strap)"/>
+  <rect x="183" y="10" width="134" height="122" rx="9" fill="none"
+        stroke="#0A0C10" stroke-width="1.5"/>
+  <rect x="186" y="13" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
+  <rect x="311" y="13" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
+  <line x1="183" y1="35"  x2="317" y2="35"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="56"  x2="317" y2="56"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="77"  x2="317" y2="77"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="98"  x2="317" y2="98"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="119" x2="317" y2="119" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <!-- Spring bar pin -->
+  <rect x="231" y="20" width="38" height="8" rx="3"
+        fill="#243040" stroke="#5A7080" stroke-width="0.8" opacity="0.90"/>
+  <circle cx="250" cy="24" r="2.5" fill="#3498DB" opacity="0.60"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BOTTOM STRAP                           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="183" y="468" width="134" height="122" rx="9" fill="url(#t_strap)"/>
+  <rect x="183" y="468" width="134" height="122" rx="9" fill="none"
+        stroke="#0A0C10" stroke-width="1.5"/>
+  <rect x="186" y="471" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
+  <rect x="311" y="471" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
+  <line x1="183" y1="488" x2="317" y2="488" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="508" x2="317" y2="508" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="528" x2="317" y2="528" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="548" x2="317" y2="548" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <line x1="183" y1="568" x2="317" y2="568" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <ellipse cx="250" cy="563" rx="4.5" ry="3.5"
+           fill="#030406" stroke="#1C2028" stroke-width="1"/>
+  <ellipse cx="250" cy="549" rx="4"   ry="3"
+           fill="#030406" stroke="#1C2028" stroke-width="1"/>
+  <ellipse cx="250" cy="536" rx="3.5" ry="2.5"
+           fill="#030406" stroke="#1C2028" stroke-width="1"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SIDE BUTTONS (dark, subdued)           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Upper-left  LIGHT -->
+  <rect x="11" y="213" width="46" height="25" rx="7" fill="url(#t_btn)"/>
+  <rect x="12" y="214" width="44" height="23" rx="6" fill="none"
+        stroke="#303840" stroke-width="1"/>
+  <rect x="16" y="218" width="30" height="15" rx="3" fill="none"
+        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
+  <text x="32" y="228.5" text-anchor="middle"
+        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.80">LIGHT</text>
+
+  <!-- Lower-left  MENU -->
+  <rect x="11" y="362" width="46" height="25" rx="7" fill="url(#t_btn)"/>
+  <rect x="12" y="363" width="44" height="23" rx="6" fill="none"
+        stroke="#303840" stroke-width="1"/>
+  <rect x="16" y="367" width="30" height="15" rx="3" fill="none"
+        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
+  <text x="32" y="377.5" text-anchor="middle"
+        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.80">MENU</text>
+
+  <!-- Upper-right  FUNC -->
+  <rect x="443" y="213" width="46" height="25" rx="7" fill="url(#t_btn)"/>
+  <rect x="444" y="214" width="44" height="23" rx="6" fill="none"
+        stroke="#303840" stroke-width="1"/>
+  <rect x="456" y="218" width="30" height="15" rx="3" fill="none"
+        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
+  <text x="468" y="228.5" text-anchor="middle"
+        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.80">FUNC</text>
+
+  <!-- Lower-right  INFO -->
+  <rect x="443" y="362" width="46" height="25" rx="7" fill="url(#t_btn)"/>
+  <rect x="444" y="363" width="44" height="23" rx="6" fill="none"
+        stroke="#303840" stroke-width="1"/>
+  <rect x="456" y="367" width="30" height="15" rx="3" fill="none"
+        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
+  <text x="468" y="377.5" text-anchor="middle"
+        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.80">INFO</text>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- MAIN CASE BODY (titanium)              -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="228"
+          fill="url(#t_case)" filter="url(#t_shadow)"/>
+  <!-- Bright highlight arc (top-left) -->
+  <circle cx="250" cy="300" r="228" fill="none"
+          stroke="#D0DCE8" stroke-width="1.5" opacity="0.40"/>
+  <!-- Deep shadow arc (bottom-right) -->
+  <circle cx="250" cy="300" r="226" fill="none"
+          stroke="#000000" stroke-width="4" opacity="0.35"
+          stroke-dasharray="718" stroke-dashoffset="539"/>
+  <!-- Subtle brushing texture rings -->
+  <circle cx="250" cy="300" r="220" fill="none"
+          stroke="#A0AEB8" stroke-width="0.5" opacity="0.12"/>
+  <circle cx="250" cy="300" r="216" fill="none"
+          stroke="#A0AEB8" stroke-width="0.5" opacity="0.10"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BEZEL RING                             -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="212" fill="url(#t_ring)"/>
+  <circle cx="250" cy="300" r="212" fill="none"
+          stroke="#1C2830" stroke-width="1.5"/>
+  <!-- Bezel ring inner highlight -->
+  <circle cx="250" cy="300" r="194" fill="none"
+          stroke="#8AA0B0" stroke-width="0.8" opacity="0.30"/>
+
+  <!-- Tick marks — silver/white tone on titanium bezel -->
+  <g transform="rotate(-90, 250, 300)">
+    <!-- Minor ticks -->
+    <circle cx="250" cy="300" r="204" fill="none"
+            stroke="#D0DCE8" stroke-width="3"
+            stroke-dasharray="2 19.36" stroke-dashoffset="-1"
+            opacity="0.40"/>
+    <!-- Major ticks -->
+    <circle cx="250" cy="300" r="204" fill="none"
+            stroke="#E8F0F8" stroke-width="7"
+            stroke-dasharray="5 101.8" stroke-dashoffset="-2.5"
+            opacity="0.85"/>
+  </g>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- INNER BEVEL                            -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="192" fill="url(#t_inner)"/>
+  <circle cx="250" cy="300" r="192" fill="none"
+          stroke="#0C1820" stroke-width="2"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREEN AREA (very dark)                -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="180" fill="url(#t_screen)"/>
+  <!-- Screen accent: narrow cyan ring (Unabara brand) -->
+  <circle cx="250" cy="300" r="181" fill="none"
+          stroke="#3498DB" stroke-width="1.5" opacity="0.50"
+          filter="url(#t_glow)"/>
+  <circle cx="250" cy="300" r="179" fill="none"
+          stroke="#1B4A6A" stroke-width="1"   opacity="0.25"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- 12 O'CLOCK MARKER                      -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Titanium: diamond-shape marker rather than solid triangle -->
+  <polygon points="250,90 245,100 250,110 255,100"
+           fill="#D0DCE8" opacity="0.90"/>
+  <!-- 3 + 9 o'clock equator dots -->
+  <circle cx="210" cy="300" r="3.5" fill="#B0C0CC" opacity="0.55"/>
+  <circle cx="290" cy="300" r="3.5" fill="#B0C0CC" opacity="0.55"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREWS (chrome, 8 positions r=215)     -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- +30°  (358, 114) -->
+  <circle cx="358" cy="114" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="358" cy="114" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="354" y1="114" x2="362" y2="114" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="358" y1="110" x2="358" y2="118" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +60°  (436, 193) -->
+  <circle cx="436" cy="193" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="436" cy="193" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="432" y1="193" x2="440" y2="193" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="436" y1="189" x2="436" y2="197" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +120° (436, 407) -->
+  <circle cx="436" cy="407" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="436" cy="407" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="432" y1="407" x2="440" y2="407" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="436" y1="403" x2="436" y2="411" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +150° (358, 486) -->
+  <circle cx="358" cy="486" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="358" cy="486" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="354" y1="486" x2="362" y2="486" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="358" y1="482" x2="358" y2="490" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +210° (142, 486) -->
+  <circle cx="142" cy="486" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="142" cy="486" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="138" y1="486" x2="146" y2="486" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="142" y1="482" x2="142" y2="490" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +240° (64, 407) -->
+  <circle cx="64" cy="407" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="64" cy="407" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="60" y1="407" x2="68" y2="407" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="64" y1="403" x2="64" y2="411" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +300° (64, 193) -->
+  <circle cx="64" cy="193" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="64" cy="193" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="60" y1="193" x2="68" y2="193" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="64" y1="189" x2="64" y2="197" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- +330° (142, 114) -->
+  <circle cx="142" cy="114" r="9.5" fill="url(#t_screw)"/>
+  <circle cx="142" cy="114" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
+  <line x1="138" y1="114" x2="146" y2="114" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+  <line x1="142" y1="110" x2="142" y2="118" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BRAND TEXT — cyan on titanium bezel   -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <text font-family="'Courier New',Courier,monospace"
+        font-size="14.5" font-weight="bold"
+        fill="#3498DB" letter-spacing="6" opacity="0.88">
+    <textPath href="#t_brand" text-anchor="middle" startOffset="50%">UNABARA</textPath>
+  </text>
+</svg>

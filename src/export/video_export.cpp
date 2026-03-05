@@ -307,8 +307,12 @@ bool VideoExporter::generateFrames(DiveData* dive, OverlayGenerator* generator,
     int totalFrames = qRound((endTime - startTime) * m_frameRate);
     int processedFrames = 0;
     
-    qDebug() << "Generating frames from" << startTime << "to" << endTime 
+    qDebug() << "Generating frames from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
+
+    // Disable cell backgrounds for export
+    bool prevShowCellBg = generator->showCellBackgrounds();
+    generator->setShowCellBackgrounds(false);
     
     // Clear any previous temp files and ensure the temp directory exists
     if (!m_tempDir.isValid()) {
@@ -347,7 +351,10 @@ bool VideoExporter::generateFrames(DiveData* dive, OverlayGenerator* generator,
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
     }
-    
+
+    // Restore cell background setting
+    generator->setShowCellBackgrounds(prevShowCellBg);
+
     return true;
 }
 
@@ -602,7 +609,7 @@ QString VideoExporter::getFormatOptions(const QString &codec)
 QSize VideoExporter::getDefaultOverlaySize()
 {
     // Load the default overlay image and get its dimensions
-    QImage defaultOverlay(":/default_overlay.png");
+    QImage defaultOverlay(":/images/DC_Faces/unabara_round_ocean.png");
     if (!defaultOverlay.isNull()) {
         QSize size = defaultOverlay.size();
         qDebug() << "Using default overlay size:" << size;

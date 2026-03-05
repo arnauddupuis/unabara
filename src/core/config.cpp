@@ -16,7 +16,7 @@ Config* Config::instance()
 Config::Config(QObject *parent)
     : QObject(parent)
     , m_settings("UnabaraProject", "Unabara")
-    , m_font("Arial", 12)
+    , m_font("Bitstream Vera Sans", 12)
     , m_textColor(Qt::white)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
@@ -211,6 +211,24 @@ void Config::setFrameRate(double fps)
     }
 }
 
+QString Config::templateDirectory() const
+{
+    return m_templateDirectory;
+}
+
+void Config::setTemplateDirectory(const QString &path)
+{
+    if (m_templateDirectory != path) {
+        m_templateDirectory = path;
+        // Create the directory if it doesn't exist
+        QDir dir(m_templateDirectory);
+        if (!dir.exists()) {
+            dir.mkpath(".");
+        }
+        emit templateDirectoryChanged();
+    }
+}
+
 // CCR settings implementation
 bool Config::showPO2Cell1() const
 {
@@ -273,10 +291,10 @@ void Config::loadConfig()
                                         QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Unabara").toString();
     
     // Load overlay settings
-    m_templatePath = m_settings.value("overlay/template", ":/default_overlay.png").toString();
+    m_templatePath = m_settings.value("overlay/template", ":/images/DC_Faces/unabara_round_ocean.png").toString();
     
     // Load font
-    QString fontFamily = m_settings.value("overlay/fontFamily", "Arial").toString();
+    QString fontFamily = m_settings.value("overlay/fontFamily", "Bitstream Vera Sans").toString();
     int fontSize = m_settings.value("overlay/fontSize", 12).toInt();
     bool fontBold = m_settings.value("overlay/fontBold", false).toBool();
     bool fontItalic = m_settings.value("overlay/fontItalic", false).toBool();
@@ -311,6 +329,15 @@ void Config::loadConfig()
     int unitSystemValue = m_settings.value("overlay/unitSystem", static_cast<int>(Units::UnitSystem::Metric)).toInt();
     m_unitSystem = static_cast<Units::UnitSystem>(unitSystemValue);
     
+    // Load template directory
+    QString defaultTemplateDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/templates";
+    m_templateDirectory = m_settings.value("paths/templateDirectory", defaultTemplateDir).toString();
+    // Create the directory if it doesn't exist
+    QDir templateDir(m_templateDirectory);
+    if (!templateDir.exists()) {
+        templateDir.mkpath(".");
+    }
+
     // Load export settings
     m_frameRate = m_settings.value("export/frameRate", 10.0).toDouble();
 }
@@ -354,6 +381,9 @@ void Config::saveConfig()
     // Save unit system
     m_settings.setValue("overlay/unitSystem", static_cast<int>(m_unitSystem));
     
+    // Save template directory
+    m_settings.setValue("paths/templateDirectory", m_templateDirectory);
+
     // Save export settings
     m_settings.setValue("export/frameRate", m_frameRate);
     

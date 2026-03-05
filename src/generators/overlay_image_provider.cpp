@@ -26,7 +26,11 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
     }
     
     QImage result;
-    
+
+    // Disable cell backgrounds for preview rendering (they're only for the interactive editor)
+    bool prevShowCellBg = m_generator->showCellBackgrounds();
+    m_generator->setShowCellBackgrounds(false);
+
     if (id.startsWith("preview/")) {
         // For preview images, use the current time
         qDebug() << "OverlayImageProvider: Generating preview at time:" << m_currentTime;
@@ -42,6 +46,9 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
             result = m_generator->generateOverlay(m_currentDive, m_currentTime);
         }
     }
+
+    // Restore cell background setting
+    m_generator->setShowCellBackgrounds(prevShowCellBg);
     
     if (result.isNull()) {
         qWarning() << "OverlayImageProvider: Failed to generate overlay image";

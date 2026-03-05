@@ -323,85 +323,135 @@ Item {
             }
         }
         
-        // Template selection
-        GroupBox {
-            title: qsTr("Template")
-            Layout.fillWidth: true
-            
-            RowLayout {
-                anchors.fill: parent
-                
-                ComboBox {
-                    id: templateSelector
-                    Layout.fillWidth: true
-                    model: ["Default", "Default New", "Default Old"]
-
-                    Component.onCompleted: {
-                        if (generator) {
-                            // Set initial selection based on generator's current template
-                            var currentPath = generator.templatePath
-                            if (currentPath === ":/resources/templates/default_overlay_new.png") {
-                                currentIndex = 1
-                            } else if (currentPath === ":/resources/templates/default_overlay_old.png") {
-                                currentIndex = 2
-                            } else {
-                                currentIndex = 0 // Default
-                            }
-                        }
-                    }
-
-                    onCurrentTextChanged: {
-                        var path
-                        if (currentText === "Default") {
-                            path = ":/default_overlay.png"
-                        } else if (currentText === "Default New") {
-                            path = ":/resources/templates/default_overlay_new.png"
-                        } else if (currentText === "Default Old") {
-                            path = ":/resources/templates/default_overlay_old.png"
-                        }
-                        if (generator && path) {
-                            generator.templatePath = path
-                        }
-                    }
-                }
-                
-                Button {
-                    text: qsTr("Custom...")
-                    onClicked: templateFileDialog.open()
-                }
-            }
-        }
-
-        // Template Save/Load
+        // Template Management
         GroupBox {
             title: qsTr("Template Management")
             Layout.fillWidth: true
 
-            RowLayout {
+            GridLayout {
                 anchors.fill: parent
-                spacing: 10
+                columns: 2
 
-                Button {
-                    text: qsTr("Save Template...")
+                // Background Image
+                Label { text: qsTr("Background Image:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "document-save"
-                    onClicked: saveTemplateDialog.open()
+
+                    Label {
+                        id: bgImageLabel
+                        Layout.fillWidth: true
+                        text: {
+                            if (!generator || !generator.templatePath) return qsTr("None")
+                            var path = generator.templatePath
+                            // Extract filename from path
+                            var parts = path.split("/")
+                            return parts[parts.length - 1]
+                        }
+                        elide: Text.ElideMiddle
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: backgroundImageDialog.open()
+                    }
                 }
 
-                Button {
-                    text: qsTr("Load Template...")
+                // Template selector
+                Label { text: qsTr("Template:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "document-open"
-                    onClicked: loadTemplateDialog.open()
+
+                    ComboBox {
+                        id: templateSelector
+                        Layout.fillWidth: true
+                        model: root.generator ? root.generator.getAvailableTemplates() : []
+
+                        onActivated: function(index) {
+                            if (root.generator) {
+                                var path = root.generator.getTemplatePath(index)
+                                if (path) {
+                                    root.generator.loadTemplateFromFile(path)
+                                    if (root.dive && root.timeline) {
+                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                Button {
-                    text: qsTr("Reset Layout")
+                // Template directory
+                Label { text: qsTr("Template Directory:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "edit-undo"
-                    onClicked: {
-                        if (root.generator && root.dive) {
-                            root.generator.initializeDefaultCellLayout(root.dive)
+
+                    TextField {
+                        id: templateDirField
+                        Layout.fillWidth: true
+                        text: config ? config.templateDirectory : ""
+                        readOnly: true
+                    }
+
+                    Button {
+                        text: qsTr("Browse...")
+                        onClicked: templateDirDialog.open()
+                    }
+                }
+
+                // Background Opacity
+                Label { text: qsTr("Background Opacity:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Slider {
+                        id: opacitySlider
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.01
+                        value: generator ? generator.backgroundOpacity : 1.0
+
+                        onValueChanged: {
+                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
+                                generator.backgroundOpacity = value
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(opacitySlider.value * 100) + "%"
+                        Layout.preferredWidth: 40
+                    }
+                }
+
+                // Action buttons
+                RowLayout {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        text: qsTr("Save Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-save"
+                        onClicked: saveTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Load Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-open"
+                        onClicked: loadTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Reset Layout")
+                        Layout.fillWidth: true
+                        icon.name: "edit-undo"
+                        onClicked: {
+                            if (root.generator && root.dive) {
+                                root.generator.initializeDefaultCellLayout(root.dive)
+                            }
                         }
                     }
                 }
@@ -570,32 +620,6 @@ Item {
                     }
                 }
 
-                Label { text: qsTr("Background Opacity:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Slider {
-                        id: opacitySlider
-                        Layout.fillWidth: true
-                        from: 0.0
-                        to: 1.0
-                        stepSize: 0.01
-                        value: generator ? generator.backgroundOpacity : 1.0
-
-                        onValueChanged: {
-                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
-                                generator.backgroundOpacity = value
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: Math.round(opacitySlider.value * 100) + "%"
-                        Layout.preferredWidth: 40
-                    }
-                }
-                // No reset button for opacity - it's a global property
-                Item { Layout.preferredWidth: 40 }
             }
         }
         
@@ -753,21 +777,29 @@ Item {
     
     // Dialogs
     FileDialog {
-        id: templateFileDialog
-        title: qsTr("Select Template Image")
+        id: backgroundImageDialog
+        title: qsTr("Select Background Image")
         nameFilters: ["Image files (*.png *.jpg *.jpeg)"]
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 generator.templatePath = localPath
+            }
+        }
+    }
+
+    FolderDialog {
+        id: templateDirDialog
+        title: qsTr("Select Template Directory")
+        onAccepted: {
+            if (config) {
+                var localPath = mainWindow.urlToLocalFile(selectedFolder.toString())
+
+                config.templateDirectory = localPath
+                if (generator) {
+                    generator.refreshTemplateList()
+                    templateSelector.model = generator.getAvailableTemplates()
+                }
             }
         }
     }
@@ -797,15 +829,7 @@ Item {
         defaultSuffix: "utp"
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 console.log("Saving template to:", localPath)
                 var success = generator.saveTemplateToFile(localPath)
                 if (success) {
@@ -824,15 +848,7 @@ Item {
         nameFilters: ["Unabara Template (*.utp)", "All Files (*)"]
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 console.log("Loading template from:", localPath)
                 var success = generator.loadTemplateFromFile(localPath)
                 if (success) {

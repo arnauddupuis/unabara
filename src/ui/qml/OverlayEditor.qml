@@ -834,6 +834,13 @@ Item {
                 var success = generator.saveTemplateToFile(localPath)
                 if (success) {
                     console.log("Template saved successfully!")
+                    // Refresh ComboBox and select the saved template
+                    generator.refreshTemplateList()
+                    var idx = generator.indexOfTemplatePath(localPath)
+                    templateSelector.model = generator.getAvailableTemplates()
+                    if (idx >= 0) {
+                        templateSelector.currentIndex = idx
+                    }
                 } else {
                     console.error("Failed to save template")
                 }
@@ -856,6 +863,13 @@ Item {
                     // Update cell model to reflect loaded template
                     if (root.timeline && root.dive) {
                         cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                    }
+                    // Refresh ComboBox and select the loaded template
+                    generator.refreshTemplateList()
+                    var idx = generator.indexOfTemplatePath(localPath)
+                    templateSelector.model = generator.getAvailableTemplates()
+                    if (idx >= 0) {
+                        templateSelector.currentIndex = idx
                     }
                 } else {
                     console.error("Failed to load template")

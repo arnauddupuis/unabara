@@ -278,7 +278,9 @@ void OverlayGenerator::setShowCellBackgrounds(bool show)
 
 QStringList OverlayGenerator::getAvailableTemplates()
 {
-    refreshTemplateList();
+    if (m_templateNames.isEmpty()) {
+        refreshTemplateList();
+    }
     return m_templateNames;
 }
 
@@ -288,6 +290,34 @@ QString OverlayGenerator::getTemplatePath(int index)
         return m_templatePaths.at(index);
     }
     return QString();
+}
+
+int OverlayGenerator::indexOfTemplatePath(const QString& filePath)
+{
+    // Try exact match first
+    int idx = m_templatePaths.indexOf(filePath);
+    if (idx >= 0) return idx;
+
+    // Try canonical path match
+    QString canonical = QFileInfo(filePath).canonicalFilePath();
+    for (int i = 0; i < m_templatePaths.size(); ++i) {
+        if (QFileInfo(m_templatePaths[i]).canonicalFilePath() == canonical)
+            return i;
+    }
+
+    // Not found — read template name from file and append to lists
+    QString displayName = QFileInfo(filePath).baseName().replace('_', ' ');
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isObject()) {
+            QString name = doc.object().value("templateName").toString();
+            if (!name.isEmpty()) displayName = name;
+        }
+    }
+    m_templateNames.append(displayName);
+    m_templatePaths.append(filePath);
+    return m_templateNames.size() - 1;
 }
 
 void OverlayGenerator::refreshTemplateList()

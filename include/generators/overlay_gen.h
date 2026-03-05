@@ -131,6 +131,7 @@ public:
     // Template listing
     Q_INVOKABLE QStringList getAvailableTemplates();
     Q_INVOKABLE QString getTemplatePath(int index);
+    Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
     Q_INVOKABLE void refreshTemplateList();
 
     // Generate overlay for a specific time point

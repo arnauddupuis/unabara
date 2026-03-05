@@ -225,6 +225,7 @@ void Config::setTemplateDirectory(const QString &path)
         if (!dir.exists()) {
             dir.mkpath(".");
         }
+        saveConfig();
         emit templateDirectoryChanged();
     }
 }

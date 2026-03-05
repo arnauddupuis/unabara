@@ -230,6 +230,21 @@ void Config::setTemplateDirectory(const QString &path)
     }
 }
 
+// Active template path
+QString Config::activeTemplatePath() const
+{
+    return m_activeTemplatePath;
+}
+
+void Config::setActiveTemplatePath(const QString &path)
+{
+    if (m_activeTemplatePath != path) {
+        m_activeTemplatePath = path;
+        saveConfig();
+        emit activeTemplatePathChanged();
+    }
+}
+
 // CCR settings implementation
 bool Config::showPO2Cell1() const
 {
@@ -339,6 +354,9 @@ void Config::loadConfig()
         templateDir.mkpath(".");
     }
 
+    // Load active template path
+    m_activeTemplatePath = m_settings.value("overlay/activeTemplate", "").toString();
+
     // Load export settings
     m_frameRate = m_settings.value("export/frameRate", 10.0).toDouble();
 }
@@ -384,6 +402,9 @@ void Config::saveConfig()
     
     // Save template directory
     m_settings.setValue("paths/templateDirectory", m_templateDirectory);
+
+    // Save active template path
+    m_settings.setValue("overlay/activeTemplate", m_activeTemplatePath);
 
     // Save export settings
     m_settings.setValue("export/frameRate", m_frameRate);

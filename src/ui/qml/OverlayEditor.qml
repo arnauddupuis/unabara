@@ -234,8 +234,9 @@ Item {
 
                 function onGeneratorChanged() { previewContainer.updateCellModel() }
                 function onDiveChanged() {
-                    // Regenerate cells when dive changes to handle multi-tank layout
-                    if (root.generator && root.dive) {
+                    // Only initialize default layout if no cells exist yet
+                    // (don't wipe a loaded template)
+                    if (root.generator && root.dive && root.generator.cellCount() === 0) {
                         root.generator.initializeDefaultCellLayout(root.dive)
                     }
                     previewContainer.updateCellModel()
@@ -263,51 +264,42 @@ Item {
                     previewContainer.updateCellModel()
                 }
 
-                // Regenerate cells when display options change
+                // Toggle cell visibility without destroying the layout
                 function onShowDepthChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("depth", root.generator.showDepth)
+                    previewContainer.updateCellModel()
                 }
                 function onShowTemperatureChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("temperature", root.generator.showTemperature)
+                    previewContainer.updateCellModel()
                 }
                 function onShowNDLChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("ndl", root.generator.showNDL)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPressureChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("pressure", root.generator.showPressure)
+                    previewContainer.updateCellModel()
                 }
                 function onShowTimeChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("time", root.generator.showTime)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell1Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell1", root.generator.showPO2Cell1)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell2Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell2", root.generator.showPO2Cell2)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell3Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell3", root.generator.showPO2Cell3)
+                    previewContainer.updateCellModel()
                 }
                 function onShowCompositePO2Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("composite_po2", root.generator.showCompositePO2)
+                    previewContainer.updateCellModel()
                 }
             }
 
@@ -365,6 +357,15 @@ Item {
                         id: templateSelector
                         Layout.fillWidth: true
                         model: root.generator ? root.generator.getAvailableTemplates() : []
+
+                        Component.onCompleted: {
+                            if (config && config.activeTemplatePath && root.generator) {
+                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
+                                if (idx >= 0) {
+                                    currentIndex = idx
+                                }
+                            }
+                        }
 
                         onActivated: function(index) {
                             if (root.generator) {

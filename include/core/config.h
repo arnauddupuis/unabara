@@ -37,6 +37,9 @@ class Config : public QObject
     // Template directory
     Q_PROPERTY(QString templateDirectory READ templateDirectory WRITE setTemplateDirectory NOTIFY templateDirectoryChanged)
 
+    // Active template (.utp file path)
+    Q_PROPERTY(QString activeTemplatePath READ activeTemplatePath WRITE setActiveTemplatePath NOTIFY activeTemplatePathChanged)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     
@@ -98,6 +101,10 @@ public:
     QString templateDirectory() const;
     void setTemplateDirectory(const QString &path);
 
+    // Active template
+    QString activeTemplatePath() const;
+    void setActiveTemplatePath(const QString &path);
+
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -120,6 +127,7 @@ signals:
     void unitSystemChanged();
     void frameRateChanged();
     void templateDirectoryChanged();
+    void activeTemplatePathChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -152,6 +160,7 @@ private:
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
     QString m_templateDirectory;
+    QString m_activeTemplatePath;
     
     // CCR settings
     bool m_showPO2Cell1;

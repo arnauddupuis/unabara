@@ -3,6 +3,7 @@
 #include <QFontMetrics>
 #include <QDateTime>
 #include <QDebug>
+#include <QFile>
 #include <QFileInfo>
 #include <QDir>
 #include <QJsonDocument>
@@ -56,6 +57,18 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
 
     // Initialize default cell layout
     initializeDefaultCellLayout();
+
+    // Load previously active template, or first bundled template on first run
+    QString activeTemplate = config->activeTemplatePath();
+    if (!activeTemplate.isEmpty() && QFile::exists(activeTemplate)) {
+        loadTemplateFromFile(activeTemplate);
+    } else {
+        // First run: load first available bundled template
+        refreshTemplateList();
+        if (!m_templatePaths.isEmpty()) {
+            loadTemplateFromFile(m_templatePaths.first());
+        }
+    }
 }
 
 void OverlayGenerator::setTemplatePath(const QString &path)
@@ -545,6 +558,7 @@ bool OverlayGenerator::saveTemplateToFile(const QString& filePath)
 
     if (success) {
         qDebug() << "Template saved successfully";
+        Config::instance()->setActiveTemplatePath(filePath);
         emit templateSaved(filePath);
     } else {
         qWarning() << "Failed to save template";
@@ -576,6 +590,7 @@ bool OverlayGenerator::loadTemplateFromFile(const QString& filePath)
     qDebug() << "  Name:" << templ.templateName();
     qDebug() << "  Cells:" << templ.cellCount();
 
+    Config::instance()->setActiveTemplatePath(filePath);
     emit templateLoaded(filePath);
     return true;
 }

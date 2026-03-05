@@ -1,0 +1,196 @@
+{
+    "backgroundImage": "qrc:/images/DC_Faces/unabara_rect_rugged.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 111
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.17543859649122806,
+                "y": 0.5729166666666666
+            },
+            "textColor": "#ff19b9fb",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 110
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5701754385964912,
+                "y": 0.5729166666666666
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 15,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.4605263157894737,
+                "y": 0.20833333333333334
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 94
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.17543859649122806,
+                "y": 0.20833333333333334
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 133
+            },
+            "cellId": "po2_cell1",
+            "cellType": "PO2Cell1",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 16,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.19736842105263158,
+                "y": 0.4296875
+            },
+            "textColor": "#ff04fb10",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 133
+            },
+            "cellId": "po2_cell2",
+            "cellType": "PO2Cell2",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 16,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.39473684210526316,
+                "y": 0.4296875
+            },
+            "textColor": "#ff04fb10",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 133
+            },
+            "cellId": "po2_cell3",
+            "cellType": "PO2Cell3",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 16,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5701754385964912,
+                "y": 0.4296875
+            },
+            "textColor": "#ff04fb10",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 133
+            },
+            "cellId": "composite_po2",
+            "cellType": "CompositePO2",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 16,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.4166666666666667,
+                "y": 0.5859375
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Bitstream Vera Sans",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "CCR_Tek_Rugged",
+    "version": "1.0"
+}

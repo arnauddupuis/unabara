@@ -1,0 +1,105 @@
+{
+    "backgroundImage": "qrc:/images/DC_Faces/unabara_round_ocean.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 70,
+                "width": 170
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": true,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 30,
+                "weight": 700
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.35,
+                "y": 0.22916666666666666
+            },
+            "textColor": "#ff3498db",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 130
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 25,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.325,
+                "y": 0.43216777365873754
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 130
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 21,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5375,
+                "y": 0.59375
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 140
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.2625,
+                "y": 0.59375
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Arial",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "OC_Rec_NoTanks_Ocean",
+    "version": "1.0"
+}

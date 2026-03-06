@@ -1,0 +1,187 @@
+{
+    "backgroundImage": "qrc:/images/DC_Faces/unabara_rect_wrist.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 111
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Bitstream Vera Sans",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.1875,
+                "y": 0.3024193548387097
+            },
+            "textColor": "#ff0e2efc",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 110
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "hasCustomColor": true,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.65,
+                "y": 0.5040322580645161
+            },
+            "textColor": "#ffb705a9",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.47500000000000003,
+                "y": 0.3024193548387097
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_0",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.1875,
+                "y": 0.5040322580645161
+            },
+            "tankIndex": 0,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_1",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.4,
+                "y": 0.5040322580645161
+            },
+            "tankIndex": 1,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_2",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 12,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.1875,
+                "y": 0.6149193548387097
+            },
+            "tankIndex": 2,
+            "textColor": "#ff03fa47",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_3",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 12,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.4,
+                "y": 0.6149193548387097
+            },
+            "tankIndex": 3,
+            "textColor": "#ff27b1fd",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 94
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Arial",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5875,
+                "y": 0.6149193548387097
+            },
+            "textColor": "#fffbc30d",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Arial",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "OC_Tek_All_Data_AllTanks",
+    "version": "1.0"
+}

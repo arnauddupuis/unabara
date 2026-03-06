@@ -42,8 +42,8 @@
             "hasCustomColor": false,
             "hasCustomFont": true,
             "position": {
-                "x": 0.325,
-                "y": 0.43216777365873754
+                "x": 0.3125,
+                "y": 0.4166666666666667
             },
             "visible": true
         },

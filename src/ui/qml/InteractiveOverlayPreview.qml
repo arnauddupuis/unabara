@@ -198,6 +198,9 @@ Item {
                 } else if (path.startsWith("file://") || path.startsWith("qrc:/")) {
                     // Already properly prefixed - use as-is
                     path = path
+                } else if (path.length >= 2 && path[1] === ':') {
+                    // Windows drive letter path (e.g., "Z:/file.png" or "C:\file.png")
+                    path = "file:///" + path
                 }
 
                 console.log("InteractiveOverlayPreview: Final image source:", path)

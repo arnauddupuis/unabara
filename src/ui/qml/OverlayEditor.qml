@@ -38,29 +38,25 @@ Item {
         return null
     }
 
-    // Get the effective font (selected cell or global)
+    // Get the effective font (selected cell or global) - reads unscaled font from generator
     function getCurrentFont() {
         if (!generator) return Qt.font({family: "Arial", pointSize: 12})
 
         if (hasSelection && selectedCellId) {
-            var cellFont = getCellProperty(selectedCellId, "cellFont")
-            if (cellFont) return cellFont
+            return generator.getCellFont(selectedCellId)
         }
 
-        // Return global font
         return generator.font
     }
 
-    // Get the effective color (selected cell or global)
+    // Get the effective color (selected cell or global) - reads from generator
     function getCurrentColor() {
         if (!generator) return "white"
 
         if (hasSelection && selectedCellId) {
-            var cellColor = getCellProperty(selectedCellId, "cellTextColor")
-            if (cellColor) return cellColor
+            return generator.getCellColor(selectedCellId)
         }
 
-        // Return global color
         return generator.textColor
     }
 

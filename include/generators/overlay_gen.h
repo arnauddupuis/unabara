@@ -113,6 +113,8 @@ public:
     QVector<Unabara::CellData> cells() const { return m_cells; }
     Q_INVOKABLE int cellCount() const { return m_cells.size(); }
     Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
+    Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
+    Q_INVOKABLE QColor getCellColor(const QString& cellId) const;
     Q_INVOKABLE void setCellFont(const QString& cellId, const QFont& font);
     Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);

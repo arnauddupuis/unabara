@@ -442,6 +442,24 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
     }
 }
 
+QFont OverlayGenerator::getCellFont(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomFont()) {
+        return cell->font();
+    }
+    return m_font;
+}
+
+QColor OverlayGenerator::getCellColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomColor()) {
+        return cell->textColor();
+    }
+    return m_textColor;
+}
+
 void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
 {
     Unabara::CellData* cell = getCellData(cellId);

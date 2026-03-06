@@ -370,7 +370,19 @@ Item {
                         cellId: model.cellId
                         cellType: model.cellType
                         cellVisible: model.visible
-                        cellFont: model.font
+                        cellFont: {
+                            var scaleX = root.generator && root.generator.templateWidth > 0
+                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var f = model.font
+                            // 1.8 matches the C++ getScaledFontSize scale factor in renderCellBasedOverlay
+                            var scaledSize = f.pointSize * 1.8 * scaleX
+                            return Qt.font({
+                                family: f.family,
+                                pointSize: Math.max(1, Math.round(scaledSize)),
+                                bold: f.bold,
+                                italic: f.italic
+                            })
+                        }
                         cellTextColor: model.textColor
                         displayText: model.displayText
                         // Scale pixel size to current container size

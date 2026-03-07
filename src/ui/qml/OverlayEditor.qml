@@ -38,29 +38,25 @@ Item {
         return null
     }
 
-    // Get the effective font (selected cell or global)
+    // Get the effective font (selected cell or global) - reads unscaled font from generator
     function getCurrentFont() {
         if (!generator) return Qt.font({family: "Arial", pointSize: 12})
 
         if (hasSelection && selectedCellId) {
-            var cellFont = getCellProperty(selectedCellId, "cellFont")
-            if (cellFont) return cellFont
+            return generator.getCellFont(selectedCellId)
         }
 
-        // Return global font
         return generator.font
     }
 
-    // Get the effective color (selected cell or global)
+    // Get the effective color (selected cell or global) - reads from generator
     function getCurrentColor() {
         if (!generator) return "white"
 
         if (hasSelection && selectedCellId) {
-            var cellColor = getCellProperty(selectedCellId, "cellTextColor")
-            if (cellColor) return cellColor
+            return generator.getCellColor(selectedCellId)
         }
 
-        // Return global color
         return generator.textColor
     }
 
@@ -234,8 +230,9 @@ Item {
 
                 function onGeneratorChanged() { previewContainer.updateCellModel() }
                 function onDiveChanged() {
-                    // Regenerate cells when dive changes to handle multi-tank layout
-                    if (root.generator && root.dive) {
+                    // Only initialize default layout if no cells exist yet
+                    // (don't wipe a loaded template)
+                    if (root.generator && root.dive && root.generator.cellCount() === 0) {
                         root.generator.initializeDefaultCellLayout(root.dive)
                     }
                     previewContainer.updateCellModel()
@@ -263,51 +260,42 @@ Item {
                     previewContainer.updateCellModel()
                 }
 
-                // Regenerate cells when display options change
+                // Toggle cell visibility without destroying the layout
                 function onShowDepthChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("depth", root.generator.showDepth)
+                    previewContainer.updateCellModel()
                 }
                 function onShowTemperatureChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("temperature", root.generator.showTemperature)
+                    previewContainer.updateCellModel()
                 }
                 function onShowNDLChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("ndl", root.generator.showNDL)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPressureChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("pressure", root.generator.showPressure)
+                    previewContainer.updateCellModel()
                 }
                 function onShowTimeChanged() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("time", root.generator.showTime)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell1Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell1", root.generator.showPO2Cell1)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell2Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell2", root.generator.showPO2Cell2)
+                    previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell3Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("po2_cell3", root.generator.showPO2Cell3)
+                    previewContainer.updateCellModel()
                 }
                 function onShowCompositePO2Changed() {
-                    if (root.dive) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
+                    root.generator.setCellVisible("composite_po2", root.generator.showCompositePO2)
+                    previewContainer.updateCellModel()
                 }
             }
 
@@ -323,85 +311,144 @@ Item {
             }
         }
         
-        // Template selection
-        GroupBox {
-            title: qsTr("Template")
-            Layout.fillWidth: true
-            
-            RowLayout {
-                anchors.fill: parent
-                
-                ComboBox {
-                    id: templateSelector
-                    Layout.fillWidth: true
-                    model: ["Default", "Default New", "Default Old"]
-
-                    Component.onCompleted: {
-                        if (generator) {
-                            // Set initial selection based on generator's current template
-                            var currentPath = generator.templatePath
-                            if (currentPath === ":/resources/templates/default_overlay_new.png") {
-                                currentIndex = 1
-                            } else if (currentPath === ":/resources/templates/default_overlay_old.png") {
-                                currentIndex = 2
-                            } else {
-                                currentIndex = 0 // Default
-                            }
-                        }
-                    }
-
-                    onCurrentTextChanged: {
-                        var path
-                        if (currentText === "Default") {
-                            path = ":/default_overlay.png"
-                        } else if (currentText === "Default New") {
-                            path = ":/resources/templates/default_overlay_new.png"
-                        } else if (currentText === "Default Old") {
-                            path = ":/resources/templates/default_overlay_old.png"
-                        }
-                        if (generator && path) {
-                            generator.templatePath = path
-                        }
-                    }
-                }
-                
-                Button {
-                    text: qsTr("Custom...")
-                    onClicked: templateFileDialog.open()
-                }
-            }
-        }
-
-        // Template Save/Load
+        // Template Management
         GroupBox {
             title: qsTr("Template Management")
             Layout.fillWidth: true
 
-            RowLayout {
+            GridLayout {
                 anchors.fill: parent
-                spacing: 10
+                columns: 2
 
-                Button {
-                    text: qsTr("Save Template...")
+                // Background Image
+                Label { text: qsTr("Background Image:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "document-save"
-                    onClicked: saveTemplateDialog.open()
+
+                    Label {
+                        id: bgImageLabel
+                        Layout.fillWidth: true
+                        text: {
+                            if (!generator || !generator.templatePath) return qsTr("None")
+                            var path = generator.templatePath
+                            // Extract filename from path
+                            var parts = path.split("/")
+                            return parts[parts.length - 1]
+                        }
+                        elide: Text.ElideMiddle
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: backgroundImageDialog.open()
+                    }
                 }
 
-                Button {
-                    text: qsTr("Load Template...")
+                // Template selector
+                Label { text: qsTr("Template:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "document-open"
-                    onClicked: loadTemplateDialog.open()
+
+                    ComboBox {
+                        id: templateSelector
+                        Layout.fillWidth: true
+                        model: root.generator ? root.generator.getAvailableTemplates() : []
+
+                        Component.onCompleted: {
+                            if (config && config.activeTemplatePath && root.generator) {
+                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
+                                if (idx >= 0) {
+                                    currentIndex = idx
+                                }
+                            }
+                        }
+
+                        onActivated: function(index) {
+                            if (root.generator) {
+                                var path = root.generator.getTemplatePath(index)
+                                if (path) {
+                                    root.generator.loadTemplateFromFile(path)
+                                    if (root.dive && root.timeline) {
+                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                Button {
-                    text: qsTr("Reset Layout")
+                // Template directory
+                Label { text: qsTr("Template Directory:") }
+                RowLayout {
                     Layout.fillWidth: true
-                    icon.name: "edit-undo"
-                    onClicked: {
-                        if (root.generator && root.dive) {
-                            root.generator.initializeDefaultCellLayout(root.dive)
+
+                    TextField {
+                        id: templateDirField
+                        Layout.fillWidth: true
+                        text: config ? config.templateDirectory : ""
+                        readOnly: true
+                    }
+
+                    Button {
+                        text: qsTr("Browse...")
+                        onClicked: templateDirDialog.open()
+                    }
+                }
+
+                // Background Opacity
+                Label { text: qsTr("Background Opacity:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Slider {
+                        id: opacitySlider
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.01
+                        value: generator ? generator.backgroundOpacity : 1.0
+
+                        onValueChanged: {
+                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
+                                generator.backgroundOpacity = value
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(opacitySlider.value * 100) + "%"
+                        Layout.preferredWidth: 40
+                    }
+                }
+
+                // Action buttons
+                RowLayout {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        text: qsTr("Save Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-save"
+                        onClicked: saveTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Load Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-open"
+                        onClicked: loadTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Reset Layout")
+                        Layout.fillWidth: true
+                        icon.name: "edit-undo"
+                        onClicked: {
+                            if (root.generator && root.dive) {
+                                root.generator.initializeDefaultCellLayout(root.dive)
+                            }
                         }
                     }
                 }
@@ -570,32 +617,6 @@ Item {
                     }
                 }
 
-                Label { text: qsTr("Background Opacity:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Slider {
-                        id: opacitySlider
-                        Layout.fillWidth: true
-                        from: 0.0
-                        to: 1.0
-                        stepSize: 0.01
-                        value: generator ? generator.backgroundOpacity : 1.0
-
-                        onValueChanged: {
-                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
-                                generator.backgroundOpacity = value
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: Math.round(opacitySlider.value * 100) + "%"
-                        Layout.preferredWidth: 40
-                    }
-                }
-                // No reset button for opacity - it's a global property
-                Item { Layout.preferredWidth: 40 }
             }
         }
         
@@ -753,21 +774,29 @@ Item {
     
     // Dialogs
     FileDialog {
-        id: templateFileDialog
-        title: qsTr("Select Template Image")
+        id: backgroundImageDialog
+        title: qsTr("Select Background Image")
         nameFilters: ["Image files (*.png *.jpg *.jpeg)"]
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 generator.templatePath = localPath
+            }
+        }
+    }
+
+    FolderDialog {
+        id: templateDirDialog
+        title: qsTr("Select Template Directory")
+        onAccepted: {
+            if (config) {
+                var localPath = mainWindow.urlToLocalFile(selectedFolder.toString())
+
+                config.templateDirectory = localPath
+                if (generator) {
+                    generator.refreshTemplateList()
+                    templateSelector.model = generator.getAvailableTemplates()
+                }
             }
         }
     }
@@ -797,19 +826,18 @@ Item {
         defaultSuffix: "utp"
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 console.log("Saving template to:", localPath)
                 var success = generator.saveTemplateToFile(localPath)
                 if (success) {
                     console.log("Template saved successfully!")
+                    // Refresh ComboBox and select the saved template
+                    generator.refreshTemplateList()
+                    var idx = generator.indexOfTemplatePath(localPath)
+                    templateSelector.model = generator.getAvailableTemplates()
+                    if (idx >= 0) {
+                        templateSelector.currentIndex = idx
+                    }
                 } else {
                     console.error("Failed to save template")
                 }
@@ -824,15 +852,7 @@ Item {
         nameFilters: ["Unabara Template (*.utp)", "All Files (*)"]
         onAccepted: {
             if (generator) {
-                // Convert file URL to local path
-                var rootWindow = root
-                while (rootWindow.parent) {
-                    rootWindow = rootWindow.parent
-                }
-                var localPath = rootWindow.urlToLocalFile ?
-                    rootWindow.urlToLocalFile(selectedFile.toString()) :
-                    selectedFile.toString().replace("file://", "")
-
+                var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 console.log("Loading template from:", localPath)
                 var success = generator.loadTemplateFromFile(localPath)
                 if (success) {
@@ -840,6 +860,13 @@ Item {
                     // Update cell model to reflect loaded template
                     if (root.timeline && root.dive) {
                         cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                    }
+                    // Refresh ComboBox and select the loaded template
+                    generator.refreshTemplateList()
+                    var idx = generator.indexOfTemplatePath(localPath)
+                    templateSelector.model = generator.getAvailableTemplates()
+                    if (idx >= 0) {
+                        templateSelector.currentIndex = idx
                     }
                 } else {
                     console.error("Failed to load template")

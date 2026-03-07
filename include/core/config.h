@@ -34,6 +34,12 @@ class Config : public QObject
     Q_PROPERTY(bool showPO2Cell3 READ showPO2Cell3 WRITE setShowPO2Cell3 NOTIFY showPO2Cell3Changed)
     Q_PROPERTY(bool showCompositePO2 READ showCompositePO2 WRITE setShowCompositePO2 NOTIFY showCompositePO2Changed)
     
+    // Template directory
+    Q_PROPERTY(QString templateDirectory READ templateDirectory WRITE setTemplateDirectory NOTIFY templateDirectoryChanged)
+
+    // Active template (.utp file path)
+    Q_PROPERTY(QString activeTemplatePath READ activeTemplatePath WRITE setActiveTemplatePath NOTIFY activeTemplatePathChanged)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     
@@ -91,6 +97,14 @@ public:
     bool showCompositePO2() const;
     void setShowCompositePO2(bool show);
     
+    // Template directory
+    QString templateDirectory() const;
+    void setTemplateDirectory(const QString &path);
+
+    // Active template
+    QString activeTemplatePath() const;
+    void setActiveTemplatePath(const QString &path);
+
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -112,7 +126,9 @@ signals:
     void showTimeChanged();
     void unitSystemChanged();
     void frameRateChanged();
-    
+    void templateDirectoryChanged();
+    void activeTemplatePathChanged();
+
     // CCR signals
     void showPO2Cell1Changed();
     void showPO2Cell2Changed();
@@ -143,6 +159,8 @@ private:
     bool m_showTime;
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
+    QString m_templateDirectory;
+    QString m_activeTemplatePath;
     
     // CCR settings
     bool m_showPO2Cell1;

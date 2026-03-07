@@ -76,7 +76,11 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
     
     // Notify that export has started
     emit exportStarted();
-    
+
+    // Disable cell backgrounds for export
+    bool prevShowCellBg = generator->showCellBackgrounds();
+    generator->setShowCellBackgrounds(false);
+
     // Calculate the number of frames to generate
     double timeStep = 1.0 / m_frameRate;
     int totalFrames = qRound((endTime - startTime) * m_frameRate);
@@ -117,14 +121,17 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
         QCoreApplication::processEvents();
     }
     
+    // Restore cell background setting
+    generator->setShowCellBackgrounds(prevShowCellBg);
+
     // Export completed successfully
     m_progress = 100;
     emit progressChanged();
-    
+
     m_busy = false;
     emit busyChanged();
     emit exportFinished(true, m_exportPath);
-    
+
     return true;
 }
 

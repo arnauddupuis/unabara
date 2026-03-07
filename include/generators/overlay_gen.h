@@ -38,6 +38,9 @@ class OverlayGenerator : public QObject
     // Cell selection for per-cell editing
     Q_PROPERTY(QString selectedCellId READ selectedCellId WRITE setSelectedCellId NOTIFY selectedCellIdChanged)
 
+    // Cell background visibility (editor only, not for export/preview)
+    Q_PROPERTY(bool showCellBackgrounds READ showCellBackgrounds WRITE setShowCellBackgrounds NOTIFY showCellBackgroundsChanged)
+
     // Snap-to-grid settings
     Q_PROPERTY(bool snapToGrid READ snapToGrid WRITE setSnapToGrid NOTIFY snapToGridChanged)
     Q_PROPERTY(int gridSpacing READ gridSpacing WRITE setGridSpacing NOTIFY gridSpacingChanged)
@@ -68,6 +71,9 @@ public:
     // Cell selection getter
     QString selectedCellId() const { return m_selectedCellId; }
 
+    // Cell background visibility
+    bool showCellBackgrounds() const { return m_showCellBackgrounds; }
+
     // Snap-to-grid getters
     bool snapToGrid() const { return m_snapToGrid; }
     int gridSpacing() const { return m_gridSpacing; }
@@ -93,6 +99,9 @@ public:
     // Cell selection setter
     void setSelectedCellId(const QString& cellId);
 
+    // Cell background visibility setter
+    void setShowCellBackgrounds(bool show);
+
     // Snap-to-grid setters
     void setSnapToGrid(bool enabled);
     void setGridSpacing(int spacing);
@@ -102,7 +111,10 @@ public:
     Unabara::CellData* getCellData(const QString& cellId);
     const Unabara::CellData* getCellData(const QString& cellId) const;
     QVector<Unabara::CellData> cells() const { return m_cells; }
+    Q_INVOKABLE int cellCount() const { return m_cells.size(); }
     Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
+    Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
+    Q_INVOKABLE QColor getCellColor(const QString& cellId) const;
     Q_INVOKABLE void setCellFont(const QString& cellId, const QFont& font);
     Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
@@ -118,6 +130,12 @@ public:
     Q_INVOKABLE bool loadTemplateFromFile(const QString& filePath);
     Q_INVOKABLE void initializeDefaultCellLayout(DiveData* dive = nullptr);
     Q_INVOKABLE void migrateLegacySettings();
+
+    // Template listing
+    Q_INVOKABLE QStringList getAvailableTemplates();
+    Q_INVOKABLE QString getTemplatePath(int index);
+    Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
+    Q_INVOKABLE void refreshTemplateList();
 
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);
@@ -153,6 +171,9 @@ signals:
     void templateSaved(const QString& filePath);
     void templateLoaded(const QString& filePath);
 
+    // Cell background signal
+    void showCellBackgroundsChanged();
+
     // Snap-to-grid signals
     void snapToGridChanged();
     void gridSpacingChanged();
@@ -183,6 +204,13 @@ private:
 
     // Cell selection
     QString m_selectedCellId;
+
+    // Cell background visibility
+    bool m_showCellBackgrounds;
+
+    // Template listing cache
+    QStringList m_templateNames;
+    QStringList m_templatePaths;
 
     // Snap-to-grid settings
     bool m_snapToGrid;

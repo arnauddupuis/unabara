@@ -3,14 +3,18 @@
 #include <QFontMetrics>
 #include <QDateTime>
 #include <QDebug>
+#include <QFile>
 #include <QFileInfo>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 OverlayGenerator::OverlayGenerator(QObject *parent)
     : QObject(parent)
-    , m_templatePath(":/default_overlay.png")
+    , m_templatePath(":/images/DC_Faces/unabara_round_ocean.png")
     , m_templateWidth(640)
     , m_templateHeight(120)
-    , m_font(QFont("Arial", 12))
+    , m_font(QFont("Bitstream Vera Sans", 12))
     , m_textColor(Qt::white)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
@@ -23,7 +27,8 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
     , m_useCellBasedLayout(false)
-    , m_snapToGrid(false)
+    , m_showCellBackgrounds(true)
+    , m_snapToGrid(true)
     , m_gridSpacing(10)
     , m_showGrid(false)
 {
@@ -52,12 +57,29 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
 
     // Initialize default cell layout
     initializeDefaultCellLayout();
+
+    // Load previously active template, or first bundled template on first run
+    QString activeTemplate = config->activeTemplatePath();
+    if (!activeTemplate.isEmpty() && QFile::exists(activeTemplate)) {
+        loadTemplateFromFile(activeTemplate);
+    } else {
+        // First run: load first available bundled template
+        refreshTemplateList();
+        if (!m_templatePaths.isEmpty()) {
+            loadTemplateFromFile(m_templatePaths.first());
+        }
+    }
 }
 
 void OverlayGenerator::setTemplatePath(const QString &path)
 {
-    if (m_templatePath != path) {
-        m_templatePath = path;
+    // Normalize qrc:/ URLs to :/ resource paths for QImage compatibility
+    QString normalizedPath = path;
+    if (normalizedPath.startsWith("qrc:/")) {
+        normalizedPath = normalizedPath.mid(3); // "qrc:/" -> ":/"
+    }
+    if (m_templatePath != normalizedPath) {
+        m_templatePath = normalizedPath;
         updateTemplateDimensions();
         emit templateChanged();
     }
@@ -259,6 +281,114 @@ void OverlayGenerator::setShowGrid(bool show)
     }
 }
 
+void OverlayGenerator::setShowCellBackgrounds(bool show)
+{
+    if (m_showCellBackgrounds != show) {
+        m_showCellBackgrounds = show;
+        emit showCellBackgroundsChanged();
+    }
+}
+
+QStringList OverlayGenerator::getAvailableTemplates()
+{
+    if (m_templateNames.isEmpty()) {
+        refreshTemplateList();
+    }
+    return m_templateNames;
+}
+
+QString OverlayGenerator::getTemplatePath(int index)
+{
+    if (index >= 0 && index < m_templatePaths.size()) {
+        return m_templatePaths.at(index);
+    }
+    return QString();
+}
+
+int OverlayGenerator::indexOfTemplatePath(const QString& filePath)
+{
+    // Try exact match first
+    int idx = m_templatePaths.indexOf(filePath);
+    if (idx >= 0) return idx;
+
+    // Try canonical path match
+    QString canonical = QFileInfo(filePath).canonicalFilePath();
+    for (int i = 0; i < m_templatePaths.size(); ++i) {
+        if (QFileInfo(m_templatePaths[i]).canonicalFilePath() == canonical)
+            return i;
+    }
+
+    // Not found — read template name from file and append to lists
+    QString displayName = QFileInfo(filePath).baseName().replace('_', ' ');
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isObject()) {
+            QString name = doc.object().value("templateName").toString();
+            if (!name.isEmpty()) displayName = name;
+        }
+    }
+    m_templateNames.append(displayName);
+    m_templatePaths.append(filePath);
+    return m_templateNames.size() - 1;
+}
+
+void OverlayGenerator::refreshTemplateList()
+{
+    m_templateNames.clear();
+    m_templatePaths.clear();
+
+    // Scan bundled templates from Qt resources
+    QDir resourceDir(":/templates");
+    if (resourceDir.exists()) {
+        QStringList utpFiles = resourceDir.entryList(QStringList() << "*.utp", QDir::Files);
+        for (const QString& fileName : utpFiles) {
+            QString filePath = ":/templates/" + fileName;
+            // Try to read templateName from the file
+            QFile file(filePath);
+            QString displayName = QFileInfo(fileName).baseName().replace('_', ' ');
+            if (file.open(QIODevice::ReadOnly)) {
+                QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+                if (doc.isObject()) {
+                    QString name = doc.object().value("templateName").toString();
+                    if (!name.isEmpty()) {
+                        displayName = name.replace('_', ' ');
+                    }
+                }
+            }
+            m_templateNames.append(displayName);
+            m_templatePaths.append(filePath);
+        }
+    }
+
+    // Scan user template directory
+    Config* config = Config::instance();
+    QString templateDir = config->templateDirectory();
+    if (!templateDir.isEmpty()) {
+        QDir userDir(templateDir);
+        if (userDir.exists()) {
+            QStringList utpFiles = userDir.entryList(QStringList() << "*.utp", QDir::Files);
+            for (const QString& fileName : utpFiles) {
+                QString filePath = userDir.absoluteFilePath(fileName);
+                // Try to read templateName from the file
+                QFile file(filePath);
+                QString displayName = QFileInfo(fileName).baseName().replace('_', ' ');
+                if (file.open(QIODevice::ReadOnly)) {
+                    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+                    if (doc.isObject()) {
+                        QString name = doc.object().value("templateName").toString();
+                        if (!name.isEmpty()) {
+                            displayName = name.replace('_', ' ');
+                        }
+                    }
+                }
+                m_templateNames.append(displayName);
+                m_templatePaths.append(filePath);
+            }
+        }
+    }
+}
+
 void OverlayGenerator::resetCellFont(const QString& cellId)
 {
     Unabara::CellData* cell = getCellData(cellId);
@@ -312,6 +442,24 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
     }
 }
 
+QFont OverlayGenerator::getCellFont(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomFont()) {
+        return cell->font();
+    }
+    return m_font;
+}
+
+QColor OverlayGenerator::getCellColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomColor()) {
+        return cell->textColor();
+    }
+    return m_textColor;
+}
+
 void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
 {
     Unabara::CellData* cell = getCellData(cellId);
@@ -359,7 +507,11 @@ void OverlayGenerator::setUseCellBasedLayout(bool use)
 
 void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
 {
+    // Normalize qrc:/ URLs to :/ resource paths for QImage compatibility
     m_templatePath = templ.backgroundImagePath();
+    if (m_templatePath.startsWith("qrc:/")) {
+        m_templatePath = m_templatePath.mid(3);
+    }
     updateTemplateDimensions();  // Update width/height for new template image
     m_backgroundOpacity = templ.backgroundOpacity();
     m_font = templ.defaultFont();
@@ -424,6 +576,7 @@ bool OverlayGenerator::saveTemplateToFile(const QString& filePath)
 
     if (success) {
         qDebug() << "Template saved successfully";
+        Config::instance()->setActiveTemplatePath(filePath);
         emit templateSaved(filePath);
     } else {
         qWarning() << "Failed to save template";
@@ -455,6 +608,7 @@ bool OverlayGenerator::loadTemplateFromFile(const QString& filePath)
     qDebug() << "  Name:" << templ.templateName();
     qDebug() << "  Cells:" << templ.cellCount();
 
+    Config::instance()->setActiveTemplatePath(filePath);
     emit templateLoaded(filePath);
     return true;
 }
@@ -935,8 +1089,11 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         QRect cellRect(pixelX + 4, pixelY + 4, cellWidth - 8, cellHeight - 8);
 
         // Draw semi-transparent background (like QML's "#80000000" Rectangle)
-        QRect bgRect(pixelX, pixelY, cellWidth, cellHeight);
-        painter.fillRect(bgRect, QColor(0, 0, 0, 128));
+        // Only in editor mode, not for export/preview
+        if (m_showCellBackgrounds) {
+            QRect bgRect(pixelX, pixelY, cellWidth, cellHeight);
+            painter.fillRect(bgRect, QColor(0, 0, 0, 128));
+        }
 
         // Draw the text (center-aligned to match QML's Text.AlignHCenter)
         painter.setPen(effectiveColor);

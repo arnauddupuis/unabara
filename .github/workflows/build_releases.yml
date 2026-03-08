@@ -242,7 +242,7 @@ jobs:
         cd ${{github.workspace}}/build-universal
 
         # Use macdeployqt to create the DMG with all dependencies
-        macdeployqt bin/unabara.app -dmg -verbose=3
+        macdeployqt bin/unabara.app -dmg -verbose=3 -qmldir=${{github.workspace}}/src/ui/qml
 
         # Rename DMG to include version
         mv bin/unabara.dmg unabara-macos-universal-${{ needs.determine-version.outputs.version }}.dmg

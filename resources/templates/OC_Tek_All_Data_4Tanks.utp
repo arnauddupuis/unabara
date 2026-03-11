@@ -36,7 +36,7 @@
             "hasCustomFont": false,
             "position": {
                 "x": 0.65,
-                "y": 0.5040322580645161
+                "y": 0.5090725806451613
             },
             "textColor": "#ffb705a9",
             "visible": true
@@ -96,7 +96,7 @@
             "hasCustomColor": false,
             "hasCustomFont": true,
             "position": {
-                "x": 0.4,
+                "x": 0.41875,
                 "y": 0.5040322580645161
             },
             "tankIndex": 1,

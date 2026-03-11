@@ -10,7 +10,7 @@
             "cellId": "depth",
             "cellType": "Depth",
             "font": {
-                "bold": true,
+                "bold": false,
                 "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 30,
@@ -20,7 +20,7 @@
             "hasCustomFont": true,
             "position": {
                 "x": 0.35,
-                "y": 0.22916666666666666
+                "y": 0.21875
             },
             "textColor": "#ff3498db",
             "visible": true

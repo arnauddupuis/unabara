@@ -19,8 +19,8 @@
             "hasCustomColor": true,
             "hasCustomFont": true,
             "position": {
-                "x": 0.5375,
-                "y": 0.375
+                "x": 0.55,
+                "y": 0.3854166666666667
             },
             "textColor": "#ff3498db",
             "visible": true
@@ -42,7 +42,7 @@
             "hasCustomColor": false,
             "hasCustomFont": true,
             "position": {
-                "x": 0.25,
+                "x": 0.2125,
                 "y": 0.3854166666666667
             },
             "visible": true

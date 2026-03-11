@@ -28,11 +28,11 @@ Here is a (low resolution) example of what you can generate with Unabara.
 
 HTML:
 
-<video src="https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" controls></video>
+<video src="https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" controls></video>
 
 Tag with URL:
 
-<https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4>
+<https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4>
 
 URL:
 

@@ -21,6 +21,11 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ![Unabara main interface](https://github.com/arnauddupuis/unabara/wiki/medias/main-interface-screenshot.png)
 
+
+<p align="center" width="100%">
+<video src="https://github.com/arnauddupuis/unabara/blob/f57aabc466c4b9fb638e92dcf6ffa07864943985/resources/examples/unabara-low-resolution-demo.mp4" width="90%" controls></video>
+</p>
+
 ## Requirements
 
 - Qt 6.8.0 or newer

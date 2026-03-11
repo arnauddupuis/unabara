@@ -36,7 +36,7 @@ Tag with URL:
 
 URL:
 
-https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4
+https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4
 
 ## Requirements
 

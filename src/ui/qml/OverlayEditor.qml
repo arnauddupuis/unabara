@@ -235,6 +235,10 @@ Item {
                     if (root.generator && root.dive && root.generator.cellCount() === 0) {
                         root.generator.initializeDefaultCellLayout(root.dive)
                     }
+                    // Hide tank pressure cells that exceed the dive's actual tank count
+                    if (root.generator && root.dive) {
+                        root.generator.adjustTankCellVisibility(root.dive)
+                    }
                     previewContainer.updateCellModel()
                 }
                 function onTimelineChanged() { previewContainer.updateCellModel() }
@@ -274,7 +278,7 @@ Item {
                     previewContainer.updateCellModel()
                 }
                 function onShowPressureChanged() {
-                    root.generator.setCellVisible("pressure", root.generator.showPressure)
+                    root.generator.setPressureCellsVisible(root.generator.showPressure, root.dive)
                     previewContainer.updateCellModel()
                 }
                 function onShowTimeChanged() {

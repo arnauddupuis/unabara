@@ -28,9 +28,7 @@ Here is a (low resolution) example of what you can generate with Unabara.
 
 HTML:
 
-<p align="center" width="100%">
-<video src="https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" width="90%" controls></video>
-</p>
+<video src="https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" controls></video>
 
 Tag with URL:
 

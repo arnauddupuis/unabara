@@ -24,19 +24,14 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Example
 
-Here is a (low resolution) example of what you can generate with Unabara.
+Here is a (low resolution) example of what you can generate with Unabara (open circuit, 4 tanks technical dive).
 
-HTML:
+https://github.com/user-attachments/assets/79ebb199-646d-4c17-a3ff-946a2d380bce
 
-<video src="https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" controls></video>
+And a higher resolution one (CCR technical dive):
 
-Tag with URL:
+https://github.com/user-attachments/assets/883adb29-4929-42e1-9437-0fd66c9d98e4
 
-<https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4>
-
-URL:
-
-https://raw.githubusercontent.com/arnauddupuis/unabara/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4
 
 ## Requirements
 
@@ -127,18 +122,7 @@ cmake --build . --config Release
 
 For direct video export functionality, FFmpeg needs to be installed on your system:
 
-- **Linux**: 
-   - _Ubuntu/Debian_: `sudo apt install ffmpeg`
-   - _Fedora_: `sudo dnf install ffmpeg`
-   - _Arch Linux_: `sudo pacman -S ffmpeg`
-- **macOS**: `brew install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)
-
-## Video Export
-
-For direct video export functionality, FFmpeg needs to be installed on your system:
-
-- **Linux**: 
+- **Linux**:
    - _Ubuntu/Debian_: `sudo apt install ffmpeg`
    - _Fedora_: `sudo dnf install ffmpeg`
    - _Arch Linux_: `sudo pacman -S ffmpeg`

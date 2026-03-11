@@ -108,3 +108,14 @@ install(TARGETS unabara
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Linux desktop integration (Flatpak, system installs)
+if(UNIX AND NOT APPLE)
+    install(FILES resources/org.unabara.unabara.desktop
+        DESTINATION share/applications)
+    install(FILES resources/org.unabara.unabara.metainfo.xml
+        DESTINATION share/metainfo)
+    install(FILES resources/images/unabara-icon.svg
+        DESTINATION share/icons/hicolor/scalable/apps
+        RENAME org.unabara.unabara.svg)
+endif()

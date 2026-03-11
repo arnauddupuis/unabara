@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.unabara.unabara</id>
+  <name>Unabara</name>
+  <summary>Create telemetry overlays for scuba diving videos</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>
+      Unabara imports dive logs from Subsurface and generates customizable
+      telemetry overlays that can be composited with diving footage. It features
+      a drag-and-drop editor, per-cell styling, multi-tank support, CCR PO2
+      readings, and data interpolation for smooth overlay output.
+    </p>
+  </description>
+  <launchable type="desktop-id">org.unabara.unabara.desktop</launchable>
+  <url type="homepage">https://github.com/arnauddupuis/unabara/</url>
+  <url type="bugtracker">https://github.com/arnauddupuis/unabara/issues</url>
+  <provides>
+    <binary>unabara</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+</component>

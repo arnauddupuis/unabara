@@ -26,12 +26,19 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 Here is a (low resolution) example of what you can generate with Unabara.
 
+HTML:
+
 <p align="center" width="100%">
 <video src="https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4" width="90%" controls></video>
 </p>
 
+Tag with URL:
 
+<https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4>
 
+URL:
+
+https://github.com/arnauddupuis/unabara/raw/refs/heads/cleanup-and-bugfixes/resources/examples/unabara-low-resolution-demo.mp4
 
 ## Requirements
 

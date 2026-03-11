@@ -593,6 +593,49 @@ Item {
                 // No reset button for size - it's part of the font property
                 Item { Layout.preferredWidth: 40 }
 
+                Label { text: qsTr("Style:") }
+                Row {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    CheckBox {
+                        id: boldCheckBox
+                        text: qsTr("Bold")
+                        checked: root.currentFont ? root.currentFont.bold : false
+                        Connections {
+                            target: root
+                            function onCurrentFontChanged() {
+                                boldCheckBox.checked = root.currentFont ? root.currentFont.bold : false
+                            }
+                        }
+                        onClicked: {
+                            if (generator) {
+                                var font = root.currentFont
+                                font.bold = checked
+                                generator.font = font
+                            }
+                        }
+                    }
+                    CheckBox {
+                        id: italicCheckBox
+                        text: qsTr("Italic")
+                        checked: root.currentFont ? root.currentFont.italic : false
+                        Connections {
+                            target: root
+                            function onCurrentFontChanged() {
+                                italicCheckBox.checked = root.currentFont ? root.currentFont.italic : false
+                            }
+                        }
+                        onClicked: {
+                            if (generator) {
+                                var font = root.currentFont
+                                font.italic = checked
+                                generator.font = font
+                            }
+                        }
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
                 Label { text: qsTr("Color:") }
                 Button {
                     id: colorButton

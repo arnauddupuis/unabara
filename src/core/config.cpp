@@ -16,7 +16,7 @@ Config* Config::instance()
 Config::Config(QObject *parent)
     : QObject(parent)
     , m_settings("UnabaraProject", "Unabara")
-    , m_font("Bitstream Vera Sans", 12)
+    , m_font("Sans Serif", 12)
     , m_textColor(Qt::white)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
@@ -310,7 +310,7 @@ void Config::loadConfig()
     m_templatePath = m_settings.value("overlay/template", ":/images/DC_Faces/unabara_round_ocean.png").toString();
     
     // Load font
-    QString fontFamily = m_settings.value("overlay/fontFamily", "Bitstream Vera Sans").toString();
+    QString fontFamily = m_settings.value("overlay/fontFamily", "Sans Serif").toString();
     int fontSize = m_settings.value("overlay/fontSize", 12).toInt();
     bool fontBold = m_settings.value("overlay/fontBold", false).toBool();
     bool fontItalic = m_settings.value("overlay/fontItalic", false).toBool();

@@ -14,7 +14,7 @@ OverlayTemplate::OverlayTemplate()
     : m_templateName("Untitled Template")
     , m_backgroundImagePath(":/images/DC_Faces/unabara_round_ocean.png")
     , m_backgroundOpacity(1.0)
-    , m_defaultFont(QFont("Bitstream Vera Sans", 12))
+    , m_defaultFont(QFont("Sans Serif", 12))
     , m_defaultTextColor(Qt::white)
 {
 }

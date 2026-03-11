@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Unabara Rect Rugged — dive computer background
   Style: Perdix-inspired wrist/console computer, titanium frame, dark navy body
@@ -7,219 +7,819 @@
   Transparent overall background (no background rect)
   ViewBox: 570 × 480
 -->
-<svg viewBox="0 0 570 480" xmlns="http://www.w3.org/2000/svg">
-  <defs>
+
+<svg
+   viewBox="0 0 570 480"
+   version="1.1"
+   id="svg60"
+   sodipodi:docname="unabara_rect_rugged.svg"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview60"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.4145833"
+     inkscape:cx="284.93529"
+     inkscape:cy="240"
+     inkscape:window-width="5120"
+     inkscape:window-height="1368"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg60" />
+  <defs
+     id="defs18">
     <!-- Titanium frame — warm grey, top-left radial highlight -->
-    <radialGradient id="r_frame" cx="32%" cy="25%" r="78%">
-      <stop offset="0%"   stop-color="#B8C4CE"/>
-      <stop offset="40%"  stop-color="#7A8C9A"/>
-      <stop offset="75%"  stop-color="#3E4E5C"/>
-      <stop offset="100%" stop-color="#1E2830"/>
+    <radialGradient
+       id="r_frame"
+       cx="32%"
+       cy="25%"
+       r="78%">
+      <stop
+         offset="0%"
+         stop-color="#B8C4CE"
+         id="stop1" />
+      <stop
+         offset="40%"
+         stop-color="#7A8C9A"
+         id="stop2" />
+      <stop
+         offset="75%"
+         stop-color="#3E4E5C"
+         id="stop3" />
+      <stop
+         offset="100%"
+         stop-color="#1E2830"
+         id="stop4" />
     </radialGradient>
-
     <!-- Inner body fill — deep navy -->
-    <linearGradient id="r_body" x1="25%" y1="0%" x2="75%" y2="100%">
-      <stop offset="0%"   stop-color="#102030"/>
-      <stop offset="55%"  stop-color="#080F18"/>
-      <stop offset="100%" stop-color="#030810"/>
+    <linearGradient
+       id="r_body"
+       x1="25%"
+       y1="0%"
+       x2="75%"
+       y2="100%">
+      <stop
+         offset="0%"
+         stop-color="#102030"
+         id="stop5" />
+      <stop
+         offset="55%"
+         stop-color="#080F18"
+         id="stop6" />
+      <stop
+         offset="100%"
+         stop-color="#030810"
+         id="stop7" />
     </linearGradient>
-
     <!-- Screen fill — very dark blue-black -->
-    <radialGradient id="r_screen" cx="38%" cy="32%" r="68%">
-      <stop offset="0%"   stop-color="#060A10"/>
-      <stop offset="100%" stop-color="#020407"/>
+    <radialGradient
+       id="r_screen"
+       cx="38%"
+       cy="32%"
+       r="68%">
+      <stop
+         offset="0%"
+         stop-color="#060A10"
+         id="stop8" />
+      <stop
+         offset="100%"
+         stop-color="#020407"
+         id="stop9" />
     </radialGradient>
-
     <!-- Mounting ears / bail — titanium, slightly brighter -->
-    <radialGradient id="r_ear" cx="40%" cy="30%" r="70%">
-      <stop offset="0%"   stop-color="#C8D4DE"/>
-      <stop offset="50%"  stop-color="#8A9CAA"/>
-      <stop offset="100%" stop-color="#304050"/>
+    <radialGradient
+       id="r_ear"
+       cx="40%"
+       cy="30%"
+       r="70%">
+      <stop
+         offset="0%"
+         stop-color="#C8D4DE"
+         id="stop10" />
+      <stop
+         offset="50%"
+         stop-color="#8A9CAA"
+         id="stop11" />
+      <stop
+         offset="100%"
+         stop-color="#304050"
+         id="stop12" />
     </radialGradient>
-
     <!-- Torx screw heads -->
-    <radialGradient id="r_screw" cx="32%" cy="28%" r="68%">
-      <stop offset="0%"   stop-color="#D0DCE8"/>
-      <stop offset="45%"  stop-color="#8A9EAC"/>
-      <stop offset="100%" stop-color="#182430"/>
+    <radialGradient
+       id="r_screw"
+       cx="32%"
+       cy="28%"
+       r="68%">
+      <stop
+         offset="0%"
+         stop-color="#D0DCE8"
+         id="stop13" />
+      <stop
+         offset="45%"
+         stop-color="#8A9EAC"
+         id="stop14" />
+      <stop
+         offset="100%"
+         stop-color="#182430"
+         id="stop15" />
     </radialGradient>
-
     <!-- Frame drop shadow -->
-    <filter id="r_shadow" filterUnits="userSpaceOnUse"
-            x="20" y="40" width="570" height="480">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur"/>
-      <feOffset dx="3" dy="5" result="offsetBlur"/>
-      <feFlood flood-color="#000000" flood-opacity="0.75" result="shadowColor"/>
-      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
-      <feMerge>
-        <feMergeNode in="shadow"/>
-        <feMergeNode in="SourceGraphic"/>
+    <filter
+       id="r_shadow"
+       filterUnits="userSpaceOnUse"
+       x="20"
+       y="40"
+       width="570"
+       height="480">
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="10"
+         result="blur"
+         id="feGaussianBlur15" />
+      <feOffset
+         dx="3"
+         dy="5"
+         result="offsetBlur"
+         id="feOffset15" />
+      <feFlood
+         flood-color="#000000"
+         flood-opacity="0.75"
+         result="shadowColor"
+         id="feFlood15" />
+      <feComposite
+         in="shadowColor"
+         in2="offsetBlur"
+         operator="in"
+         result="shadow"
+         id="feComposite15" />
+      <feMerge
+         id="feMerge16">
+        <feMergeNode
+           in="shadow"
+           id="feMergeNode15" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode16" />
       </feMerge>
     </filter>
-
     <!-- Screen inset shadow -->
-    <filter id="r_inset" x="-5%" y="-5%" width="110%" height="110%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter
+       id="r_inset"
+       x="-0.021176471"
+       y="-0.027480916"
+       width="1.0423529"
+       height="1.0549618">
+      <feGaussianBlur
+         stdDeviation="3"
+         result="blur"
+         id="feGaussianBlur16" />
+      <feMerge
+         id="feMerge18">
+        <feMergeNode
+           in="blur"
+           id="feMergeNode17" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode18" />
+      </feMerge>
     </filter>
-
     <!-- Clip path for bail slot (transparent cutout) -->
-    <clipPath id="r_bailClip">
-      <rect x="0" y="0" width="570" height="480"/>
+    <clipPath
+       id="r_bailClip">
+      <rect
+         x="0"
+         y="0"
+         width="570"
+         height="480"
+         id="rect18" />
     </clipPath>
   </defs>
-
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- TOP MOUNTING EARS (Perdix-style corner brackets) -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- Left ear -->
-  <rect x="50"  y="30" width="96" height="58" rx="12"
-        fill="url(#r_ear)"/>
-  <rect x="50"  y="30" width="96" height="58" rx="12" fill="none"
-        stroke="#1E2C38" stroke-width="1.5"/>
+  <rect
+     x="50"
+     y="30"
+     width="96"
+     height="58"
+     rx="12"
+     fill="url(#r_ear)"
+     id="rect19" />
+  <rect
+     x="50"
+     y="30"
+     width="96"
+     height="58"
+     rx="12"
+     fill="none"
+     stroke="#1E2C38"
+     stroke-width="1.5"
+     id="rect20" />
   <!-- Ear slot (strap channel) -->
-  <rect x="60"  y="42" width="76" height="32" rx="8"
-        fill="#101820" stroke="#304050" stroke-width="1"/>
-
+  <rect
+     x="60"
+     y="42"
+     width="76"
+     height="32"
+     rx="8"
+     fill="#101820"
+     stroke="#304050"
+     stroke-width="1"
+     id="rect21" />
   <!-- Right ear -->
-  <rect x="424" y="30" width="96" height="58" rx="12"
-        fill="url(#r_ear)"/>
-  <rect x="424" y="30" width="96" height="58" rx="12" fill="none"
-        stroke="#1E2C38" stroke-width="1.5"/>
+  <rect
+     x="424"
+     y="30"
+     width="96"
+     height="58"
+     rx="12"
+     fill="url(#r_ear)"
+     id="rect22" />
+  <rect
+     x="424"
+     y="30"
+     width="96"
+     height="58"
+     rx="12"
+     fill="none"
+     stroke="#1E2C38"
+     stroke-width="1.5"
+     id="rect23" />
   <!-- Ear slot -->
-  <rect x="434" y="42" width="76" height="32" rx="8"
-        fill="#101820" stroke="#304050" stroke-width="1"/>
-
+  <rect
+     x="434"
+     y="42"
+     width="76"
+     height="32"
+     rx="8"
+     fill="#101820"
+     stroke="#304050"
+     stroke-width="1"
+     id="rect24" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- MAIN FRAME BODY                                  -->
   <!-- A rounded rect with characteristically notched  -->
   <!-- upper corners (simulated by inset ears above)   -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <rect x="45"  y="58" width="480" height="372" rx="22"
-        fill="url(#r_frame)" filter="url(#r_shadow)"/>
+  <rect
+     x="45"
+     y="58"
+     width="480"
+     height="372"
+     rx="22"
+     fill="url(#r_frame)"
+     filter="url(#r_shadow)"
+     id="rect25" />
   <!-- Frame highlight (top edge) -->
-  <rect x="45"  y="58" width="480" height="372" rx="22" fill="none"
-        stroke="#B0C0CC" stroke-width="1" opacity="0.30"/>
+  <rect
+     x="45"
+     y="58"
+     width="480"
+     height="372"
+     rx="22"
+     fill="none"
+     stroke="#B0C0CC"
+     stroke-width="1"
+     opacity="0.30"
+     id="rect26" />
   <!-- Frame shadow (bottom-right) -->
-  <rect x="46"  y="59" width="478" height="370" rx="21" fill="none"
-        stroke="#000000" stroke-width="2" opacity="0.25"/>
-
+  <rect
+     x="46"
+     y="59"
+     width="478"
+     height="370"
+     rx="21"
+     fill="none"
+     stroke="#000000"
+     stroke-width="2"
+     opacity="0.25"
+     id="rect27" />
   <!-- Inner body inset (slight chamfer inward) -->
-  <rect x="56"  y="68" width="458" height="352" rx="17"
-        fill="url(#r_body)"/>
-  <rect x="56"  y="68" width="458" height="352" rx="17" fill="none"
-        stroke="#0A1520" stroke-width="1.5"/>
-
+  <rect
+     x="56"
+     y="68"
+     width="458"
+     height="352"
+     rx="17"
+     fill="url(#r_body)"
+     id="rect28" />
+  <rect
+     x="56"
+     y="68"
+     width="458"
+     height="352"
+     rx="17"
+     fill="none"
+     stroke="#0A1520"
+     stroke-width="1.5"
+     id="rect29" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- SCREEN AREA (dark fill)                          -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <rect x="95"  y="92" width="340" height="262" rx="10"
-        fill="url(#r_screen)" filter="url(#r_inset)"/>
+  <rect
+     x="95"
+     y="92"
+     width="340"
+     height="262"
+     rx="10"
+     fill="url(#r_screen)"
+     filter="url(#r_inset)"
+     id="rect30" />
   <!-- Screen edge: outer glow ring (cyan brand accent) -->
-  <rect x="95"  y="92" width="340" height="262" rx="10" fill="none"
-        stroke="#3498DB" stroke-width="2" opacity="0.55"/>
+  <rect
+     x="95"
+     y="92"
+     width="340"
+     height="262"
+     rx="10"
+     fill="none"
+     stroke="#3498DB"
+     stroke-width="2"
+     opacity="0.55"
+     id="rect31" />
   <!-- Screen edge: inner shadow ring -->
-  <rect x="97"  y="94" width="336" height="258" rx="9"  fill="none"
-        stroke="#1B4A6A" stroke-width="1"   opacity="0.30"/>
-
+  <rect
+     x="97"
+     y="94"
+     width="336"
+     height="258"
+     rx="9"
+     fill="none"
+     stroke="#1B4A6A"
+     stroke-width="1"
+     opacity="0.30"
+     id="rect32" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- TORX SCREWS (8 positions)                        -->
   <!-- 4 corners + 4 edge midpoints of the main body   -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- Helper: each screw = filled circle + cross + 6-point star slot hint -->
-
   <!-- Top-left corner (76, 90) -->
-  <circle cx="76"  cy="90"  r="10" fill="url(#r_screw)"/>
-  <circle cx="76"  cy="90"  r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="71"  y1="90"  x2="81"  y2="90"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="76"  y1="85"  x2="76"  y2="95"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="72.5" y1="86.5" x2="79.5" y2="93.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-  <line x1="79.5" y1="86.5" x2="72.5" y2="93.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-
+  <circle
+     cx="76"
+     cy="90"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle32" />
+  <circle
+     cx="76"
+     cy="90"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle33" />
+  <line
+     x1="71"
+     y1="90"
+     x2="81"
+     y2="90"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line33" />
+  <line
+     x1="76"
+     y1="85"
+     x2="76"
+     y2="95"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line34" />
+  <line
+     x1="72.5"
+     y1="86.5"
+     x2="79.5"
+     y2="93.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line35" />
+  <line
+     x1="79.5"
+     y1="86.5"
+     x2="72.5"
+     y2="93.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line36" />
   <!-- Top-right corner (494, 90) -->
-  <circle cx="494" cy="90"  r="10" fill="url(#r_screw)"/>
-  <circle cx="494" cy="90"  r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="489" y1="90"  x2="499" y2="90"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="494" y1="85"  x2="494" y2="95"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="490.5" y1="86.5" x2="497.5" y2="93.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-  <line x1="497.5" y1="86.5" x2="490.5" y2="93.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-
+  <circle
+     cx="494"
+     cy="90"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle36" />
+  <circle
+     cx="494"
+     cy="90"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle37" />
+  <line
+     x1="489"
+     y1="90"
+     x2="499"
+     y2="90"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line37" />
+  <line
+     x1="494"
+     y1="85"
+     x2="494"
+     y2="95"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line38" />
+  <line
+     x1="490.5"
+     y1="86.5"
+     x2="497.5"
+     y2="93.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line39" />
+  <line
+     x1="497.5"
+     y1="86.5"
+     x2="490.5"
+     y2="93.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line40" />
   <!-- Bottom-right corner (494, 390) -->
-  <circle cx="494" cy="390" r="10" fill="url(#r_screw)"/>
-  <circle cx="494" cy="390" r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="489" y1="390" x2="499" y2="390" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="494" y1="385" x2="494" y2="395" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="490.5" y1="386.5" x2="497.5" y2="393.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-  <line x1="497.5" y1="386.5" x2="490.5" y2="393.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-
+  <circle
+     cx="494"
+     cy="390"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle40" />
+  <circle
+     cx="494"
+     cy="390"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle41" />
+  <line
+     x1="489"
+     y1="390"
+     x2="499"
+     y2="390"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line41" />
+  <line
+     x1="494"
+     y1="385"
+     x2="494"
+     y2="395"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line42" />
+  <line
+     x1="490.5"
+     y1="386.5"
+     x2="497.5"
+     y2="393.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line43" />
+  <line
+     x1="497.5"
+     y1="386.5"
+     x2="490.5"
+     y2="393.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line44" />
   <!-- Bottom-left corner (76, 390) -->
-  <circle cx="76"  cy="390" r="10" fill="url(#r_screw)"/>
-  <circle cx="76"  cy="390" r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="71"  y1="390" x2="81"  y2="390" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="76"  y1="385" x2="76"  y2="395" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="72.5" y1="386.5" x2="79.5" y2="393.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-  <line x1="79.5" y1="386.5" x2="72.5" y2="393.5" stroke="#C0D4E0" stroke-width="1" opacity="0.35"/>
-
+  <circle
+     cx="76"
+     cy="390"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle44" />
+  <circle
+     cx="76"
+     cy="390"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle45" />
+  <line
+     x1="71"
+     y1="390"
+     x2="81"
+     y2="390"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line45" />
+  <line
+     x1="76"
+     y1="385"
+     x2="76"
+     y2="395"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line46" />
+  <line
+     x1="72.5"
+     y1="386.5"
+     x2="79.5"
+     y2="393.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line47" />
+  <line
+     x1="79.5"
+     y1="386.5"
+     x2="72.5"
+     y2="393.5"
+     stroke="#C0D4E0"
+     stroke-width="1"
+     opacity="0.35"
+     id="line48" />
   <!-- Top-center (285, 72) -->
-  <circle cx="285" cy="72"  r="10" fill="url(#r_screw)"/>
-  <circle cx="285" cy="72"  r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="280" y1="72"  x2="290" y2="72"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="285" y1="67"  x2="285" y2="77"  stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="285"
+     cy="72"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle48" />
+  <circle
+     cx="285"
+     cy="72"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle49" />
+  <line
+     x1="280"
+     y1="72"
+     x2="290"
+     y2="72"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line49" />
+  <line
+     x1="285"
+     y1="67"
+     x2="285"
+     y2="77"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line50" />
   <!-- Bottom-center (285, 408) -->
-  <circle cx="285" cy="408" r="10" fill="url(#r_screw)"/>
-  <circle cx="285" cy="408" r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="280" y1="408" x2="290" y2="408" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="285" y1="403" x2="285" y2="413" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="285"
+     cy="408"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle50" />
+  <circle
+     cx="285"
+     cy="408"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle51" />
+  <line
+     x1="280"
+     y1="408"
+     x2="290"
+     y2="408"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line51" />
+  <line
+     x1="285"
+     y1="403"
+     x2="285"
+     y2="413"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line52" />
   <!-- Left-center (60, 240) -->
-  <circle cx="60"  cy="240" r="10" fill="url(#r_screw)"/>
-  <circle cx="60"  cy="240" r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="55"  y1="240" x2="65"  y2="240" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="60"  y1="235" x2="60"  y2="245" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="60"
+     cy="240"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle52" />
+  <circle
+     cx="60"
+     cy="240"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle53" />
+  <line
+     x1="55"
+     y1="240"
+     x2="65"
+     y2="240"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line53" />
+  <line
+     x1="60"
+     y1="235"
+     x2="60"
+     y2="245"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line54" />
   <!-- Right-center (510, 240) -->
-  <circle cx="510" cy="240" r="10" fill="url(#r_screw)"/>
-  <circle cx="510" cy="240" r="10" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="505" y1="240" x2="515" y2="240" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-  <line x1="510" y1="235" x2="510" y2="245" stroke="#C0D4E0" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="510"
+     cy="240"
+     r="10"
+     fill="url(#r_screw)"
+     id="circle54" />
+  <circle
+     cx="510"
+     cy="240"
+     r="10"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle55" />
+  <line
+     x1="505"
+     y1="240"
+     x2="515"
+     y2="240"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line55" />
+  <line
+     x1="510"
+     y1="235"
+     x2="510"
+     y2="245"
+     stroke="#C0D4E0"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line56" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- BRAND TEXT — vertical on right inner frame       -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- "UNABARA" rotated -90° on right frame strip      -->
-  <text transform="translate(456, 300) rotate(-90)"
-        text-anchor="middle"
-        font-family="'Courier New',Courier,monospace"
-        font-size="15" font-weight="bold"
-        fill="#3498DB" letter-spacing="6" opacity="0.85">UNABARA</text>
-
+  <text
+     transform="rotate(-90)"
+     text-anchor="middle"
+     font-family="'Courier New', Courier, monospace"
+     font-size="15px"
+     font-weight="bold"
+     fill="#3498db"
+     letter-spacing="6"
+     opacity="0.85"
+     id="text56"
+     x="-274"
+     y="456">UNABARA</text>
   <!-- Small wave/logo mark above brand text -->
   <!-- Simplified wave motif (3 arcs) matching Unabara colour -->
-  <g transform="translate(446, 140)">
-    <path d="M -10,6 Q -5,-4 0,6 Q 5,16 10,6" fill="none"
-          stroke="#3498DB" stroke-width="2.5" stroke-linecap="round" opacity="0.80"/>
-    <path d="M -10,0 Q -5,-10 0,0 Q 5,10 10,0" fill="none"
-          stroke="#3498DB" stroke-width="2" stroke-linecap="round"  opacity="0.50"/>
+  <g
+     transform="rotate(-90,328,-120.875)"
+     id="g57">
+    <path
+       d="M -10,6 Q -5,-4 0,6 5,16 10,6"
+       fill="none"
+       stroke="#3498db"
+       stroke-width="2.5"
+       stroke-linecap="round"
+       opacity="0.8"
+       id="path56" />
+    <path
+       d="M -10,0 Q -5,-10 0,0 5,10 10,0"
+       fill="none"
+       stroke="#3498db"
+       stroke-width="2"
+       stroke-linecap="round"
+       opacity="0.5"
+       id="path57" />
   </g>
-
+  <g
+     transform="rotate(-90,395.125,-53.875)"
+     id="g57-6">
+    <path
+       d="M -10,6 Q -5,-4 0,6 5,16 10,6"
+       fill="none"
+       stroke="#3498db"
+       stroke-width="2.5"
+       stroke-linecap="round"
+       opacity="0.8"
+       id="path56-7" />
+    <path
+       d="M -10,0 Q -5,-10 0,0 5,10 10,0"
+       fill="none"
+       stroke="#3498db"
+       stroke-width="2"
+       stroke-linecap="round"
+       opacity="0.5"
+       id="path57-5" />
+  </g>
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- BOTTOM EDGE LABEL BAR                            -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- Subtle divider line at bottom of inner body -->
-  <line x1="95" y1="368" x2="435" y2="368"
-        stroke="#3498DB" stroke-width="0.8" opacity="0.25"/>
+  <line
+     x1="95"
+     y1="368"
+     x2="435"
+     y2="368"
+     stroke="#3498DB"
+     stroke-width="0.8"
+     opacity="0.25"
+     id="line57" />
   <!-- Small label text fields (purely decorative — show typical dive labels) -->
-  <text x="125" y="388" text-anchor="middle"
-        fill="#3498DB" font-family="'Courier New',Courier,monospace"
-        font-size="9" letter-spacing="1" opacity="0.50">DEPTH</text>
-  <text x="225" y="388" text-anchor="middle"
-        fill="#3498DB" font-family="'Courier New',Courier,monospace"
-        font-size="9" letter-spacing="1" opacity="0.50">TIME</text>
-  <text x="320" y="388" text-anchor="middle"
-        fill="#3498DB" font-family="'Courier New',Courier,monospace"
-        font-size="9" letter-spacing="1" opacity="0.50">TEMP</text>
-  <text x="405" y="388" text-anchor="middle"
-        fill="#3498DB" font-family="'Courier New',Courier,monospace"
-        font-size="9" letter-spacing="1" opacity="0.50">NDL</text>
+  <text
+     x="125"
+     y="388"
+     text-anchor="middle"
+     fill="#3498DB"
+     font-family="'Courier New',Courier,monospace"
+     font-size="9"
+     letter-spacing="1"
+     opacity="0.50"
+     id="text57">DEPTH</text>
+  <text
+     x="225"
+     y="388"
+     text-anchor="middle"
+     fill="#3498DB"
+     font-family="'Courier New',Courier,monospace"
+     font-size="9"
+     letter-spacing="1"
+     opacity="0.50"
+     id="text58">TIME</text>
+  <text
+     x="320"
+     y="388"
+     text-anchor="middle"
+     fill="#3498DB"
+     font-family="'Courier New',Courier,monospace"
+     font-size="9"
+     letter-spacing="1"
+     opacity="0.50"
+     id="text59">TEMP</text>
+  <text
+     x="405"
+     y="388"
+     text-anchor="middle"
+     fill="#3498DB"
+     font-family="'Courier New',Courier,monospace"
+     font-size="9"
+     letter-spacing="1"
+     opacity="0.50"
+     id="text60">NDL</text>
 </svg>

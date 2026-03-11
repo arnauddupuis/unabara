@@ -8,7 +8,10 @@
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file>resources/styles/style.qss</file>
         <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
-        <file alias="templates/OC_Tek_All_Data_AllTanks.utp">resources/templates/OC_Tek_All_Data_AllTanks.utp</file>
+        <file alias="templates/OC_Rec_NoTanks_Titanium.utp">resources/templates/OC_Rec_NoTanks_Titanium.utp</file>
+        <file alias="templates/OC_Rec_1Tank_Ocean.utp">resources/templates/OC_Rec_1Tank_Ocean.utp</file>
+        <file alias="templates/OC_Rec_1Tank_Titanium.utp">resources/templates/OC_Rec_1Tank_Titanium.utp</file>
+        <file alias="templates/OC_Tek_All_Data_4Tanks.utp">resources/templates/OC_Tek_All_Data_4Tanks.utp</file>
         <file alias="templates/CCR_Tek_Rugged.utp">resources/templates/CCR_Tek_Rugged.utp</file>
         <file alias="images/DC_Faces/unabara_round_ocean.png">resources/images/DC_Faces/unabara_round_ocean.png</file>
         <file alias="images/DC_Faces/unabara_round_titanium.png">resources/images/DC_Faces/unabara_round_titanium.png</file>

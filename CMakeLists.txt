@@ -75,7 +75,15 @@ qt_add_executable(unabara
 )
 
 if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE unabara.icns)
+    set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/unabara.icns)
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(unabara PRIVATE ${APP_ICON_MACOS})
     set_target_properties(unabara PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
+
+if(WIN32)
+    target_sources(unabara PRIVATE resources/unabara.rc)
 endif()
 
 target_include_directories(unabara PUBLIC

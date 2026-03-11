@@ -13,6 +13,7 @@
         <file alias="templates/OC_Rec_1Tank_Titanium.utp">resources/templates/OC_Rec_1Tank_Titanium.utp</file>
         <file alias="templates/OC_Tek_All_Data_4Tanks.utp">resources/templates/OC_Tek_All_Data_4Tanks.utp</file>
         <file alias="templates/CCR_Tek_Rugged.utp">resources/templates/CCR_Tek_Rugged.utp</file>
+        <file alias="images/unabara-icon.png">resources/images/unabara-icon.png</file>
         <file alias="images/DC_Faces/unabara_round_ocean.png">resources/images/DC_Faces/unabara_round_ocean.png</file>
         <file alias="images/DC_Faces/unabara_round_titanium.png">resources/images/DC_Faces/unabara_round_titanium.png</file>
         <file alias="images/DC_Faces/unabara_rect_rugged.png">resources/images/DC_Faces/unabara_rect_rugged.png</file>

@@ -11,7 +11,7 @@
             "cellType": "Depth",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 20,
                 "weight": 400
@@ -34,7 +34,7 @@
             "cellType": "Temperature",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 20,
                 "weight": 400
@@ -56,7 +56,7 @@
             "cellType": "NDL",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 15,
                 "weight": 400
@@ -78,7 +78,7 @@
             "cellType": "Time",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 20,
                 "weight": 400
@@ -100,7 +100,7 @@
             "cellType": "PO2Cell1",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -123,7 +123,7 @@
             "cellType": "PO2Cell2",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -146,7 +146,7 @@
             "cellType": "PO2Cell3",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -169,7 +169,7 @@
             "cellType": "CompositePO2",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -185,7 +185,7 @@
     ],
     "defaultFont": {
         "bold": false,
-        "family": "Bitstream Vera Sans",
+        "family": "Sans Serif",
         "italic": false,
         "pointSize": 14,
         "weight": 400

@@ -11,7 +11,7 @@
             "cellType": "Depth",
             "font": {
                 "bold": false,
-                "family": "Bitstream Vera Sans",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 20,
                 "weight": 400
@@ -65,7 +65,7 @@
             "cellType": "Pressure",
             "font": {
                 "bold": false,
-                "family": "Arial",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 13,
                 "weight": 400
@@ -88,7 +88,7 @@
             "cellType": "Pressure",
             "font": {
                 "bold": false,
-                "family": "Arial",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 13,
                 "weight": 400
@@ -111,7 +111,7 @@
             "cellType": "Pressure",
             "font": {
                 "bold": false,
-                "family": "Arial",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 12,
                 "weight": 400
@@ -135,7 +135,7 @@
             "cellType": "Pressure",
             "font": {
                 "bold": false,
-                "family": "Arial",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 12,
                 "weight": 400
@@ -159,7 +159,7 @@
             "cellType": "Time",
             "font": {
                 "bold": false,
-                "family": "Arial",
+                "family": "Sans Serif",
                 "italic": false,
                 "pointSize": 13,
                 "weight": 400
@@ -176,7 +176,7 @@
     ],
     "defaultFont": {
         "bold": false,
-        "family": "Arial",
+        "family": "Sans Serif",
         "italic": false,
         "pointSize": 14,
         "weight": 400

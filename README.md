@@ -35,9 +35,38 @@ https://github.com/user-attachments/assets/883adb29-4929-42e1-9437-0fd66c9d98e4
 
 ## Requirements
 
-- Qt 6.8.0 or newer
-- C++17 compatible compiler
 - FFmpeg (optional, required for direct video export)
+
+## Installation
+
+Pre-built packages are available on the [Releases page](https://github.com/arnauddupuis/unabara/releases). Download the appropriate package for your operating system:
+
+### Windows
+
+1. Download `unabara-windows-x.x.x.zip`
+2. Extract the archive to a folder of your choice
+3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html)
+4. Run `unabara.exe`
+
+### macOS
+
+1. Download `unabara-macos-universal-x.x.x.dmg`
+2. Open the DMG file
+3. Drag the Unabara app to your Applications folder
+4. It is recommended to install FFmpeg using [Homebrew](https://brew.sh/): `brew install ffmpeg`
+5. Launch Unabara from Applications
+
+### Linux (Flatpak)
+
+1. Download `unabara-linux-x.x.x.flatpak`
+2. Install the Flatpak package:
+   ```bash
+   flatpak install unabara-linux-x.x.x.flatpak
+   ```
+3. Launch Unabara from your application menu, or run:
+   ```bash
+   flatpak run org.unabara.unabara
+   ```
 
 ## Building from Source
 

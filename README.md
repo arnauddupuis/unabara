@@ -45,7 +45,7 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 1. Download `unabara-windows-x.x.x.zip`
 2. Extract the archive to a folder of your choice
-3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html)
+3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
 4. Run `unabara.exe`
 
 ### macOS
@@ -156,7 +156,7 @@ For direct video export functionality, FFmpeg needs to be installed on your syst
    - _Fedora_: `sudo dnf install ffmpeg`
    - _Arch Linux_: `sudo pacman -S ffmpeg`
 - **macOS**: `brew install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)
+- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
 
 ## Usage
 

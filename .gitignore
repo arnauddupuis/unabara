@@ -56,3 +56,6 @@ compile_commands.json
 # Build directory
 build/*
 .qodo
+
+# Debug directory
+debug/*

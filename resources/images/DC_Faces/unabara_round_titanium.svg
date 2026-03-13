@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Unabara Round Titanium — dive computer background
   Style: Watch-form factor, brushed titanium/steel, premium finish
@@ -6,291 +6,1033 @@
   Transparent overall background (no background rect)
   ViewBox: 500 × 600  |  Center: 250, 300
 -->
-<svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg">
-  <defs>
+
+<svg
+   viewBox="0 0 500 600"
+   version="1.1"
+   id="svg86"
+   sodipodi:docname="unabara_round_titanium.svg"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview86"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.9316667"
+     inkscape:cx="250.04314"
+     inkscape:cy="300"
+     inkscape:window-width="5120"
+     inkscape:window-height="1368"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg86" />
+  <defs
+     id="defs25">
     <!-- Brushed titanium — warm grey, top-left highlight -->
-    <radialGradient id="t_case" cx="34%" cy="26%" r="76%" gradientUnits="objectBoundingBox">
-      <stop offset="0%"   stop-color="#C0CAD4"/>
-      <stop offset="35%"  stop-color="#7A8896"/>
-      <stop offset="70%"  stop-color="#3E4E5C"/>
-      <stop offset="100%" stop-color="#1E2830"/>
+    <radialGradient
+       id="t_case"
+       cx="34%"
+       cy="26%"
+       r="76%"
+       gradientUnits="objectBoundingBox">
+      <stop
+         offset="0%"
+         stop-color="#C0CAD4"
+         id="stop1" />
+      <stop
+         offset="35%"
+         stop-color="#7A8896"
+         id="stop2" />
+      <stop
+         offset="70%"
+         stop-color="#3E4E5C"
+         id="stop3" />
+      <stop
+         offset="100%"
+         stop-color="#1E2830"
+         id="stop4" />
     </radialGradient>
-
     <!-- Bezel ring — slightly darker / cooler titanium -->
-    <linearGradient id="t_ring" x1="20%" y1="5%" x2="80%" y2="95%">
-      <stop offset="0%"   stop-color="#8A9AA8"/>
-      <stop offset="45%"  stop-color="#4E5E6A"/>
-      <stop offset="100%" stop-color="#28363E"/>
+    <linearGradient
+       id="t_ring"
+       x1="20%"
+       y1="5%"
+       x2="80%"
+       y2="95%">
+      <stop
+         offset="0%"
+         stop-color="#8A9AA8"
+         id="stop5" />
+      <stop
+         offset="45%"
+         stop-color="#4E5E6A"
+         id="stop6" />
+      <stop
+         offset="100%"
+         stop-color="#28363E"
+         id="stop7" />
     </linearGradient>
-
     <!-- Inner dark bevel between tick ring and screen -->
-    <radialGradient id="t_inner" cx="50%" cy="44%" r="56%">
-      <stop offset="75%"  stop-color="#0C141C"/>
-      <stop offset="100%" stop-color="#020408"/>
+    <radialGradient
+       id="t_inner"
+       cx="50%"
+       cy="44%"
+       r="56%">
+      <stop
+         offset="75%"
+         stop-color="#0C141C"
+         id="stop8" />
+      <stop
+         offset="100%"
+         stop-color="#020408"
+         id="stop9" />
     </radialGradient>
-
     <!-- Screen fill — very dark, cold blue-black -->
-    <radialGradient id="t_screen" cx="40%" cy="35%" r="65%">
-      <stop offset="0%"   stop-color="#07090E"/>
-      <stop offset="100%" stop-color="#020305"/>
+    <radialGradient
+       id="t_screen"
+       cx="40%"
+       cy="35%"
+       r="65%">
+      <stop
+         offset="0%"
+         stop-color="#07090E"
+         id="stop10" />
+      <stop
+         offset="100%"
+         stop-color="#020305"
+         id="stop11" />
     </radialGradient>
-
     <!-- Rubber strap — jet-black with subtle side sheen -->
-    <linearGradient id="t_strap" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#050507"/>
-      <stop offset="18%"  stop-color="#131418"/>
-      <stop offset="50%"  stop-color="#1A1C22"/>
-      <stop offset="82%"  stop-color="#131418"/>
-      <stop offset="100%" stop-color="#050507"/>
+    <linearGradient
+       id="t_strap"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="0%">
+      <stop
+         offset="0%"
+         stop-color="#050507"
+         id="stop12" />
+      <stop
+         offset="18%"
+         stop-color="#131418"
+         id="stop13" />
+      <stop
+         offset="50%"
+         stop-color="#1A1C22"
+         id="stop14" />
+      <stop
+         offset="82%"
+         stop-color="#131418"
+         id="stop15" />
+      <stop
+         offset="100%"
+         stop-color="#050507"
+         id="stop16" />
     </linearGradient>
-
     <!-- Side buttons — near-black with slight warm highlight -->
-    <linearGradient id="t_btn" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#040507"/>
-      <stop offset="50%"  stop-color="#1A1E22"/>
-      <stop offset="100%" stop-color="#040507"/>
+    <linearGradient
+       id="t_btn"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="0%">
+      <stop
+         offset="0%"
+         stop-color="#040507"
+         id="stop17" />
+      <stop
+         offset="50%"
+         stop-color="#1A1E22"
+         id="stop18" />
+      <stop
+         offset="100%"
+         stop-color="#040507"
+         id="stop19" />
     </linearGradient>
-
     <!-- Chrome screws — bright silver highlight -->
-    <radialGradient id="t_screw" cx="30%" cy="28%" r="68%">
-      <stop offset="0%"   stop-color="#D8E4EC"/>
-      <stop offset="40%"  stop-color="#8A9EAC"/>
-      <stop offset="100%" stop-color="#1C2830"/>
+    <radialGradient
+       id="t_screw"
+       cx="30%"
+       cy="28%"
+       r="68%">
+      <stop
+         offset="0%"
+         stop-color="#D8E4EC"
+         id="stop20" />
+      <stop
+         offset="40%"
+         stop-color="#8A9EAC"
+         id="stop21" />
+      <stop
+         offset="100%"
+         stop-color="#1C2830"
+         id="stop22" />
     </radialGradient>
-
     <!-- Subtle titanium case shadow -->
-    <filter id="t_shadow" filterUnits="userSpaceOnUse"
-            x="0" y="40" width="520" height="520">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur"/>
-      <feOffset dx="3" dy="6" result="offsetBlur"/>
-      <feFlood flood-color="#000000" flood-opacity="0.70" result="shadowColor"/>
-      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
-      <feMerge>
-        <feMergeNode in="shadow"/>
-        <feMergeNode in="SourceGraphic"/>
+    <filter
+       id="t_shadow"
+       filterUnits="userSpaceOnUse"
+       x="0"
+       y="40"
+       width="520"
+       height="520">
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="10"
+         result="blur"
+         id="feGaussianBlur22" />
+      <feOffset
+         dx="3"
+         dy="6"
+         result="offsetBlur"
+         id="feOffset22" />
+      <feFlood
+         flood-color="#000000"
+         flood-opacity="0.70"
+         result="shadowColor"
+         id="feFlood22" />
+      <feComposite
+         in="shadowColor"
+         in2="offsetBlur"
+         operator="in"
+         result="shadow"
+         id="feComposite22" />
+      <feMerge
+         id="feMerge23">
+        <feMergeNode
+           in="shadow"
+           id="feMergeNode22" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode23" />
       </feMerge>
     </filter>
-
     <!-- Screen-edge glow (very subtle cyan) -->
-    <filter id="t_glow" x="-5%" y="-5%" width="110%" height="110%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter
+       id="t_glow"
+       x="-0.015331492"
+       y="-0.015331492"
+       width="1.030663"
+       height="1.030663">
+      <feGaussianBlur
+         stdDeviation="2"
+         result="blur"
+         id="feGaussianBlur23" />
+      <feMerge
+         id="feMerge25">
+        <feMergeNode
+           in="blur"
+           id="feMergeNode24" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode25" />
+      </feMerge>
     </filter>
-
     <!-- Brand text arc: 9-o'clock → 6-o'clock → 3-o'clock (counter-clockwise via bottom)
          sweep=0 in SVG y-down = counter-clockwise visually.
          Travel direction at 6-o'clock = +x → glyph-up = -y (toward center) → upright ✓ -->
-    <path id="t_brand" d="M 50,300 A 200,200 0 0,0 450,300"/>
+    <path
+       id="t_brand"
+       d="M 50,300 A 200,200 0 0,0 450,300" />
   </defs>
-
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- TOP STRAP (jet-black rubber)           -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <rect x="183" y="10" width="134" height="122" rx="9" fill="url(#t_strap)"/>
-  <rect x="183" y="10" width="134" height="122" rx="9" fill="none"
-        stroke="#0A0C10" stroke-width="1.5"/>
-  <rect x="186" y="13" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
-  <rect x="311" y="13" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
-  <line x1="183" y1="35"  x2="317" y2="35"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="56"  x2="317" y2="56"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="77"  x2="317" y2="77"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="98"  x2="317" y2="98"  stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="119" x2="317" y2="119" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
+  <rect
+     x="183"
+     y="10"
+     width="134"
+     height="122"
+     rx="9"
+     fill="url(#t_strap)"
+     id="rect25" />
+  <rect
+     x="183"
+     y="10"
+     width="134"
+     height="122"
+     rx="9"
+     fill="none"
+     stroke="#0A0C10"
+     stroke-width="1.5"
+     id="rect26" />
+  <rect
+     x="186"
+     y="13"
+     width="3"
+     height="116"
+     rx="1.5"
+     fill="#2A2E36"
+     opacity="0.50"
+     id="rect27" />
+  <rect
+     x="311"
+     y="13"
+     width="3"
+     height="116"
+     rx="1.5"
+     fill="#2A2E36"
+     opacity="0.50"
+     id="rect28" />
+  <line
+     x1="183"
+     y1="35"
+     x2="317"
+     y2="35"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line28" />
+  <line
+     x1="183"
+     y1="56"
+     x2="317"
+     y2="56"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line29" />
+  <line
+     x1="183"
+     y1="77"
+     x2="317"
+     y2="77"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line30" />
+  <line
+     x1="183"
+     y1="98"
+     x2="317"
+     y2="98"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line31" />
+  <line
+     x1="183"
+     y1="119"
+     x2="317"
+     y2="119"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line32" />
   <!-- Spring bar pin -->
-  <rect x="231" y="20" width="38" height="8" rx="3"
-        fill="#243040" stroke="#5A7080" stroke-width="0.8" opacity="0.90"/>
-  <circle cx="250" cy="24" r="2.5" fill="#3498DB" opacity="0.60"/>
-
+  <rect
+     x="231"
+     y="20"
+     width="38"
+     height="8"
+     rx="3"
+     fill="#243040"
+     stroke="#5A7080"
+     stroke-width="0.8"
+     opacity="0.90"
+     id="rect32" />
+  <circle
+     cx="250"
+     cy="24"
+     r="2.5"
+     fill="#3498DB"
+     opacity="0.60"
+     id="circle32" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- BOTTOM STRAP                           -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <rect x="183" y="468" width="134" height="122" rx="9" fill="url(#t_strap)"/>
-  <rect x="183" y="468" width="134" height="122" rx="9" fill="none"
-        stroke="#0A0C10" stroke-width="1.5"/>
-  <rect x="186" y="471" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
-  <rect x="311" y="471" width="3"   height="116" rx="1.5" fill="#2A2E36" opacity="0.50"/>
-  <line x1="183" y1="488" x2="317" y2="488" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="508" x2="317" y2="508" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="528" x2="317" y2="528" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="548" x2="317" y2="548" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <line x1="183" y1="568" x2="317" y2="568" stroke="#030406" stroke-width="1.5" opacity="0.85"/>
-  <ellipse cx="250" cy="563" rx="4.5" ry="3.5"
-           fill="#030406" stroke="#1C2028" stroke-width="1"/>
-  <ellipse cx="250" cy="549" rx="4"   ry="3"
-           fill="#030406" stroke="#1C2028" stroke-width="1"/>
-  <ellipse cx="250" cy="536" rx="3.5" ry="2.5"
-           fill="#030406" stroke="#1C2028" stroke-width="1"/>
-
+  <rect
+     x="183"
+     y="468"
+     width="134"
+     height="122"
+     rx="9"
+     fill="url(#t_strap)"
+     id="rect33" />
+  <rect
+     x="183"
+     y="468"
+     width="134"
+     height="122"
+     rx="9"
+     fill="none"
+     stroke="#0A0C10"
+     stroke-width="1.5"
+     id="rect34" />
+  <rect
+     x="186"
+     y="471"
+     width="3"
+     height="116"
+     rx="1.5"
+     fill="#2A2E36"
+     opacity="0.50"
+     id="rect35" />
+  <rect
+     x="311"
+     y="471"
+     width="3"
+     height="116"
+     rx="1.5"
+     fill="#2A2E36"
+     opacity="0.50"
+     id="rect36" />
+  <line
+     x1="183"
+     y1="488"
+     x2="317"
+     y2="488"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line36" />
+  <line
+     x1="183"
+     y1="508"
+     x2="317"
+     y2="508"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line37" />
+  <line
+     x1="183"
+     y1="528"
+     x2="317"
+     y2="528"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line38" />
+  <line
+     x1="183"
+     y1="548"
+     x2="317"
+     y2="548"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line39" />
+  <line
+     x1="183"
+     y1="568"
+     x2="317"
+     y2="568"
+     stroke="#030406"
+     stroke-width="1.5"
+     opacity="0.85"
+     id="line40" />
+  <ellipse
+     cx="250"
+     cy="563"
+     rx="4.5"
+     ry="3.5"
+     fill="#030406"
+     stroke="#1C2028"
+     stroke-width="1"
+     id="ellipse40" />
+  <ellipse
+     cx="250"
+     cy="549"
+     rx="4"
+     ry="3"
+     fill="#030406"
+     stroke="#1C2028"
+     stroke-width="1"
+     id="ellipse41" />
+  <ellipse
+     cx="250"
+     cy="536"
+     rx="3.5"
+     ry="2.5"
+     fill="#030406"
+     stroke="#1C2028"
+     stroke-width="1"
+     id="ellipse42" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- SIDE BUTTONS (dark, subdued)           -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- Upper-left  LIGHT -->
-  <rect x="11" y="213" width="46" height="25" rx="7" fill="url(#t_btn)"/>
-  <rect x="12" y="214" width="44" height="23" rx="6" fill="none"
-        stroke="#303840" stroke-width="1"/>
-  <rect x="16" y="218" width="30" height="15" rx="3" fill="none"
-        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
-  <text x="32" y="228.5" text-anchor="middle"
-        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
-        font-size="7" font-weight="bold" opacity="0.80">LIGHT</text>
-
+  <rect
+     x="11"
+     y="213"
+     width="46"
+     height="25"
+     rx="7"
+     fill="url(#t_btn)"
+     id="rect42" />
+  <rect
+     x="12"
+     y="214"
+     width="44"
+     height="23"
+     rx="6"
+     fill="none"
+     stroke="#303840"
+     stroke-width="1"
+     id="rect43" />
+  <rect
+     x="16"
+     y="218"
+     width="30"
+     height="15"
+     rx="3"
+     fill="none"
+     stroke="#5A8AA8"
+     stroke-width="0.6"
+     opacity="0.5"
+     id="rect44" />
   <!-- Lower-left  MENU -->
-  <rect x="11" y="362" width="46" height="25" rx="7" fill="url(#t_btn)"/>
-  <rect x="12" y="363" width="44" height="23" rx="6" fill="none"
-        stroke="#303840" stroke-width="1"/>
-  <rect x="16" y="367" width="30" height="15" rx="3" fill="none"
-        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
-  <text x="32" y="377.5" text-anchor="middle"
-        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
-        font-size="7" font-weight="bold" opacity="0.80">MENU</text>
-
+  <rect
+     x="11"
+     y="362"
+     width="46"
+     height="25"
+     rx="7"
+     fill="url(#t_btn)"
+     id="rect45" />
+  <rect
+     x="12"
+     y="363"
+     width="44"
+     height="23"
+     rx="6"
+     fill="none"
+     stroke="#303840"
+     stroke-width="1"
+     id="rect46" />
+  <rect
+     x="16"
+     y="367"
+     width="30"
+     height="15"
+     rx="3"
+     fill="none"
+     stroke="#5A8AA8"
+     stroke-width="0.6"
+     opacity="0.5"
+     id="rect47" />
   <!-- Upper-right  FUNC -->
-  <rect x="443" y="213" width="46" height="25" rx="7" fill="url(#t_btn)"/>
-  <rect x="444" y="214" width="44" height="23" rx="6" fill="none"
-        stroke="#303840" stroke-width="1"/>
-  <rect x="456" y="218" width="30" height="15" rx="3" fill="none"
-        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
-  <text x="468" y="228.5" text-anchor="middle"
-        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
-        font-size="7" font-weight="bold" opacity="0.80">FUNC</text>
-
+  <rect
+     x="443"
+     y="213"
+     width="46"
+     height="25"
+     rx="7"
+     fill="url(#t_btn)"
+     id="rect48" />
+  <rect
+     x="444"
+     y="214"
+     width="44"
+     height="23"
+     rx="6"
+     fill="none"
+     stroke="#303840"
+     stroke-width="1"
+     id="rect49" />
+  <rect
+     x="456"
+     y="218"
+     width="30"
+     height="15"
+     rx="3"
+     fill="none"
+     stroke="#5A8AA8"
+     stroke-width="0.6"
+     opacity="0.5"
+     id="rect50" />
   <!-- Lower-right  INFO -->
-  <rect x="443" y="362" width="46" height="25" rx="7" fill="url(#t_btn)"/>
-  <rect x="444" y="363" width="44" height="23" rx="6" fill="none"
-        stroke="#303840" stroke-width="1"/>
-  <rect x="456" y="367" width="30" height="15" rx="3" fill="none"
-        stroke="#5A8AA8" stroke-width="0.6" opacity="0.5"/>
-  <text x="468" y="377.5" text-anchor="middle"
-        fill="#88B8D0" font-family="'Courier New',Courier,monospace"
-        font-size="7" font-weight="bold" opacity="0.80">INFO</text>
-
+  <rect
+     x="443"
+     y="362"
+     width="46"
+     height="25"
+     rx="7"
+     fill="url(#t_btn)"
+     id="rect51" />
+  <rect
+     x="444"
+     y="363"
+     width="44"
+     height="23"
+     rx="6"
+     fill="none"
+     stroke="#303840"
+     stroke-width="1"
+     id="rect52" />
+  <rect
+     x="456"
+     y="367"
+     width="30"
+     height="15"
+     rx="3"
+     fill="none"
+     stroke="#5A8AA8"
+     stroke-width="0.6"
+     opacity="0.5"
+     id="rect53" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- MAIN CASE BODY (titanium)              -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <circle cx="250" cy="300" r="228"
-          fill="url(#t_case)" filter="url(#t_shadow)"/>
+  <circle
+     cx="250"
+     cy="300"
+     r="228"
+     fill="url(#t_case)"
+     filter="url(#t_shadow)"
+     id="circle53" />
   <!-- Bright highlight arc (top-left) -->
-  <circle cx="250" cy="300" r="228" fill="none"
-          stroke="#D0DCE8" stroke-width="1.5" opacity="0.40"/>
+  <circle
+     cx="250"
+     cy="300"
+     r="228"
+     fill="none"
+     stroke="#D0DCE8"
+     stroke-width="1.5"
+     opacity="0.40"
+     id="circle54" />
   <!-- Deep shadow arc (bottom-right) -->
-  <circle cx="250" cy="300" r="226" fill="none"
-          stroke="#000000" stroke-width="4" opacity="0.35"
-          stroke-dasharray="718" stroke-dashoffset="539"/>
+  <circle
+     cx="250"
+     cy="300"
+     r="226"
+     fill="none"
+     stroke="#000000"
+     stroke-width="4"
+     opacity="0.35"
+     stroke-dasharray="718"
+     stroke-dashoffset="539"
+     id="circle55" />
   <!-- Subtle brushing texture rings -->
-  <circle cx="250" cy="300" r="220" fill="none"
-          stroke="#A0AEB8" stroke-width="0.5" opacity="0.12"/>
-  <circle cx="250" cy="300" r="216" fill="none"
-          stroke="#A0AEB8" stroke-width="0.5" opacity="0.10"/>
-
+  <circle
+     cx="250"
+     cy="300"
+     r="220"
+     fill="none"
+     stroke="#A0AEB8"
+     stroke-width="0.5"
+     opacity="0.12"
+     id="circle56" />
+  <circle
+     cx="250"
+     cy="300"
+     r="216"
+     fill="none"
+     stroke="#A0AEB8"
+     stroke-width="0.5"
+     opacity="0.10"
+     id="circle57" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- BEZEL RING                             -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <circle cx="250" cy="300" r="212" fill="url(#t_ring)"/>
-  <circle cx="250" cy="300" r="212" fill="none"
-          stroke="#1C2830" stroke-width="1.5"/>
+  <circle
+     cx="250"
+     cy="300"
+     r="212"
+     fill="url(#t_ring)"
+     id="circle58" />
+  <circle
+     cx="250"
+     cy="300"
+     r="212"
+     fill="none"
+     stroke="#1C2830"
+     stroke-width="1.5"
+     id="circle59" />
   <!-- Bezel ring inner highlight -->
-  <circle cx="250" cy="300" r="194" fill="none"
-          stroke="#8AA0B0" stroke-width="0.8" opacity="0.30"/>
-
+  <circle
+     cx="250"
+     cy="300"
+     r="194"
+     fill="none"
+     stroke="#8AA0B0"
+     stroke-width="0.8"
+     opacity="0.30"
+     id="circle60" />
   <!-- Tick marks — silver/white tone on titanium bezel -->
-  <g transform="rotate(-90, 250, 300)">
+  <g
+     transform="rotate(-90, 250, 300)"
+     id="g62">
     <!-- Minor ticks -->
-    <circle cx="250" cy="300" r="204" fill="none"
-            stroke="#D0DCE8" stroke-width="3"
-            stroke-dasharray="2 19.36" stroke-dashoffset="-1"
-            opacity="0.40"/>
+    <circle
+       cx="250"
+       cy="300"
+       r="204"
+       fill="none"
+       stroke="#D0DCE8"
+       stroke-width="3"
+       stroke-dasharray="2 19.36"
+       stroke-dashoffset="-1"
+       opacity="0.40"
+       id="circle61" />
     <!-- Major ticks -->
-    <circle cx="250" cy="300" r="204" fill="none"
-            stroke="#E8F0F8" stroke-width="7"
-            stroke-dasharray="5 101.8" stroke-dashoffset="-2.5"
-            opacity="0.85"/>
+    <circle
+       cx="250"
+       cy="300"
+       r="204"
+       fill="none"
+       stroke="#E8F0F8"
+       stroke-width="7"
+       stroke-dasharray="5 101.8"
+       stroke-dashoffset="-2.5"
+       opacity="0.85"
+       id="circle62" />
   </g>
-
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- INNER BEVEL                            -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <circle cx="250" cy="300" r="192" fill="url(#t_inner)"/>
-  <circle cx="250" cy="300" r="192" fill="none"
-          stroke="#0C1820" stroke-width="2"/>
-
+  <circle
+     cx="250"
+     cy="300"
+     r="192"
+     fill="url(#t_inner)"
+     id="circle63" />
+  <circle
+     cx="250"
+     cy="300"
+     r="192"
+     fill="none"
+     stroke="#0C1820"
+     stroke-width="2"
+     id="circle64" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- SCREEN AREA (very dark)                -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <circle cx="250" cy="300" r="180" fill="url(#t_screen)"/>
+  <circle
+     cx="250"
+     cy="300"
+     r="180"
+     fill="url(#t_screen)"
+     id="circle65" />
   <!-- Screen accent: narrow cyan ring (Unabara brand) -->
-  <circle cx="250" cy="300" r="181" fill="none"
-          stroke="#3498DB" stroke-width="1.5" opacity="0.50"
-          filter="url(#t_glow)"/>
-  <circle cx="250" cy="300" r="179" fill="none"
-          stroke="#1B4A6A" stroke-width="1"   opacity="0.25"/>
-
+  <circle
+     cx="250"
+     cy="300"
+     r="181"
+     fill="none"
+     stroke="#3498DB"
+     stroke-width="1.5"
+     opacity="0.50"
+     filter="url(#t_glow)"
+     id="circle66" />
+  <circle
+     cx="250"
+     cy="300"
+     r="179"
+     fill="none"
+     stroke="#1B4A6A"
+     stroke-width="1"
+     opacity="0.25"
+     id="circle67" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- 12 O'CLOCK MARKER                      -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- Titanium: diamond-shape marker rather than solid triangle -->
-  <polygon points="250,90 245,100 250,110 255,100"
-           fill="#D0DCE8" opacity="0.90"/>
+  <polygon
+     points="250,90 245,100 250,110 255,100"
+     fill="#D0DCE8"
+     opacity="0.90"
+     id="polygon67" />
   <!-- 3 + 9 o'clock equator dots -->
-  <circle cx="210" cy="300" r="3.5" fill="#B0C0CC" opacity="0.55"/>
-  <circle cx="290" cy="300" r="3.5" fill="#B0C0CC" opacity="0.55"/>
-
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- SCREWS (chrome, 8 positions r=215)     -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- +30°  (358, 114) -->
-  <circle cx="358" cy="114" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="358" cy="114" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="354" y1="114" x2="362" y2="114" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="358" y1="110" x2="358" y2="118" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="358"
+     cy="114"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle70" />
+  <circle
+     cx="358"
+     cy="114"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle71" />
+  <line
+     x1="354"
+     y1="114"
+     x2="362"
+     y2="114"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line71" />
+  <line
+     x1="358"
+     y1="110"
+     x2="358"
+     y2="118"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line72" />
   <!-- +60°  (436, 193) -->
-  <circle cx="436" cy="193" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="436" cy="193" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="432" y1="193" x2="440" y2="193" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="436" y1="189" x2="436" y2="197" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="436"
+     cy="193"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle72" />
+  <circle
+     cx="436"
+     cy="193"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle73" />
+  <line
+     x1="432"
+     y1="193"
+     x2="440"
+     y2="193"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line73" />
+  <line
+     x1="436"
+     y1="189"
+     x2="436"
+     y2="197"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line74" />
   <!-- +120° (436, 407) -->
-  <circle cx="436" cy="407" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="436" cy="407" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="432" y1="407" x2="440" y2="407" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="436" y1="403" x2="436" y2="411" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="436"
+     cy="407"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle74" />
+  <circle
+     cx="436"
+     cy="407"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle75" />
+  <line
+     x1="432"
+     y1="407"
+     x2="440"
+     y2="407"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line75" />
+  <line
+     x1="436"
+     y1="403"
+     x2="436"
+     y2="411"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line76" />
   <!-- +150° (358, 486) -->
-  <circle cx="358" cy="486" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="358" cy="486" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="354" y1="486" x2="362" y2="486" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="358" y1="482" x2="358" y2="490" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="358"
+     cy="486"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle76" />
+  <circle
+     cx="358"
+     cy="486"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle77" />
+  <line
+     x1="354"
+     y1="486"
+     x2="362"
+     y2="486"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line77" />
+  <line
+     x1="358"
+     y1="482"
+     x2="358"
+     y2="490"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line78" />
   <!-- +210° (142, 486) -->
-  <circle cx="142" cy="486" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="142" cy="486" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="138" y1="486" x2="146" y2="486" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="142" y1="482" x2="142" y2="490" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="142"
+     cy="486"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle78" />
+  <circle
+     cx="142"
+     cy="486"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle79" />
+  <line
+     x1="138"
+     y1="486"
+     x2="146"
+     y2="486"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line79" />
+  <line
+     x1="142"
+     y1="482"
+     x2="142"
+     y2="490"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line80" />
   <!-- +240° (64, 407) -->
-  <circle cx="64" cy="407" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="64" cy="407" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="60" y1="407" x2="68" y2="407" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="64" y1="403" x2="64" y2="411" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="64"
+     cy="407"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle80" />
+  <circle
+     cx="64"
+     cy="407"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle81" />
+  <line
+     x1="60"
+     y1="407"
+     x2="68"
+     y2="407"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line81" />
+  <line
+     x1="64"
+     y1="403"
+     x2="64"
+     y2="411"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line82" />
   <!-- +300° (64, 193) -->
-  <circle cx="64" cy="193" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="64" cy="193" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="60" y1="193" x2="68" y2="193" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="64" y1="189" x2="64" y2="197" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="64"
+     cy="193"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle82" />
+  <circle
+     cx="64"
+     cy="193"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle83" />
+  <line
+     x1="60"
+     y1="193"
+     x2="68"
+     y2="193"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line83" />
+  <line
+     x1="64"
+     y1="189"
+     x2="64"
+     y2="197"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line84" />
   <!-- +330° (142, 114) -->
-  <circle cx="142" cy="114" r="9.5" fill="url(#t_screw)"/>
-  <circle cx="142" cy="114" r="9.5" fill="none" stroke="#101820" stroke-width="0.8" opacity="0.6"/>
-  <line x1="138" y1="114" x2="146" y2="114" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-  <line x1="142" y1="110" x2="142" y2="118" stroke="#B0C8D8" stroke-width="1.6" opacity="0.65"/>
-
+  <circle
+     cx="142"
+     cy="114"
+     r="9.5"
+     fill="url(#t_screw)"
+     id="circle84" />
+  <circle
+     cx="142"
+     cy="114"
+     r="9.5"
+     fill="none"
+     stroke="#101820"
+     stroke-width="0.8"
+     opacity="0.6"
+     id="circle85" />
+  <line
+     x1="138"
+     y1="114"
+     x2="146"
+     y2="114"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line85" />
+  <line
+     x1="142"
+     y1="110"
+     x2="142"
+     y2="118"
+     stroke="#B0C8D8"
+     stroke-width="1.6"
+     opacity="0.65"
+     id="line86" />
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- BRAND TEXT — cyan on titanium bezel   -->
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <text font-family="'Courier New',Courier,monospace"
-        font-size="14.5" font-weight="bold"
-        fill="#3498DB" letter-spacing="6" opacity="0.88">
-    <textPath href="#t_brand" text-anchor="middle" startOffset="50%">UNABARA</textPath>
-  </text>
+  <text
+     font-family="'Courier New',Courier,monospace"
+     font-size="14.5"
+     font-weight="bold"
+     fill="#3498DB"
+     letter-spacing="6"
+     opacity="0.88"
+     id="text86"><textPath
+       href="#t_brand"
+       text-anchor="middle"
+       startOffset="50%"
+       id="textPath86">UNABARA</textPath></text>
 </svg>

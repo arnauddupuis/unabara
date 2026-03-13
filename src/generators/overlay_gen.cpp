@@ -14,7 +14,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_templatePath(":/images/DC_Faces/unabara_round_ocean.png")
     , m_templateWidth(640)
     , m_templateHeight(120)
-    , m_font(QFont("Bitstream Vera Sans", 12))
+    , m_font(QFont("Sans Serif", 12))
     , m_textColor(Qt::white)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
@@ -493,6 +493,91 @@ void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
     }
 }
 
+void OverlayGenerator::adjustTankCellVisibility(DiveData* dive)
+{
+    if (!dive || dive->cylinderCount() == 0) {
+        return;
+    }
+
+    int tankCount = dive->cylinderCount();
+    bool changed = false;
+
+    for (int i = 0; i < m_cells.size(); ++i) {
+        if (m_cells[i].cellType() == Unabara::CellType::Pressure) {
+            bool shouldBeVisible = m_showPressure && m_cells[i].tankIndex() < tankCount;
+            if (m_cells[i].visible() != shouldBeVisible) {
+                m_cells[i].setVisible(shouldBeVisible);
+                changed = true;
+            }
+        }
+    }
+
+    if (changed) {
+        emit cellLayoutChanged();
+    }
+}
+
+void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
+{
+    int tankCount = dive ? dive->cylinderCount() : INT_MAX;
+
+    // Check if any pressure cells exist
+    bool hasPressureCells = false;
+    for (const auto& cell : m_cells) {
+        if (cell.cellType() == Unabara::CellType::Pressure) {
+            hasPressureCells = true;
+            break;
+        }
+    }
+
+    if (visible && !hasPressureCells) {
+        // Create default pressure cell(s) since the template has none
+        QImage templateImage(m_templatePath);
+        QSizeF templateSize = templateImage.isNull()
+            ? QSizeF(640, 120)
+            : QSizeF(templateImage.width(), templateImage.height());
+
+        int actualTanks = (dive && dive->cylinderCount() > 0) ? dive->cylinderCount() : 1;
+        if (actualTanks == 1) {
+            Unabara::CellData cell("pressure", Unabara::CellType::Pressure);
+            cell.setTankIndex(0);
+            cell.setPosition(QPointF(0.5, 0.5));
+            cell.setFont(m_font, false);
+            cell.setTextColor(m_textColor, false);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
+            cell.setVisible(true);
+            m_cells.append(cell);
+        } else {
+            for (int i = 0; i < actualTanks; ++i) {
+                QString cellId = QString("tank_%1").arg(i);
+                Unabara::CellData cell(cellId, Unabara::CellType::Pressure);
+                cell.setTankIndex(i);
+                int col = i % 2;
+                int row = i / 2;
+                cell.setPosition(QPointF(0.5 + col * 0.25, 0.5 + row * 0.2));
+                cell.setFont(m_font, false);
+                cell.setTextColor(m_textColor, false);
+                cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
+                cell.setVisible(true);
+                m_cells.append(cell);
+            }
+        }
+        emit cellsChanged();
+        emit cellLayoutChanged();
+        return;
+    }
+
+    // Toggle existing pressure cells
+    for (int i = 0; i < m_cells.size(); ++i) {
+        if (m_cells[i].cellType() == Unabara::CellType::Pressure) {
+            bool shouldBeVisible = visible && m_cells[i].tankIndex() < tankCount;
+            m_cells[i].setVisible(shouldBeVisible);
+        }
+    }
+
+    emit cellLayoutChanged();
+}
+
 void OverlayGenerator::setUseCellBasedLayout(bool use)
 {
     if (m_useCellBasedLayout != use) {
@@ -519,7 +604,18 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_cells = templ.cells();
     m_useCellBasedLayout = true;
 
-    // Update visibility flags from cells
+    // Reset all visibility flags before scanning cells
+    m_showDepth = false;
+    m_showTemperature = false;
+    m_showTime = false;
+    m_showNDL = false;
+    m_showPressure = false;
+    m_showPO2Cell1 = false;
+    m_showPO2Cell2 = false;
+    m_showPO2Cell3 = false;
+    m_showCompositePO2 = false;
+
+    // Update visibility flags from cells that exist in the template
     for (const auto& cell : m_cells) {
         if (cell.cellType() == Unabara::CellType::Depth) {
             m_showDepth = cell.visible();
@@ -545,6 +641,15 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit templateChanged();
     emit cellsChanged();
     emit cellLayoutChanged();
+    emit showDepthChanged();
+    emit showTemperatureChanged();
+    emit showTimeChanged();
+    emit showNDLChanged();
+    emit showPressureChanged();
+    emit showPO2Cell1Changed();
+    emit showPO2Cell2Changed();
+    emit showPO2Cell3Changed();
+    emit showCompositePO2Changed();
 }
 
 Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const

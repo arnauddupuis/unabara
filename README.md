@@ -21,11 +21,53 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ![Unabara main interface](https://github.com/arnauddupuis/unabara/wiki/medias/main-interface-screenshot.png)
 
+
+## Example
+
+Here is a (low resolution) example of what you can generate with Unabara (open circuit, 4 tanks technical dive).
+
+https://github.com/user-attachments/assets/79ebb199-646d-4c17-a3ff-946a2d380bce
+
+And a higher resolution one (CCR technical dive):
+
+https://github.com/user-attachments/assets/883adb29-4929-42e1-9437-0fd66c9d98e4
+
+
 ## Requirements
 
-- Qt 6.8.0 or newer
-- C++17 compatible compiler
 - FFmpeg (optional, required for direct video export)
+
+## Installation
+
+Pre-built packages are available on the [Releases page](https://github.com/arnauddupuis/unabara/releases). Download the appropriate package for your operating system:
+
+### Windows
+
+1. Download `unabara-windows-x.x.x.zip`
+2. Extract the archive to a folder of your choice
+3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
+4. Alternatively you can use the [Chocolatey package manager](https://github.com/chocolatey/choco/releases) to install FFmpeg. Once Chocolatey is installed on your windows, open a command prompt as administrator and run: `choco install ffmpeg`
+5. Run `unabara.exe`
+
+### macOS
+
+1. Download `unabara-macos-universal-x.x.x.dmg`
+2. Open the DMG file
+3. Drag the Unabara app to your Applications folder
+4. It is recommended to install FFmpeg using [Homebrew](https://brew.sh/): `brew install ffmpeg`
+5. Launch Unabara from Applications
+
+### Linux (Flatpak)
+
+1. Download `unabara-linux-x.x.x.flatpak`
+2. Install the Flatpak package:
+   ```bash
+   flatpak install unabara-linux-x.x.x.flatpak
+   ```
+3. Launch Unabara from your application menu, or run:
+   ```bash
+   flatpak run org.unabara.unabara
+   ```
 
 ## Building from Source
 
@@ -110,23 +152,12 @@ cmake --build . --config Release
 
 For direct video export functionality, FFmpeg needs to be installed on your system:
 
-- **Linux**: 
+- **Linux**:
    - _Ubuntu/Debian_: `sudo apt install ffmpeg`
    - _Fedora_: `sudo dnf install ffmpeg`
    - _Arch Linux_: `sudo pacman -S ffmpeg`
-- **macOS**: `brew install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)
-
-## Video Export
-
-For direct video export functionality, FFmpeg needs to be installed on your system:
-
-- **Linux**: 
-   - _Ubuntu/Debian_: `sudo apt install ffmpeg`
-   - _Fedora_: `sudo dnf install ffmpeg`
-   - _Arch Linux_: `sudo pacman -S ffmpeg`
-- **macOS**: `brew install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)
+- **macOS**: `brew install ffmpeg` ([Homebrew](https://brew.sh) needs to be installed on your mac beforehand)
+- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)). It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)). Alternatively you can use the [Chocolatey package manager](https://github.com/chocolatey/choco/releases) to install FFmpeg. Once Chocolatey is installed on your windows, open a command prompt as administrator and run: `choco install ffmpeg`
 
 ## Usage
 

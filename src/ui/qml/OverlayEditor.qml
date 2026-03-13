@@ -235,6 +235,10 @@ Item {
                     if (root.generator && root.dive && root.generator.cellCount() === 0) {
                         root.generator.initializeDefaultCellLayout(root.dive)
                     }
+                    // Hide tank pressure cells that exceed the dive's actual tank count
+                    if (root.generator && root.dive) {
+                        root.generator.adjustTankCellVisibility(root.dive)
+                    }
                     previewContainer.updateCellModel()
                 }
                 function onTimelineChanged() { previewContainer.updateCellModel() }
@@ -274,7 +278,7 @@ Item {
                     previewContainer.updateCellModel()
                 }
                 function onShowPressureChanged() {
-                    root.generator.setCellVisible("pressure", root.generator.showPressure)
+                    root.generator.setPressureCellsVisible(root.generator.showPressure, root.dive)
                     previewContainer.updateCellModel()
                 }
                 function onShowTimeChanged() {
@@ -587,6 +591,49 @@ Item {
                     }
                 }
                 // No reset button for size - it's part of the font property
+                Item { Layout.preferredWidth: 40 }
+
+                Label { text: qsTr("Style:") }
+                Row {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    CheckBox {
+                        id: boldCheckBox
+                        text: qsTr("Bold")
+                        checked: root.currentFont ? root.currentFont.bold : false
+                        Connections {
+                            target: root
+                            function onCurrentFontChanged() {
+                                boldCheckBox.checked = root.currentFont ? root.currentFont.bold : false
+                            }
+                        }
+                        onClicked: {
+                            if (generator) {
+                                var font = root.currentFont
+                                font.bold = checked
+                                generator.font = font
+                            }
+                        }
+                    }
+                    CheckBox {
+                        id: italicCheckBox
+                        text: qsTr("Italic")
+                        checked: root.currentFont ? root.currentFont.italic : false
+                        Connections {
+                            target: root
+                            function onCurrentFontChanged() {
+                                italicCheckBox.checked = root.currentFont ? root.currentFont.italic : false
+                            }
+                        }
+                        onClicked: {
+                            if (generator) {
+                                var font = root.currentFont
+                                font.italic = checked
+                                generator.font = font
+                            }
+                        }
+                    }
+                }
                 Item { Layout.preferredWidth: 40 }
 
                 Label { text: qsTr("Color:") }

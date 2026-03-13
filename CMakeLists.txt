@@ -75,7 +75,15 @@ qt_add_executable(unabara
 )
 
 if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE unabara.icns)
+    set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/unabara.icns)
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(unabara PRIVATE ${APP_ICON_MACOS})
     set_target_properties(unabara PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
+
+if(WIN32)
+    target_sources(unabara PRIVATE resources/unabara.rc)
 endif()
 
 target_include_directories(unabara PUBLIC
@@ -100,3 +108,14 @@ install(TARGETS unabara
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Linux desktop integration (Flatpak, system installs)
+if(UNIX AND NOT APPLE)
+    install(FILES resources/org.unabara.unabara.desktop
+        DESTINATION share/applications)
+    install(FILES resources/org.unabara.unabara.metainfo.xml
+        DESTINATION share/metainfo)
+    install(FILES resources/images/unabara-icon.svg
+        DESTINATION share/icons/hicolor/scalable/apps
+        RENAME org.unabara.unabara.svg)
+endif()

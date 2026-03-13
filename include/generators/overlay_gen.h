@@ -129,6 +129,8 @@ public:
     Q_INVOKABLE bool saveTemplateToFile(const QString& filePath);
     Q_INVOKABLE bool loadTemplateFromFile(const QString& filePath);
     Q_INVOKABLE void initializeDefaultCellLayout(DiveData* dive = nullptr);
+    Q_INVOKABLE void adjustTankCellVisibility(DiveData* dive);
+    Q_INVOKABLE void setPressureCellsVisible(bool visible, DiveData* dive = nullptr);
     Q_INVOKABLE void migrateLegacySettings();
 
     // Template listing

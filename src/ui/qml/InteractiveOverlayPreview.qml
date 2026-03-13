@@ -254,18 +254,8 @@ Item {
                 Canvas {
                     id: gridCanvas
                     anchors.fill: parent
-                    visible: generator && (generator.showGrid || anyDragging)
+                    visible: generator && generator.showGrid
                     z: 0  // Below cells
-
-                    property bool anyDragging: {
-                        for (var i = 0; i < cellRepeater.count; i++) {
-                            var cell = cellRepeater.itemAt(i)
-                            if (cell && cell.dragging) {
-                                return true
-                            }
-                        }
-                        return false
-                    }
 
                     onVisibleChanged: requestPaint()
                     onWidthChanged: requestPaint()
@@ -427,13 +417,21 @@ Item {
                         onWidthChanged: Qt.callLater(interactivePreview.detectOverlaps)
                         onHeightChanged: Qt.callLater(interactivePreview.detectOverlaps)
 
-                        // Clear alignment guides when drag ends
+                        // Track drag state for grid visibility
                         onDraggingChanged: {
                             if (dragging) {
                                 interactivePreview.draggingCellCount++
                             } else {
                                 interactivePreview.draggingCellCount--
                                 interactivePreview.alignmentGuides = []
+                            }
+                        }
+
+                        // Ensure counter is decremented if delegate is destroyed mid-drag
+                        // (e.g., when updateCellModel() recreates delegates during a drag)
+                        Component.onDestruction: {
+                            if (dragging) {
+                                interactivePreview.draggingCellCount--
                             }
                         }
 

@@ -1,0 +1,128 @@
+{
+    "backgroundImage": ":/images/DC_Faces/unabara_round_ocean.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 111
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 25,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.55,
+                "y": 0.3854166666666667
+            },
+            "textColor": "#ff3498db",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 110
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 25,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.2125,
+                "y": 0.3854166666666667
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.55,
+                "y": 0.5833333333333334
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "pressure",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.25,
+                "y": 0.5833333333333334
+            },
+            "tankIndex": 0,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 94
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.3625,
+                "y": 0.22916666666666666
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Sans Serif",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "OC_Rec_1Tank_Ocean",
+    "version": "1.0"
+}

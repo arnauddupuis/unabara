@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
+#include <QIcon>
 #include <QDebug>
 
 // Include the generated version header
@@ -31,6 +32,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("Unabara");
     app.setApplicationVersion(UNABARA_VERSION_STR);
     app.setOrganizationName("UnabaraProject");
+    app.setWindowIcon(QIcon(":/images/unabara-icon.png"));
 
     qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
     

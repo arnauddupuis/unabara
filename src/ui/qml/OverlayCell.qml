@@ -18,7 +18,7 @@ Rectangle {
     property int cellType: 0
     property point cellPosition: Qt.point(0, 0)  // Normalized position (0.0-1.0)
     property bool cellVisible: true
-    property font cellFont: Qt.font({family: "Bitstream Vera Sans", pointSize: 12})
+    property font cellFont: Qt.font({family: "Sans Serif", pointSize: 12})
     property color cellTextColor: "white"
     property string displayText: ""
     property size cellCalculatedSize: Qt.size(100, 40)

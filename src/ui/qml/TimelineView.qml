@@ -500,7 +500,7 @@ Item {
                     
                     function updateDetailsText() {
                         var dataPoint = timeline.getCurrentDataPoint();
-                        if (!dataPoint) return;
+                        if (!dataPoint || dataPoint.depth === undefined) return;
                         
                         var infoText = "";
                         

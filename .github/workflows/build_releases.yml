@@ -103,7 +103,7 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2022_64'
-        modules: 'qtmultimedia qtnetwork'
+        modules: 'qtmultimedia'
 
     - name: Install MSBuild
       run: choco install visualstudio2022buildtools --package-parameters "--add Microsoft.Component.MSBuild"
@@ -173,7 +173,7 @@ jobs:
         host: mac
         target: desktop
         arch: clang_64
-        modules: 'qtmultimedia qtnetwork'
+        modules: qtmultimedia
 
     - name: Configure CMake for Intel Build
       run: cmake -B ${{github.workspace}}/build-x86_64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_OSX_ARCHITECTURES=x86_64

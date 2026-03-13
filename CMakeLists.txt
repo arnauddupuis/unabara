@@ -23,7 +23,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Multimedia DBus Concurrent Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Xml Multimedia DBus Concurrent Widgets Network)
 
 # Configure a version header file
 configure_file(
@@ -46,6 +46,7 @@ set(PROJECT_SOURCES
     src/generators/overlay_gen.cpp
     src/generators/overlay_image_provider.cpp
     src/export/image_export.cpp
+    src/core/update_checker.cpp
     src/export/video_export.cpp
     resources.qrc
 )
@@ -63,6 +64,7 @@ set(PROJECT_HEADERS
     include/generators/overlay_gen.h
     include/generators/overlay_image_provider.h
     include/export/image_export.h
+    include/core/update_checker.h
     include/export/video_export.h
     "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
 )
@@ -101,6 +103,7 @@ target_link_libraries(unabara PRIVATE
     Qt::Widgets
     Qt::Multimedia
     Qt::DBus
+    Qt::Network
 )
 
 install(TARGETS unabara

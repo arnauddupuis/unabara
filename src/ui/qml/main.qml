@@ -202,6 +202,15 @@ ApplicationWindow {
         }
     }
     
+    Connections {
+        target: updateChecker
+        function onUpdateAvailable(latestVersion, releaseUrl) {
+            updateDialog.latestVersion = latestVersion
+            updateDialog.releaseUrl = releaseUrl
+            updateDialog.open()
+        }
+    }
+
     Component.onCompleted: {
         // Check if FFmpeg is available and show a notification if not
         if (!videoExporter.isFFmpegAvailable()) {
@@ -210,6 +219,9 @@ ApplicationWindow {
                                "To enable video export, please install FFmpeg and restart the application.")
             messageDialog.open()
         }
+
+        // Check for updates
+        updateChecker.checkForUpdates()
     }
     
     // Main UI layout
@@ -1190,14 +1202,54 @@ ApplicationWindow {
         standardButtons: Dialog.Ok
         width: 400
         height: 200
-        
+
         ColumnLayout {
             anchors.fill: parent
-            
+
             Label {
                 text: messageDialog.message
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
+            }
+        }
+    }
+
+    Dialog {
+        id: updateDialog
+        title: qsTr("Update Available")
+        property string latestVersion: ""
+        property string releaseUrl: ""
+        modal: true
+        width: 450
+        height: 200
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 15
+
+            Label {
+                text: qsTr("A new version of Unabara (%1) is available!\n\nYou are currently running version %2.").arg(updateDialog.latestVersion).arg(appVersion)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 10
+
+                Button {
+                    text: qsTr("Dismiss")
+                    onClicked: updateDialog.close()
+                }
+
+                Button {
+                    text: qsTr("Open Downloads")
+                    highlighted: true
+                    onClicked: {
+                        Qt.openUrlExternally(updateDialog.releaseUrl)
+                        updateDialog.close()
+                    }
+                }
             }
         }
     }

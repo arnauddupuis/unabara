@@ -20,6 +20,7 @@
 #include "include/generators/overlay_image_provider.h"
 #include "include/core/config.h"
 #include "include/core/units.h"
+#include "include/core/update_checker.h"
 
 // Global image provider
 OverlayImageProvider* g_imageProvider = nullptr;
@@ -85,6 +86,10 @@ int main(int argc, char *argv[])
 
     // Expose version to QML
     engine.rootContext()->setContextProperty("appVersion", UNABARA_VERSION_STR);
+
+    // Create update checker and expose to QML
+    UpdateChecker updateChecker;
+    engine.rootContext()->setContextProperty("updateChecker", &updateChecker);
     
     // Load the main QML file
     const QUrl url(QStringLiteral("qrc:/main.qml"));

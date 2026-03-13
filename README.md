@@ -73,7 +73,7 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 ### Dependencies
 
-- Qt 6.8.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets)
+- Qt 6.8.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets, Network, Multimedia)
 - CMake 3.16 or newer
 - C++17 compatible compiler (GCC 9+, Clang 10+, MSVC 2019+)
 
@@ -81,13 +81,13 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
-sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev libqt6xml6-dev
+sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev libqt6xml6-dev qt6-multimedia-dev
 
 # Install dependencies (Fedora)
-sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtbase-private-devel
+sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtbase-private-devel qt6-qtmultimedia-devel
 
 # Install dependencies (Arch Linux)
-sudo pacman -S cmake base-devel qt6-base qt6-declarative
+sudo pacman -S cmake base-devel qt6-base qt6-declarative qt6-multimedia
 
 # Clone the repository
 git clone https://github.com/arnauddupuis/unabara.git

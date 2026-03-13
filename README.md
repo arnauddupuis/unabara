@@ -46,7 +46,8 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 1. Download `unabara-windows-x.x.x.zip`
 2. Extract the archive to a folder of your choice
 3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
-4. Run `unabara.exe`
+4. Alternatively you can use the [Chocolatey package manager](https://github.com/chocolatey/choco/releases) to install FFmpeg. Once Chocolatey is installed on your windows, open a command prompt as administrator and run: `choco install ffmpeg`
+5. Run `unabara.exe`
 
 ### macOS
 
@@ -155,8 +156,8 @@ For direct video export functionality, FFmpeg needs to be installed on your syst
    - _Ubuntu/Debian_: `sudo apt install ffmpeg`
    - _Fedora_: `sudo dnf install ffmpeg`
    - _Arch Linux_: `sudo pacman -S ffmpeg`
-- **macOS**: `brew install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
+- **macOS**: `brew install ffmpeg` ([Homebrew](https://brew.sh) needs to be installed on your mac beforehand)
+- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)). It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)). Alternatively you can use the [Chocolatey package manager](https://github.com/chocolatey/choco/releases) to install FFmpeg. Once Chocolatey is installed on your windows, open a command prompt as administrator and run: `choco install ffmpeg`
 
 ## Usage
 

@@ -58,7 +58,7 @@ public:
     
     // Helper methods
     Q_INVOKABLE bool isFFmpegAvailable();
-    Q_INVOKABLE QString createDefaultExportFile(DiveData* dive);
+    Q_INVOKABLE QString createDefaultExportFile(DiveData* dive, const QString &videoFilePath = QString());
     Q_INVOKABLE QSize detectVideoResolution(const QString &videoPath);
     
     // Get information about available codecs and formats
@@ -93,6 +93,7 @@ private:
     bool m_busy;
     QSize m_customResolution;
     QString m_lastOutputPath;
+    QString m_pendingOutputPath;
     double m_exportStartTime;
     double m_exportEndTime;
     
@@ -115,7 +116,7 @@ private:
                                  const QString &outputFile);
     QString getFormatOptions(const QString &codec);
     QString sanitizeFileName(const QString &fileName);
-    QString generateUniqueFileName(DiveData* dive, const QString &extension);
+    QString generateUniqueFileName(DiveData* dive, const QString &extension, const QString &videoFilePath = QString());
     void cleanupTempFiles();
     QSize getDefaultOverlaySize();
     QStringList createFFmpegArgs(const QString &outputPath);

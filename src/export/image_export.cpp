@@ -135,29 +135,29 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
     return true;
 }
 
-QString ImageExporter::createDefaultExportDir(DiveData* dive)
+QString ImageExporter::createDefaultExportDir(DiveData* dive, const QString &videoFilePath)
 {
     if (!dive) {
         return QString();
     }
-    
+
     // Create a unique directory for this dive
-    QString dirName = generateUniqueDirectoryName(dive);
+    QString dirName = generateUniqueDirectoryName(dive, videoFilePath);
     QString path = QDir(m_exportPath).filePath(dirName);
-    
+
     QDir dir;
     if (!dir.mkpath(path)) {
         qWarning() << "Failed to create directory:" << path;
         return QString();
     }
-    
+
     return path;
 }
 
-QString ImageExporter::generateUniqueDirectoryName(DiveData* dive)
+QString ImageExporter::generateUniqueDirectoryName(DiveData* dive, const QString &videoFilePath)
 {
     QString baseName;
-    
+
     // Use dive date and name to create the directory name
     QDateTime diveTime = dive->startTime();
     if (diveTime.isValid()) {
@@ -165,17 +165,25 @@ QString ImageExporter::generateUniqueDirectoryName(DiveData* dive)
     } else {
         baseName = QDateTime::currentDateTime().toString("yyyy-MM-dd_HHmmss");
     }
-    
+
     // Add dive name if available
     if (!dive->diveName().isEmpty()) {
         baseName += "_" + sanitizeFileName(dive->diveName());
     }
-    
+
     // Add location if available
     if (!dive->location().isEmpty()) {
         baseName += "_" + sanitizeFileName(dive->location());
     }
-    
+
+    // Add video filename stem if a video is imported
+    if (!videoFilePath.isEmpty()) {
+        QString videoStem = QFileInfo(videoFilePath).completeBaseName();
+        if (!videoStem.isEmpty()) {
+            baseName += "_" + sanitizeFileName(videoStem);
+        }
+    }
+
     return baseName;
 }
 

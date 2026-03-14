@@ -81,7 +81,7 @@ ApplicationWindow {
         target: videoExporter
         function onProgressChanged() {
             // Debug progress updates
-            console.log("Progress update from C++:", videoExporter.progress);
+            // console.log("Progress update from C++:", videoExporter.progress);
             
             // Set timer to ensure UI updates
             videoExportProgressDialog.value = videoExporter.progress;
@@ -104,7 +104,7 @@ ApplicationWindow {
             if (videoExportProgressDialog.visible) {
                 // Force update from latest value
                 videoExportProgressDialog.value = videoExporter.progress;
-                console.log("Timer checking progress:", videoExporter.progress, "%");
+                // console.log("Timer checking progress:", videoExporter.progress, "%");
             }
         }
     }
@@ -564,9 +564,11 @@ ApplicationWindow {
             // Define a function to handle video export
             function handleExport() {
                 console.log("Export dialog accepted - this should only print once");
+                // Get the video file path (if any) for unique export naming
+                let videoFile = timelineView.videoPath !== "" ? mainWindow.urlToLocalFile(timelineView.videoPath) : ""
                 if (exportTypeImages.checked) {
                     // Images export mode
-                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
+                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive, videoFile);
                     if (path) {
                         imageExporter.exportPath = path;
                         
@@ -605,7 +607,7 @@ ApplicationWindow {
                     }
                 } else {
                     // Video export mode
-                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive);
+                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive, videoFile);
                     if (outputFile) {
                         // Just pass the file path directly, don't manipulate it further
                         videoExporter.frameRate = videoFrameRateSpinBox.value;
@@ -1171,7 +1173,7 @@ ApplicationWindow {
                     }
                     
                     onValueChanged: {
-                        console.log("Progress bar value updated to:", Math.round(value * 100), "%");
+                        // console.log("Progress bar value updated to:", Math.round(value * 100), "%");
                     }
                 }
             }

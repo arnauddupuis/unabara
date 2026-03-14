@@ -81,7 +81,7 @@ ApplicationWindow {
         target: videoExporter
         function onProgressChanged() {
             // Debug progress updates
-            console.log("Progress update from C++:", videoExporter.progress);
+            // console.log("Progress update from C++:", videoExporter.progress);
             
             // Set timer to ensure UI updates
             videoExportProgressDialog.value = videoExporter.progress;
@@ -104,7 +104,7 @@ ApplicationWindow {
             if (videoExportProgressDialog.visible) {
                 // Force update from latest value
                 videoExportProgressDialog.value = videoExporter.progress;
-                console.log("Timer checking progress:", videoExporter.progress, "%");
+                // console.log("Timer checking progress:", videoExporter.progress, "%");
             }
         }
     }
@@ -172,8 +172,23 @@ ApplicationWindow {
                 console.log("Video resolution:", metadataPlayer.metaData.resolution)
                 
                 timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
-                // Default to positioning video at the beginning of the dive
-                timelineView.timeline.videoOffset = 0.0
+
+                // Auto-sync video offset from timecode if available
+                let autoSynced = false
+                if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                    let timecodeSeconds = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                    if (timecodeSeconds >= 0) {
+                        let diveStart = mainWindow.currentDive.startTime
+                        let diveStartSecs = diveStart.getHours() * 3600 + diveStart.getMinutes() * 60 + diveStart.getSeconds()
+                        let offset = timecodeSeconds - diveStartSecs
+                        console.log("Auto-sync video offset: timecode =", timecodeSeconds, "s, dive start =", diveStartSecs, "s, offset =", offset, "s")
+                        timelineView.timeline.videoOffset = offset
+                        autoSynced = true
+                    }
+                }
+                if (!autoSynced) {
+                    timelineView.timeline.videoOffset = 0.0
+                }
             }
         }
         
@@ -531,7 +546,20 @@ ApplicationWindow {
                         console.log("Using fallback 60 second duration");
                         timelineView.setVideoDuration(60); // Default to 1 minute
                     }
-                    timelineView.timeline.videoOffset = 0.0; // Position at beginning of dive
+                    // Auto-sync video offset from timecode if available
+                    let synced = false
+                    if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                        let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                        if (tc >= 0) {
+                            let ds = mainWindow.currentDive.startTime
+                            let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
+                            timelineView.timeline.videoOffset = tc - dsSecs
+                            synced = true
+                        }
+                    }
+                    if (!synced) {
+                        timelineView.timeline.videoOffset = 0.0
+                    }
                 } else {
                     console.log("Duration already set to:", timelineView.timeline.videoDuration);
                 }
@@ -564,9 +592,11 @@ ApplicationWindow {
             // Define a function to handle video export
             function handleExport() {
                 console.log("Export dialog accepted - this should only print once");
+                // Get the video file path (if any) for unique export naming
+                let videoFile = timelineView.videoPath !== "" ? mainWindow.urlToLocalFile(timelineView.videoPath) : ""
                 if (exportTypeImages.checked) {
                     // Images export mode
-                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive);
+                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive, videoFile);
                     if (path) {
                         imageExporter.exportPath = path;
                         
@@ -605,7 +635,7 @@ ApplicationWindow {
                     }
                 } else {
                     // Video export mode
-                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive);
+                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive, videoFile);
                     if (outputFile) {
                         // Just pass the file path directly, don't manipulate it further
                         videoExporter.frameRate = videoFrameRateSpinBox.value;
@@ -1096,7 +1126,7 @@ ApplicationWindow {
         closePolicy: Popup.NoAutoClose
         standardButtons: Dialog.Cancel
         width: 500
-        height: 250
+        height: 280
         
         property int value: 0
         property string statusText: qsTr("Preparing...")
@@ -1171,7 +1201,7 @@ ApplicationWindow {
                     }
                     
                     onValueChanged: {
-                        console.log("Progress bar value updated to:", Math.round(value * 100), "%");
+                        // console.log("Progress bar value updated to:", Math.round(value * 100), "%");
                     }
                 }
             }
@@ -1180,11 +1210,11 @@ ApplicationWindow {
                 text: qsTr("Progress: %1%").arg(videoExportProgressDialog.value)
                 Layout.alignment: Qt.AlignHCenter
             }
-            
+
             Item {
                 Layout.fillHeight: true
             }
-            
+
             Label {
                 text: qsTr("This process can take several minutes depending on video length and settings.\nDo not close the application during export.")
                 Layout.fillWidth: true

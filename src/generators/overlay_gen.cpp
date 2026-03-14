@@ -966,7 +966,7 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         return QImage();
     }
     
-    qDebug() << "Generating overlay for time point:" << timePoint;
+    // qDebug() << "Generating overlay for time point:" << timePoint;
     
     // Load the template image
     QImage templateImage(m_templatePath);
@@ -992,11 +992,11 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     // Get the data for the current time point
     DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
     
-    qDebug() << "Data point for overlay - depth:" << dataPoint.depth 
-             << "temp:" << dataPoint.temperature
-             << "time:" << dataPoint.timestamp
-             << "ndl:" << dataPoint.ndl
-             << "tts:" << dataPoint.tts;
+    // qDebug() << "Data point for overlay - depth:" << dataPoint.depth 
+    //          << "temp:" << dataPoint.temperature
+    //          << "time:" << dataPoint.timestamp
+    //          << "ndl:" << dataPoint.ndl
+    //          << "tts:" << dataPoint.tts;
     
     // Determine if we're in decompression
     bool inDeco = (dataPoint.ndl <= 0);
@@ -1157,7 +1157,7 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
     int width = imageSize.width();
     int height = imageSize.height();
 
-    qDebug() << "Rendering cell-based overlay with" << m_cells.size() << "cells (QML-style)";
+    // qDebug() << "Rendering cell-based overlay with" << m_cells.size() << "cells (QML-style)";
 
     for (const auto& cell : m_cells) {
         if (!cell.visible()) continue;

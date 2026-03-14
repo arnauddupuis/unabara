@@ -36,7 +36,7 @@ public:
                                       double startTime, double endTime);
     
     // Create default export directory
-    Q_INVOKABLE QString createDefaultExportDir(DiveData* dive);
+    Q_INVOKABLE QString createDefaultExportDir(DiveData* dive, const QString &videoFilePath = QString());
     
 signals:
     void exportPathChanged();
@@ -54,7 +54,7 @@ private:
     bool m_busy;
     
     // Helper methods
-    QString generateUniqueDirectoryName(DiveData* dive);
+    QString generateUniqueDirectoryName(DiveData* dive, const QString &videoFilePath = QString());
     QString sanitizeFileName(const QString &fileName);
 };
 

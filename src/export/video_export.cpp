@@ -218,9 +218,15 @@ bool VideoExporter::exportVideo(DiveData* dive, OverlayGenerator* generator,
         return false;
     }
     
-    // Generate a unique output filename
-    QString extension = getFileExtensionForCodec(m_videoCodec);
-    QString outputPath = generateUniqueFileName(dive, extension);
+    // Use the pre-generated output path (from createDefaultExportFile) or generate a new one
+    QString outputPath;
+    if (!m_pendingOutputPath.isEmpty()) {
+        outputPath = m_pendingOutputPath;
+        m_pendingOutputPath.clear();
+    } else {
+        QString extension = getFileExtensionForCodec(m_videoCodec);
+        outputPath = generateUniqueFileName(dive, extension);
+    }
     m_lastOutputPath = outputPath;
     
     // Create a new temporary directory for this export
@@ -514,7 +520,7 @@ void VideoExporter::processFFmpegOutput()
                     m_progress = newProgress;
                     emit progressChanged();
                     emit statusUpdate(tr("Encoding frame %1 of %2").arg(currentFrame).arg(totalFrames));
-                    qDebug() << "Progress:" << m_progress << "% (Frame:" << currentFrame << "/" << totalFrames << ")";
+                    // qDebug() << "Progress:" << m_progress << "% (Frame:" << currentFrame << "/" << totalFrames << ")";
                 }
             }
         }
@@ -619,6 +625,45 @@ QSize VideoExporter::getDefaultOverlaySize()
     // If default overlay can't be loaded for some reason, fall back to 16:9 HD
     qWarning() << "Could not load default overlay image, using fallback size 1280x720";
     return QSize(1280, 720);
+}
+
+double VideoExporter::extractVideoTimecode(const QString &videoPath)
+{
+    if (videoPath.isEmpty()) {
+        return -1.0;
+    }
+
+    QString ffmpegPath = findFFmpegPath();
+    if (ffmpegPath.isEmpty()) {
+        return -1.0;
+    }
+
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+
+    QStringList args;
+    args << "-i" << videoPath;
+
+    process.start(ffmpegPath, args);
+    process.waitForFinished(5000);
+
+    QString output = process.readAllStandardOutput();
+
+    // Look for timecode in stream metadata: "timecode        : 10:39:52:29"
+    QRegularExpression timecodeRegex("timecode\\s*:\\s*(\\d{2}):(\\d{2}):(\\d{2}):(\\d{2})");
+    QRegularExpressionMatch match = timecodeRegex.match(output);
+
+    if (match.hasMatch()) {
+        int hours = match.captured(1).toInt();
+        int minutes = match.captured(2).toInt();
+        int seconds = match.captured(3).toInt();
+        double result = hours * 3600.0 + minutes * 60.0 + seconds;
+        qDebug() << "Extracted video timecode:" << match.captured(0) << "=" << result << "seconds";
+        return result;
+    }
+
+    qDebug() << "No timecode found in video:" << videoPath;
+    return -1.0;
 }
 
 QSize VideoExporter::detectVideoResolution(const QString &videoPath)
@@ -755,21 +800,22 @@ QSize VideoExporter::detectVideoResolution(const QString &videoPath)
     return getDefaultOverlaySize();
 }
 
-QString VideoExporter::createDefaultExportFile(DiveData* dive)
+QString VideoExporter::createDefaultExportFile(DiveData* dive, const QString &videoFilePath)
 {
     if (!dive) {
         return QString();
     }
-    
+
     // Generate a unique file name for this dive
     QString extension = getFileExtensionForCodec(m_videoCodec);
-    return generateUniqueFileName(dive, extension);
+    m_pendingOutputPath = generateUniqueFileName(dive, extension, videoFilePath);
+    return m_pendingOutputPath;
 }
 
-QString VideoExporter::generateUniqueFileName(DiveData* dive, const QString &extension)
+QString VideoExporter::generateUniqueFileName(DiveData* dive, const QString &extension, const QString &videoFilePath)
 {
     QString baseName;
-    
+
     // Use dive date and name to create the file name
     QDateTime diveTime = dive->startTime();
     if (diveTime.isValid()) {
@@ -777,27 +823,35 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive, const QString &ext
     } else {
         baseName = QDateTime::currentDateTime().toString("yyyy-MM-dd_HHmmss");
     }
-    
+
     // Add dive name if available
     if (!dive->diveName().isEmpty()) {
         baseName += "_" + sanitizeFileName(dive->diveName());
     }
-    
+
     // Add location if available
     if (!dive->location().isEmpty()) {
         baseName += "_" + sanitizeFileName(dive->location());
     }
-    
+
+    // Add video filename stem if a video is imported
+    if (!videoFilePath.isEmpty()) {
+        QString videoStem = QFileInfo(videoFilePath).completeBaseName();
+        if (!videoStem.isEmpty()) {
+            baseName += "_" + sanitizeFileName(videoStem);
+        }
+    }
+
     // Add extension
     baseName += "." + extension;
-    
+
     // Create full path - make sure the directory exists before returning the file path
     QString dirPath = m_exportPath;
     QDir dir(dirPath);
     if (!dir.exists()) {
         dir.mkpath(".");
     }
-    
+
     // Create and return the full path
     return QDir(dirPath).filePath(baseName);
 }

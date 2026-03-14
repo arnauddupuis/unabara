@@ -172,8 +172,23 @@ ApplicationWindow {
                 console.log("Video resolution:", metadataPlayer.metaData.resolution)
                 
                 timelineView.setVideoDuration(durationInSeconds) // Convert from milliseconds to seconds
-                // Default to positioning video at the beginning of the dive
-                timelineView.timeline.videoOffset = 0.0
+
+                // Auto-sync video offset from timecode if available
+                let autoSynced = false
+                if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                    let timecodeSeconds = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                    if (timecodeSeconds >= 0) {
+                        let diveStart = mainWindow.currentDive.startTime
+                        let diveStartSecs = diveStart.getHours() * 3600 + diveStart.getMinutes() * 60 + diveStart.getSeconds()
+                        let offset = timecodeSeconds - diveStartSecs
+                        console.log("Auto-sync video offset: timecode =", timecodeSeconds, "s, dive start =", diveStartSecs, "s, offset =", offset, "s")
+                        timelineView.timeline.videoOffset = offset
+                        autoSynced = true
+                    }
+                }
+                if (!autoSynced) {
+                    timelineView.timeline.videoOffset = 0.0
+                }
             }
         }
         
@@ -531,7 +546,20 @@ ApplicationWindow {
                         console.log("Using fallback 60 second duration");
                         timelineView.setVideoDuration(60); // Default to 1 minute
                     }
-                    timelineView.timeline.videoOffset = 0.0; // Position at beginning of dive
+                    // Auto-sync video offset from timecode if available
+                    let synced = false
+                    if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                        let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                        if (tc >= 0) {
+                            let ds = mainWindow.currentDive.startTime
+                            let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
+                            timelineView.timeline.videoOffset = tc - dsSecs
+                            synced = true
+                        }
+                    }
+                    if (!synced) {
+                        timelineView.timeline.videoOffset = 0.0
+                    }
                 } else {
                     console.log("Duration already set to:", timelineView.timeline.videoDuration);
                 }

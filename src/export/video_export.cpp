@@ -627,6 +627,45 @@ QSize VideoExporter::getDefaultOverlaySize()
     return QSize(1280, 720);
 }
 
+double VideoExporter::extractVideoTimecode(const QString &videoPath)
+{
+    if (videoPath.isEmpty()) {
+        return -1.0;
+    }
+
+    QString ffmpegPath = findFFmpegPath();
+    if (ffmpegPath.isEmpty()) {
+        return -1.0;
+    }
+
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+
+    QStringList args;
+    args << "-i" << videoPath;
+
+    process.start(ffmpegPath, args);
+    process.waitForFinished(5000);
+
+    QString output = process.readAllStandardOutput();
+
+    // Look for timecode in stream metadata: "timecode        : 10:39:52:29"
+    QRegularExpression timecodeRegex("timecode\\s*:\\s*(\\d{2}):(\\d{2}):(\\d{2}):(\\d{2})");
+    QRegularExpressionMatch match = timecodeRegex.match(output);
+
+    if (match.hasMatch()) {
+        int hours = match.captured(1).toInt();
+        int minutes = match.captured(2).toInt();
+        int seconds = match.captured(3).toInt();
+        double result = hours * 3600.0 + minutes * 60.0 + seconds;
+        qDebug() << "Extracted video timecode:" << match.captured(0) << "=" << result << "seconds";
+        return result;
+    }
+
+    qDebug() << "No timecode found in video:" << videoPath;
+    return -1.0;
+}
+
 QSize VideoExporter::detectVideoResolution(const QString &videoPath)
 {
     if (videoPath.isEmpty()) {

@@ -1098,7 +1098,7 @@ ApplicationWindow {
         closePolicy: Popup.NoAutoClose
         standardButtons: Dialog.Cancel
         width: 500
-        height: 250
+        height: 280
         
         property int value: 0
         property string statusText: qsTr("Preparing...")
@@ -1182,11 +1182,11 @@ ApplicationWindow {
                 text: qsTr("Progress: %1%").arg(videoExportProgressDialog.value)
                 Layout.alignment: Qt.AlignHCenter
             }
-            
+
             Item {
                 Layout.fillHeight: true
             }
-            
+
             Label {
                 text: qsTr("This process can take several minutes depending on video length and settings.\nDo not close the application during export.")
                 Layout.fillWidth: true

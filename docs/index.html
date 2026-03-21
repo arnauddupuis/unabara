@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unabara - Telemetry Overlays for Scuba Diving Videos</title>
+    <meta name="description" content="Open-source desktop application for creating telemetry overlays for scuba diving videos. Import Subsurface dive logs, customize overlays, export with ease.">
+    <link rel="icon" type="image/svg+xml" href="images/unabara-icon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-content">
+            <a href="#" class="nav-logo">
+                <img src="images/unabara-logo.svg" alt="Unabara" height="32">
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#demo">Demo</a>
+                <a href="#download">Download</a>
+                <a href="https://github.com/arnauddupuis/unabara/wiki" target="_blank">Wiki</a>
+                <a href="https://github.com/arnauddupuis/unabara" target="_blank" class="nav-github">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <img src="images/unabara-logo.svg" alt="Unabara Logo" class="hero-logo">
+            <h1>Telemetry overlays for scuba diving videos</h1>
+            <p class="hero-subtitle">Import your dive logs, customize your overlay, export in seconds. Open source, cross-platform, free.</p>
+            <div class="hero-buttons">
+                <a href="#download" class="btn btn-primary">Download v0.1.0</a>
+                <a href="https://github.com/arnauddupuis/unabara" target="_blank" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshot -->
+    <section class="screenshot">
+        <div class="container">
+            <img src="images/unabara-release-0.1.0-screenshot.png" alt="Unabara main interface" class="screenshot-img">
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4CB;</div>
+                    <h3>Import Dive Logs</h3>
+                    <p>Import Subsurface dive logs (XML/SSRF) with full support for recreational, technical, and CCR dives with multi-tank pressure tracking.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F3A8;</div>
+                    <h3>Template Editor</h3>
+                    <p>Drag-and-drop overlay editor with per-cell styling, custom fonts, colors, and background images. Save and share your designs as .utp templates.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4F9;</div>
+                    <h3>Video Import &amp; Auto-Sync</h3>
+                    <p>Import your footage and auto-align it with the dive data using embedded timecodes. Manual adjustment always available.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4CA;</div>
+                    <h3>Interactive Timeline</h3>
+                    <p>Visualize depth, temperature, and pressure graphs. Scrub through your dive, zoom into sections of interest.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4E6;</div>
+                    <h3>Flexible Export</h3>
+                    <p>Export transparent PNG sequences or encode directly to video (H.264, ProRes, VP9, HEVC) via FFmpeg.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4BB;</div>
+                    <h3>Cross-Platform</h3>
+                    <p>Available for Windows, macOS, and Linux (Flatpak). Built with Qt 6 for a native experience on every platform.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <h2>See It in Action</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>Open Circuit Technical Dive (4 tanks)</h3>
+                    <video controls muted loop playsinline preload="metadata">
+                        <source src="https://github.com/user-attachments/assets/79ebb199-646d-4c17-a3ff-946a2d380bce" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="demo-item">
+                    <h3>Closed Circuit Rebreather Technical Dive</h3>
+                    <video controls muted loop playsinline preload="metadata">
+                        <source src="https://github.com/user-attachments/assets/883adb29-4929-42e1-9437-0fd66c9d98e4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Getting Started -->
+    <section class="getting-started">
+        <div class="container">
+            <h2>Getting Started</h2>
+            <div class="steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h3>Import your dive log</h3>
+                        <p>Export your dive from Subsurface as .ssrf or .xml and import it into Unabara.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h3>Customize your overlay</h3>
+                        <p>Pick a template or create your own. Drag cells, change fonts, add a background image.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <div>
+                        <h3>Import your video</h3>
+                        <p>Load your footage. If your camera records timecodes, the overlay auto-aligns to the dive timeline.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <div>
+                        <h3>Export</h3>
+                        <p>Export as a transparent image sequence for your editor, or encode directly to video with FFmpeg.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download" class="download">
+        <div class="container">
+            <h2>Download</h2>
+            <p class="download-subtitle">Free and open source. No account required.</p>
+            <div class="download-grid">
+                <a href="https://github.com/arnauddupuis/unabara/releases" target="_blank" class="download-card">
+                    <div class="download-icon">&#x1FA9F;</div>
+                    <h3>Windows</h3>
+                    <p>Portable .zip archive</p>
+                </a>
+                <a href="https://github.com/arnauddupuis/unabara/releases" target="_blank" class="download-card">
+                    <div class="download-icon">&#x1F34E;</div>
+                    <h3>macOS</h3>
+                    <p>Universal .dmg (Intel + Apple Silicon)</p>
+                </a>
+                <a href="https://github.com/arnauddupuis/unabara/releases" target="_blank" class="download-card">
+                    <div class="download-icon">&#x1F427;</div>
+                    <h3>Linux</h3>
+                    <p>Flatpak package</p>
+                </a>
+            </div>
+            <p class="download-note">Optional: install <a href="https://ffmpeg.org/download.html" target="_blank">FFmpeg</a> for direct video export.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-left">
+                <img src="images/unabara-logo.svg" alt="Unabara" height="24">
+                <p>"Unabara" means "the ocean" in Japanese.</p>
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/arnauddupuis/unabara" target="_blank">GitHub</a>
+                <a href="https://github.com/arnauddupuis/unabara/wiki" target="_blank">Documentation</a>
+                <a href="https://github.com/arnauddupuis/unabara/issues" target="_blank">Report a Bug</a>
+                <a href="https://github.com/arnauddupuis/unabara/blob/main/LICENSE" target="_blank">License (GPL v2)</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

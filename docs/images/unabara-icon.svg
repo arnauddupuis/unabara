@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 400 400"
+   version="1.1"
+   id="svg12"
+   sodipodi:docname="unabara-icon.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   inkscape:export-filename="unabara-logo-128.png"
+   inkscape:export-xdpi="30.719999"
+   inkscape:export-ydpi="30.719999"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     id="namedview12"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showguides="true"
+     inkscape:zoom="2.2035782"
+     inkscape:cx="109.59448"
+     inkscape:cy="240.7448"
+     inkscape:window-width="2552"
+     inkscape:window-height="1364"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg12">
+    <sodipodi:guide
+       position="800,378.60224"
+       orientation="-1,0"
+       id="guide14"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="200,378.25712"
+       orientation="-1,0"
+       id="guide15"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="245.25049,200"
+       orientation="0,1"
+       id="guide1"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="325,170.93939"
+       orientation="-1,0"
+       id="guide2"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="75,150.24806"
+       orientation="-1,0"
+       id="guide3"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="162.88692,310"
+       orientation="0,1"
+       id="guide4"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="287.5,100"
+       orientation="0,1"
+       id="guide5"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="90,275.17369"
+       orientation="-1,0"
+       id="guide6"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="310,110.52816"
+       orientation="-1,0"
+       id="guide7"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="269.3059,295"
+       orientation="0,1"
+       id="guide8"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="214.95761,115"
+       orientation="0,1"
+       id="guide9"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="140,170.215"
+       orientation="-1,0"
+       id="guide10"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="260,234.2677"
+       orientation="-1,0"
+       id="guide11"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="150,194.80817"
+       orientation="-1,0"
+       id="guide12"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="250,188.39637"
+       orientation="-1,0"
+       id="guide13"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="197.32111,220"
+       orientation="0,1"
+       id="guide16"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="90.429979,180"
+       orientation="0,1"
+       id="guide17"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+  </sodipodi:namedview>
+  <!-- Background circle -->
+  <circle
+     cx="200"
+     cy="200"
+     r="180"
+     fill="#0A3D62"
+     id="circle1" />
+  <circle
+     cx="200"
+     cy="200"
+     r="170"
+     fill="#1E5F8B"
+     id="circle2" />
+  <!-- Dive computer display overlay -->
+  <rect
+     x="77.608124"
+     y="92.469528"
+     width="244.94763"
+     height="204.91293"
+     rx="12.247382"
+     ry="12.807059"
+     fill="#083358"
+     stroke="#3498db"
+     stroke-width="5.00965"
+     id="rect2" />
+  <!-- Telemetry data elements -->
+  <!-- Depth gauge -->
+  <path
+     d="M 91.796534,107.07112 V 283.32604 H 138.35029 V 107.07112 Z"
+     fill="#0a3d62"
+     stroke="#3498db"
+     stroke-width="3.69805"
+     id="path2" />
+  <rect
+     x="99.555489"
+     y="118.08706"
+     width="31.035831"
+     height="154.22304"
+     fill="#3498db"
+     id="rect3"
+     style="stroke-width:1.84901" />
+  <!-- Time display -->
+  <rect
+     x="151.77769"
+     y="107.06282"
+     width="95.927734"
+     height="70.848396"
+     rx="6.3951821"
+     ry="9.4464521"
+     fill="#0a3d62"
+     stroke="#3498db"
+     stroke-width="3.88625"
+     id="rect4" />
+  <text
+     x="263.46652"
+     y="123.64602"
+     text-anchor="middle"
+     fill="#3498db"
+     font-family="Arial"
+     font-size="44.6665px"
+     font-weight="bold"
+     id="text4"
+     transform="scale(0.75637055,1.3221033)"
+     style="stroke-width:2.79166">12:34</text>
+  <!-- Temperature -->
+  <rect
+     x="152.35695"
+     y="202.19591"
+     width="95.449913"
+     height="80.694679"
+     rx="6.3633261"
+     ry="10.75929"
+     fill="#0a3d62"
+     stroke="#3498db"
+     stroke-width="4.13718"
+     id="rect5" />
+  <text
+     x="275.45853"
+     y="193.799"
+     text-anchor="middle"
+     fill="#3498db"
+     font-family="Arial"
+     font-size="49.6302px"
+     font-weight="bold"
+     id="text6"
+     transform="scale(0.72436655,1.3805165)"
+     style="stroke-width:3.10187">21°C</text>
+  <!-- NDL indicator -->
+  <rect
+     x="261.95676"
+     y="106.83773"
+     width="46.190144"
+     height="176.40341"
+     rx="6.1586843"
+     ry="8.8201704"
+     fill="#0a3d62"
+     stroke="#3498db"
+     stroke-width="3.68513"
+     id="rect7" />
+  <rect
+     x="269.65506"
+     y="117.863"
+     width="30.793428"
+     height="99.226929"
+     fill="#3498db"
+     id="rect8"
+     style="stroke-width:1.84255" />
+  <!-- Bubbles -->
+  <circle
+     cx="99.654877"
+     cy="315.88437"
+     r="10"
+     fill="#3498db"
+     opacity="0.8"
+     id="circle8" />
+  <circle
+     cx="119.65488"
+     cy="325.88437"
+     r="8"
+     fill="#3498db"
+     opacity="0.6"
+     id="circle9" />
+  <circle
+     cx="134.65488"
+     cy="320.88437"
+     r="6"
+     fill="#3498db"
+     opacity="0.4"
+     id="circle10" />
+  <circle
+     cx="149.65488"
+     cy="330.88437"
+     r="4"
+     fill="#3498db"
+     opacity="0.3"
+     id="circle11" />
+  <!-- Diver silhouette -->
+  <!-- <path d="M305 280 C315 275, 325 290, 330 280 L340 290 L325 310 L315 300 Z" fill="#3498DB" /> -->
+  <circle
+     cx="283.0889"
+     cy="311.76016"
+     r="10"
+     fill="#3498db"
+     id="circle12" />
+  <!-- Text -->
+  <circle
+     cx="270.8197"
+     cy="329.68079"
+     r="8"
+     fill="#3498db"
+     opacity="0.6"
+     id="circle13" />
+  <circle
+     cx="285.47455"
+     cy="338.48578"
+     r="6"
+     fill="#3498db"
+     opacity="0.4"
+     id="circle14" />
+</svg>

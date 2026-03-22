@@ -163,7 +163,7 @@ QList<QString> LogParser::getDiveList(const QString &filePath)
         while (!xml.atEnd() && !xml.hasError()) {
             QXmlStreamReader::TokenType token = xml.readNext();
             
-            if (token == QXmlStreamReader::StartElement && xml.name() == "dive") {
+            if (token == QXmlStreamReader::StartElement && xml.name() == QStringLiteral("dive")) {
                 QString diveDate;
                 QString diveTime;
                 QString diveLocation;
@@ -236,10 +236,10 @@ bool LogParser::parseSubsurfaceXML(QFile &file, QList<DiveData*> &result, int sp
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
-        if (token == QXmlStreamReader::StartElement && xml.name() == "divesites") {
+        if (token == QXmlStreamReader::StartElement && xml.name() == QStringLiteral("divesites")) {
             qDebug() << "Found divesites element";
             parseDiveSites(xml);
-        } else if (token == QXmlStreamReader::StartElement && xml.name() == "dive") {
+        } else if (token == QXmlStreamReader::StartElement && xml.name() == QStringLiteral("dive")) {
             qDebug() << "Found dive element";
             // Check if we're looking for a specific dive
             if (specificDive != -1) {
@@ -343,7 +343,7 @@ DiveData* LogParser::parseDiveElement(QXmlStreamReader &xml)
     while (!xml.atEnd()) {
         xml.readNext();
         
-        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "dive") {
+        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("dive")) {
             break;
         }
         
@@ -490,7 +490,7 @@ void LogParser::parseCylinderElement(QXmlStreamReader &xml, DiveData* dive)
              << "Initial pressure:" << initialPressure << "bar";
     
     // Skip to the end of this element
-    while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "cylinder")) {
+    while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("cylinder"))) {
         xml.readNext();
         if (xml.atEnd()) break;
     }
@@ -520,7 +520,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
     while (!xml.atEnd()) {
         xml.readNext();
         
-        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "divecomputer") {
+        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("divecomputer")) {
             break;  // Exit when we reach the end of divecomputer
         }
         
@@ -549,7 +549,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
                     }
                 }
                 // Skip to the end of this element
-                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "temperature")) {
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("temperature"))) {
                     xml.readNext();
                     if (xml.atEnd()) break;
                 }
@@ -557,7 +557,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
                 // Handle events, including gas switches
                 QXmlStreamAttributes eventAttrs = xml.attributes();
                 
-                if (eventAttrs.hasAttribute("name") && eventAttrs.value("name") == "gaschange") {
+                if (eventAttrs.hasAttribute("name") && eventAttrs.value("name") == QStringLiteral("gaschange")) {
                     // This is a gas change event
                     if (eventAttrs.hasAttribute("time") && eventAttrs.hasAttribute("cylinder")) {
                         // Extract timestamp
@@ -591,7 +591,7 @@ void LogParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData* dive, 
                 }
                 
                 // Skip to the end of this event
-                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "event")) {
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("event"))) {
                     xml.readNext();
                     if (xml.atEnd()) break;
                 }
@@ -968,11 +968,11 @@ void LogParser::parseDiveSites(QXmlStreamReader &xml)
     while (!xml.atEnd()) {
         xml.readNext();
         
-        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "divesites") {
+        if (xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("divesites")) {
             break;  // Exit when we reach the end of divesites
         }
         
-        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == "site") {
+        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == QStringLiteral("site")) {
             // Parse individual dive site
             QXmlStreamAttributes attrs = xml.attributes();
             DiveSite site;
@@ -1004,7 +1004,7 @@ void LogParser::parseDiveSites(QXmlStreamReader &xml)
             }
             
             // Skip to the end of this site element
-            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "site")) {
+            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("site"))) {
                 xml.readNext();
                 if (xml.atEnd()) break;
             }

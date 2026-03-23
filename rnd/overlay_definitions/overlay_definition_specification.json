@@ -1,0 +1,45 @@
+{
+    "config": {
+        "nb_lines": 4,
+        "nb_columns": 4,
+        "bg_image": "Perdix Black.png",
+        "viewport":[[210,290],[820,290],[820,810],[210,810]]
+    },
+    "styles":{
+        "title_text":{
+            "font": "Menlo",
+            "font_size": 24,
+            "color": "#01b0fd"
+        },
+        "data_text":{
+            "font": "Menlo",
+            "font_size": 24,
+            "color": "#000000"
+        }
+    },
+    "overlay":[
+        [
+            {"text": "Depth", "style": "title_text"},
+            {"text": "Temp", "style": "title_text"},
+            {"block": "TANK_PRESSURE", "title_style": "title_text", "data_style": "data_text", "dimension":[2,2]}
+        ],
+        [
+            {"text": "%DEPTH% %DEPTH_UNIT%", "style": "data_text"},
+            {"text": "%TEMP%", "style": "data_text"},
+            {},
+            {}
+        ],
+        [
+            {"text": "Time", "style": "title_text"},
+            {"text": "%TTS_LABEL%", "style": "title_text"},
+            {},
+            {}
+        ],
+        [
+            {"text": "%DIVE_TIME%", "style": "data_text"},
+            {"text": "%TTS%", "style": "data_text"},
+            {},
+            {}
+        ],
+    ]
+}

@@ -1,0 +1,842 @@
+<divelog program='subsurface' version='3'>
+<settings>
+<fingerprint model='4b35c170' serial='00002f57' deviceid='d0ae84c9' diveid='b3258c65' data='39100200b602c40204151810e0100000'/>
+</settings>
+<divesites>
+<site uuid='a2975480' name='Meeks Bay' gps='39.039122 -120.121956' description='Lake Tahoe'>
+</site>
+</divesites>
+<dives>
+<dive number='113' sac='27.363 l/min' otu='1' cns='2%' divesiteid='a2975480' date='2022-09-25' time='11:28:00' duration='31:30 min'>
+  <divemaster>Michael Norreel</divemaster>
+  <cylinder size='12.087 l' workpressure='237.318 bar' description='HP100' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <divecomputer model='Aqualung i770R' deviceid='224110ff' diveid='e600a1e2'>
+  <depth max='18.402 m' mean='11.653 m' />
+  <temperature water='15.0 C' />
+  <extradata key='Serial' value='012119' />
+  <sample time='0:15 min' depth='4.705 m' temp='19.444 C' pressure='229.733 bar' ndl='599:00 min' rbt='107:00 min' />
+  <sample time='0:30 min' depth='6.915 m' temp='18.889 C' pressure='228.63 bar' ndl='266:00 min' rbt='66:00 min' />
+  <sample time='0:45 min' depth='8.077 m' pressure='226.286 bar' ndl='156:00 min' rbt='46:00 min' />
+  <sample time='1:00 min' depth='10.706 m' pressure='223.942 bar' ndl='83:00 min' rbt='29:00 min' />
+  <sample time='1:15 min' depth='12.173 m' temp='18.333 C' pressure='222.011 bar' ndl='68:00 min' rbt='26:00 min' />
+  <sample time='1:30 min' depth='13.83 m' pressure='219.529 bar' ndl='50:00 min' rbt='23:00 min' />
+  <sample time='1:45 min' depth='14.002 m' pressure='217.047 bar' ndl='46:00 min' rbt='22:00 min' />
+  <sample time='2:00 min' depth='14.992 m' temp='17.778 C' pressure='214.565 bar' ndl='43:00 min' rbt='21:00 min' />
+  <sample time='2:15 min' depth='14.249 m' pressure='212.496 bar' ndl='46:00 min' rbt='23:00 min' />
+  <sample time='2:30 min' depth='14.364 m' pressure='211.255 bar' ndl='45:00 min' rbt='24:00 min' />
+  <sample time='2:45 min' depth='14.364 m' pressure='209.325 bar' ndl='42:00 min' rbt='26:00 min' />
+  <sample time='3:00 min' depth='14.802 m' pressure='208.36 bar' ndl='43:00 min' rbt='27:00 min' />
+  <sample time='3:15 min' depth='15.107 m' temp='17.222 C' pressure='206.567 bar' ndl='40:00 min' rbt='30:00 min' />
+  <sample time='3:30 min' depth='14.745 m' pressure='204.085 bar' ndl='41:00 min' rbt='33:00 min' />
+  <sample time='3:45 min' depth='15.411 m' pressure='203.533 bar' ndl='38:00 min' rbt='32:00 min' />
+  <sample time='4:00 min' depth='15.05 m' pressure='201.051 bar' ndl='39:00 min' rbt='36:00 min' />
+  <sample time='4:15 min' depth='16.326 m' pressure='200.086 bar' ndl='33:00 min' rbt='32:00 min' />
+  <sample time='4:30 min' depth='16.078 m' pressure='198.293 bar' rbt='30:00 min' />
+  <sample time='4:45 min' depth='15.907 m' pressure='195.949 bar' ndl='36:00 min' rbt='31:00 min' />
+  <sample time='5:00 min' depth='16.326 m' temp='16.667 C' pressure='193.881 bar' ndl='33:00 min' rbt='28:00 min' />
+  <sample time='5:15 min' depth='17.24 m' pressure='191.536 bar' ndl='29:00 min' rbt='25:00 min' />
+  <sample time='5:30 min' depth='17.316 m' pressure='190.433 bar' ndl='28:00 min' rbt='24:00 min' />
+  <sample time='5:45 min' depth='18.402 m' pressure='188.089 bar' ndl='25:00 min' rbt='23:00 min' />
+  <sample time='6:00 min' depth='17.736 m' temp='16.111 C' pressure='186.296 bar' />
+  <sample time='6:15 min' depth='17.012 m' pressure='184.228 bar' ndl='26:00 min' rbt='24:00 min' />
+  <sample time='6:30 min' depth='16.516 m' pressure='182.022 bar' ndl='29:00 min' />
+  <sample time='6:45 min' depth='15.659 m' pressure='181.056 bar' ndl='33:00 min' />
+  <sample time='7:00 min' depth='14.364 m' pressure='179.126 bar' ndl='40:00 min' rbt='25:00 min' />
+  <sample time='7:15 min' depth='14.135 m' pressure='178.161 bar' rbt='26:00 min' />
+  <sample time='7:30 min' depth='13.449 m' pressure='178.023 bar' ndl='43:00 min' rbt='29:00 min' />
+  <sample time='7:45 min' depth='13.278 m' temp='15.556 C' pressure='176.368 bar' ndl='45:00 min' rbt='41:00 min' />
+  <sample time='8:00 min' depth='13.087 m' pressure='174.989 bar' ndl='47:00 min' rbt='50:00 min' />
+  <sample time='8:15 min' depth='12.84 m' pressure='174.162 bar' ndl='46:00 min' rbt='49:00 min' />
+  <sample time='8:30 min' depth='12.973 m' pressure='171.955 bar' ndl='49:00 min' rbt='43:00 min' />
+  <sample time='8:45 min' depth='11.868 m' pressure='170.99 bar' ndl='57:00 min' rbt='35:00 min' />
+  <sample time='9:00 min' depth='11.811 m' pressure='169.749 bar' rbt='32:00 min' />
+  <sample time='9:15 min' depth='12.173 m' pressure='169.473 bar' ndl='53:00 min' rbt='31:00 min' />
+  <sample time='9:30 min' depth='11.487 m' pressure='167.267 bar' ndl='60:00 min' rbt='33:00 min' />
+  <sample time='9:45 min' depth='12.592 m' pressure='166.715 bar' ndl='50:00 min' />
+  <sample time='10:00 min' depth='12.478 m' pressure='165.474 bar' />
+  <sample time='10:15 min' depth='13.087 m' pressure='164.095 bar' ndl='45:00 min' rbt='35:00 min' />
+  <sample time='10:30 min' depth='14.002 m' pressure='163.13 bar' ndl='39:00 min' rbt='33:00 min' />
+  <sample time='10:45 min' depth='13.583 m' pressure='161.337 bar' ndl='40:00 min' />
+  <sample time='11:00 min' depth='14.002 m' pressure='158.855 bar' ndl='38:00 min' rbt='32:00 min' />
+  <sample time='11:15 min' depth='14.307 m' pressure='158.304 bar' ndl='36:00 min' rbt='26:00 min' />
+  <sample time='11:30 min' depth='13.697 m' pressure='156.787 bar' ndl='39:00 min' rbt='25:00 min' />
+  <sample time='11:45 min' depth='14.192 m' pressure='154.856 bar' ndl='36:00 min' rbt='23:00 min' />
+  <sample time='12:00 min' depth='14.364 m' pressure='153.202 bar' ndl='35:00 min' rbt='22:00 min' />
+  <sample time='12:15 min' depth='14.249 m' pressure='151.547 bar' ndl='34:00 min' />
+  <sample time='12:30 min' depth='14.44 m' pressure='150.719 bar' />
+  <sample time='12:45 min' depth='13.392 m' temp='15.0 C' pressure='149.065 bar' ndl='38:00 min' rbt='23:00 min' />
+  <sample time='13:00 min' depth='12.783 m' pressure='148.513 bar' ndl='44:00 min' rbt='25:00 min' />
+  <sample time='13:15 min' depth='12.23 m' pressure='147.272 bar' ndl='46:00 min' rbt='29:00 min' />
+  <sample time='13:30 min' depth='11.868 m' pressure='146.583 bar' ndl='52:00 min' rbt='32:00 min' />
+  <sample time='13:45 min' depth='11.678 m' temp='15.556 C' pressure='145.066 bar' ndl='51:00 min' rbt='34:00 min' />
+  <sample time='14:00 min' depth='11.62 m' pressure='143.411 bar' ndl='55:00 min' />
+  <sample time='14:15 min' depth='12.725 m' pressure='142.584 bar' ndl='43:00 min' rbt='27:00 min' />
+  <sample time='14:30 min' depth='13.583 m' temp='15.0 C' pressure='141.067 bar' ndl='36:00 min' rbt='24:00 min' />
+  <sample time='14:45 min' depth='14.44 m' temp='15.556 C' pressure='138.998 bar' ndl='32:00 min' rbt='21:00 min' />
+  <sample time='15:00 min' depth='14.611 m' pressure='137.344 bar' ndl='31:00 min' rbt='19:00 min' />
+  <sample time='15:15 min' depth='13.583 m' temp='15.0 C' pressure='135.827 bar' ndl='34:00 min' />
+  <sample time='15:30 min' depth='12.421 m' temp='15.556 C' pressure='134.861 bar' ndl='41:00 min' />
+  <sample time='15:45 min' depth='11.735 m' temp='15.0 C' pressure='133.758 bar' ndl='49:00 min' rbt='20:00 min' />
+  <sample time='16:00 min' depth='11.811 m' pressure='132.379 bar' rbt='21:00 min' />
+  <sample time='16:15 min' depth='12.287 m' temp='15.556 C' pressure='130.311 bar' ndl='43:00 min' rbt='22:00 min' />
+  <sample time='16:30 min' depth='12.84 m' pressure='128.932 bar' ndl='40:00 min' rbt='21:00 min' />
+  <sample time='16:45 min' depth='13.087 m' temp='15.0 C' pressure='128.242 bar' ndl='38:00 min' rbt='19:00 min' />
+  <sample time='17:00 min' depth='12.973 m' pressure='126.864 bar' />
+  <sample time='17:15 min' depth='13.144 m' pressure='125.209 bar' ndl='37:00 min' rbt='18:00 min' />
+  <sample time='17:30 min' depth='13.83 m' ndl='34:00 min' rbt='19:00 min' />
+  <sample time='17:45 min' depth='13.83 m' pressure='122.727 bar' ndl='32:00 min' />
+  <sample time='18:00 min' depth='14.497 m' pressure='121.072 bar' ndl='29:00 min' rbt='18:00 min' />
+  <sample time='18:15 min' depth='14.497 m' temp='15.556 C' pressure='119.969 bar' ndl='30:00 min' rbt='16:00 min' />
+  <sample time='18:30 min' depth='15.164 m' pressure='118.452 bar' ndl='25:00 min' rbt='15:00 min' />
+  <sample time='18:45 min' depth='15.221 m' temp='15.0 C' pressure='116.935 bar' />
+  <sample time='19:00 min' depth='14.688 m' temp='15.556 C' pressure='114.729 bar' ndl='27:00 min' />
+  <sample time='19:15 min' depth='13.754 m' pressure='113.35 bar' ndl='30:00 min' />
+  <sample time='19:30 min' depth='12.725 m' temp='15.0 C' pressure='112.385 bar' ndl='35:00 min' />
+  <sample time='19:45 min' depth='12.23 m' pressure='111.557 bar' ndl='39:00 min' />
+  <sample time='20:00 min' depth='11.735 m' temp='15.556 C' pressure='109.765 bar' ndl='44:00 min' rbt='16:00 min' />
+  <sample time='20:15 min' depth='11.316 m' temp='15.0 C' pressure='108.799 bar' ndl='51:00 min' rbt='19:00 min' />
+  <sample time='20:30 min' depth='11.43 m' pressure='107.834 bar' ndl='47:00 min' />
+  <sample time='20:45 min' depth='12.287 m' pressure='106.593 bar' ndl='38:00 min' rbt='17:00 min' />
+  <sample time='21:00 min' depth='12.897 m' pressure='104.8 bar' ndl='35:00 min' rbt='15:00 min' />
+  <sample time='21:15 min' depth='14.364 m' pressure='102.456 bar' ndl='27:00 min' rbt='13:00 min' />
+  <sample time='21:30 min' depth='15.411 m' pressure='101.215 bar' ndl='23:00 min' rbt='11:00 min' />
+  <sample time='21:45 min' depth='15.164 m' pressure='100.112 bar' ndl='24:00 min' rbt='10:00 min' />
+  <sample time='22:00 min' depth='15.411 m' temp='15.556 C' pressure='98.181 bar' ndl='22:00 min' />
+  <sample time='22:15 min' depth='15.469 m' pressure='95.975 bar' />
+  <sample time='22:30 min' depth='15.469 m' temp='15.0 C' pressure='95.01 bar' />
+  <sample time='22:45 min' depth='15.85 m' temp='15.556 C' pressure='94.182 bar' ndl='21:00 min' />
+  <sample time='23:00 min' depth='14.802 m' temp='15.0 C' pressure='92.528 bar' ndl='23:00 min' rbt='11:00 min' />
+  <sample time='23:15 min' depth='14.192 m' temp='15.556 C' pressure='91.838 bar' ndl='25:00 min' rbt='12:00 min' />
+  <sample time='23:30 min' depth='12.783 m' pressure='90.735 bar' ndl='30:00 min' rbt='14:00 min' />
+  <sample time='23:45 min' depth='12.478 m' temp='15.0 C' pressure='90.046 bar' ndl='34:00 min' rbt='16:00 min' />
+  <sample time='24:00 min' depth='12.04 m' pressure='88.529 bar' ndl='36:00 min' />
+  <sample time='24:15 min' depth='10.516 m' pressure='87.15 bar' ndl='54:00 min' rbt='17:00 min' />
+  <sample time='24:30 min' depth='10.63 m' pressure='85.909 bar' rbt='15:00 min' />
+  <sample time='24:45 min' depth='10.516 m' pressure='84.53 bar' rbt='11:00 min' />
+  <sample time='25:00 min' depth='7.582 m' pressure='83.427 bar' ndl='165:00 min' rbt='13:00 min' />
+  <sample time='25:15 min' depth='10.401 m' pressure='80.944 bar' ndl='53:00 min' rbt='10:00 min' />
+  <sample time='25:30 min' depth='8.858 m' pressure='80.255 bar' ndl='81:00 min' />
+  <sample time='25:45 min' depth='8.077 m' pressure='79.152 bar' ndl='96:00 min' rbt='9:00 min' />
+  <sample time='26:00 min' depth='7.22 m' pressure='77.911 bar' ndl='163:00 min' rbt='10:00 min' />
+  <sample time='26:15 min' depth='6.534 m' pressure='76.945 bar' ndl='279:00 min' rbt='11:00 min' />
+  <sample time='26:30 min' depth='5.563 m' pressure='75.842 bar' ndl='523:00 min' rbt='13:00 min' />
+  <sample time='26:45 min' depth='4.153 m' pressure='75.153 bar' ndl='599:00 min' rbt='16:00 min' />
+  <sample time='27:00 min' depth='4.82 m' pressure='74.188 bar' rbt='14:00 min' />
+  <sample time='27:15 min' depth='4.762 m' pressure='73.498 bar' />
+  <sample time='27:30 min' depth='4.267 m' temp='15.556 C' pressure='72.671 bar' rbt='15:00 min' />
+  <sample time='27:45 min' depth='3.238 m' pressure='71.981 bar' rbt='17:00 min' />
+  <sample time='28:00 min' depth='2.438 m' temp='15.0 C' pressure='70.878 bar' />
+  <sample time='28:15 min' depth='2.8 m' pressure='70.189 bar' rbt='15:00 min' />
+  <sample time='28:30 min' depth='3.6 m' pressure='69.499 bar' />
+  <sample time='28:45 min' depth='3.715 m' temp='15.556 C' pressure='68.534 bar' />
+  <sample time='29:00 min' depth='4.039 m' pressure='67.982 bar' rbt='14:00 min' />
+  <sample time='29:15 min' depth='3.962 m' pressure='67.431 bar' rbt='15:00 min' />
+  <sample time='29:30 min' depth='3.715 m' pressure='67.155 bar' rbt='17:00 min' />
+  <sample time='29:45 min' depth='3.658 m' pressure='66.19 bar' rbt='19:00 min' />
+  <sample time='30:00 min' depth='3.486 m' pressure='65.914 bar' rbt='20:00 min' />
+  <sample time='30:15 min' depth='3.658 m' pressure='65.224 bar' />
+  <sample time='30:30 min' depth='3.962 m' pressure='64.397 bar' rbt='19:00 min' />
+  <sample time='30:45 min' depth='3.486 m' pressure='63.845 bar' rbt='18:00 min' />
+  <sample time='31:00 min' depth='3.048 m' pressure='62.88 bar' />
+  <sample time='31:15 min' depth='3.296 m' pressure='61.915 bar' rbt='15:00 min' />
+  <sample time='31:30 min' depth='2.858 m' pressure='60.95 bar' rbt='14:00 min' />
+  </divecomputer>
+</dive>
+<dive number='114' sac='21.304 l/min' date='2022-11-05' time='10:13:00' duration='51:45 min'>
+  <cylinder size='12.087 l' workpressure='237.318 bar' description='HP100' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <divecomputer model='Aqualung i770R' deviceid='224110ff' diveid='323203bb'>
+  <depth max='14.992 m' mean='8.828 m' />
+  <temperature water='10.0 C' />
+  <extradata key='Serial' value='012119' />
+  <sample time='0:15 min' depth='2.686 m' temp='11.667 C' pressure='234.835 bar' ndl='599:00 min' rbt='247:00 min' />
+  <sample time='0:30 min' depth='5.734 m' temp='11.111 C' pressure='232.905 bar' rbt='75:00 min' />
+  <sample time='0:45 min' depth='7.449 m' pressure='230.147 bar' ndl='451:00 min' rbt='48:00 min' />
+  <sample time='1:00 min' depth='7.582 m' pressure='227.389 bar' rbt='29:00 min' />
+  <sample time='1:15 min' depth='5.734 m' pressure='226.01 bar' ndl='599:00 min' rbt='30:00 min' />
+  <sample time='1:30 min' depth='6.477 m' pressure='224.631 bar' rbt='29:00 min' />
+  <sample time='1:45 min' depth='6.915 m' pressure='223.252 bar' ndl='494:00 min' rbt='30:00 min' />
+  <sample time='2:00 min' depth='7.639 m' pressure='221.184 bar' ndl='332:00 min' rbt='32:00 min' />
+  <sample time='2:15 min' depth='7.639 m' temp='10.556 C' pressure='219.943 bar' ndl='450:00 min' rbt='38:00 min' />
+  <sample time='2:30 min' depth='7.449 m' pressure='218.702 bar' rbt='43:00 min' />
+  <sample time='2:45 min' depth='8.001 m' pressure='216.771 bar' ndl='332:00 min' rbt='41:00 min' />
+  <sample time='3:00 min' depth='7.639 m' pressure='215.806 bar' ndl='406:00 min' rbt='45:00 min' />
+  <sample time='3:15 min' depth='7.696 m' pressure='214.979 bar' ndl='449:00 min' rbt='46:00 min' />
+  <sample time='3:30 min' depth='8.382 m' pressure='214.151 bar' ndl='274:00 min' rbt='50:00 min' />
+  <sample time='3:45 min' depth='8.306 m' pressure='213.048 bar' rbt='57:00 min' />
+  <sample time='4:00 min' depth='7.887 m' pressure='212.91 bar' ndl='330:00 min' rbt='70:00 min' />
+  <sample time='4:15 min' depth='7.753 m' pressure='211.807 bar' ndl='405:00 min' rbt='75:00 min' />
+  <sample time='4:30 min' depth='6.782 m' pressure='210.566 bar' ndl='545:00 min' rbt='79:00 min' />
+  <sample time='4:45 min' depth='5.982 m' pressure='210.152 bar' ndl='599:00 min' rbt='77:00 min' />
+  <sample time='5:00 min' depth='6.42 m' pressure='209.187 bar' rbt='80:00 min' />
+  <sample time='5:15 min' depth='7.029 m' pressure='208.497 bar' ndl='490:00 min' rbt='72:00 min' />
+  <sample time='5:30 min' depth='8.192 m' pressure='207.119 bar' ndl='329:00 min' rbt='64:00 min' />
+  <sample time='5:45 min' depth='8.001 m' pressure='206.567 bar' />
+  <sample time='6:00 min' depth='7.582 m' pressure='205.05 bar' ndl='446:00 min' rbt='63:00 min' />
+  <sample time='6:15 min' depth='8.553 m' pressure='204.085 bar' ndl='272:00 min' rbt='57:00 min' />
+  <sample time='6:30 min' depth='8.744 m' temp='10.0 C' pressure='203.395 bar' ndl='211:00 min' rbt='55:00 min' />
+  <sample time='6:45 min' depth='8.134 m' pressure='202.016 bar' ndl='271:00 min' rbt='54:00 min' />
+  <sample time='7:00 min' depth='7.525 m' pressure='201.051 bar' ndl='445:00 min' />
+  <sample time='7:15 min' depth='8.801 m' pressure='199.396 bar' ndl='236:00 min' rbt='48:00 min' />
+  <sample time='7:30 min' depth='8.077 m' temp='10.556 C' pressure='197.88 bar' ndl='402:00 min' rbt='47:00 min' />
+  <sample time='7:45 min' depth='8.439 m' temp='10.0 C' pressure='197.466 bar' ndl='270:00 min' rbt='46:00 min' />
+  <sample time='8:00 min' depth='8.439 m' pressure='195.673 bar' rbt='44:00 min' />
+  <sample time='8:15 min' depth='9.049 m' pressure='194.156 bar' ndl='210:00 min' />
+  <sample time='8:30 min' depth='8.192 m' pressure='193.053 bar' ndl='401:00 min' rbt='45:00 min' />
+  <sample time='8:45 min' depth='8.496 m' pressure='191.536 bar' ndl='270:00 min' rbt='43:00 min' />
+  <sample time='9:00 min' depth='8.611 m' pressure='191.123 bar' ndl='209:00 min' rbt='40:00 min' />
+  <sample time='9:15 min' depth='9.296 m' pressure='189.606 bar' ndl='189:00 min' rbt='39:00 min' />
+  <sample time='9:30 min' depth='9.163 m' temp='10.556 C' pressure='188.503 bar' rbt='42:00 min' />
+  <sample time='9:45 min' depth='9.239 m' temp='10.0 C' pressure='187.4 bar' />
+  <sample time='10:00 min' depth='9.163 m' pressure='186.296 bar' rbt='43:00 min' />
+  <sample time='10:15 min' depth='8.992 m' pressure='184.504 bar' ndl='233:00 min' rbt='44:00 min' />
+  <sample time='10:30 min' depth='8.934 m' pressure='183.952 bar' ndl='207:00 min' rbt='43:00 min' />
+  <sample time='10:45 min' depth='8.496 m' pressure='182.987 bar' ndl='267:00 min' rbt='44:00 min' />
+  <sample time='11:00 min' depth='8.801 m' pressure='181.47 bar' ndl='232:00 min' rbt='43:00 min' />
+  <sample time='11:15 min' depth='9.163 m' pressure='180.367 bar' ndl='207:00 min' rbt='41:00 min' />
+  <sample time='11:30 min' depth='8.192 m' pressure='179.677 bar' ndl='323:00 min' rbt='42:00 min' />
+  <sample time='11:45 min' depth='8.553 m' pressure='178.023 bar' ndl='231:00 min' rbt='43:00 min' />
+  <sample time='12:00 min' depth='8.077 m' pressure='177.885 bar' ndl='322:00 min' rbt='46:00 min' />
+  <sample time='12:15 min' depth='8.992 m' pressure='176.092 bar' ndl='206:00 min' rbt='50:00 min' />
+  <sample time='12:30 min' depth='10.458 m' pressure='174.713 bar' ndl='138:00 min' rbt='44:00 min' />
+  <sample time='12:45 min' depth='9.963 m' pressure='174.162 bar' ndl='171:00 min' rbt='41:00 min' />
+  <sample time='13:00 min' depth='10.516 m' pressure='173.058 bar' ndl='147:00 min' rbt='38:00 min' />
+  <sample time='13:15 min' depth='10.401 m' pressure='171.542 bar' ndl='138:00 min' rbt='35:00 min' />
+  <sample time='13:30 min' depth='10.763 m' pressure='170.025 bar' ndl='137:00 min' rbt='33:00 min' />
+  <sample time='13:45 min' depth='11.316 m' pressure='168.232 bar' ndl='122:00 min' rbt='32:00 min' />
+  <sample time='14:00 min' depth='11.259 m' pressure='168.37 bar' rbt='31:00 min' />
+  <sample time='14:15 min' depth='11.259 m' pressure='166.991 bar' rbt='35:00 min' />
+  <sample time='14:30 min' depth='10.878 m' pressure='166.164 bar' ndl='121:00 min' rbt='38:00 min' />
+  <sample time='14:45 min' depth='11.011 m' pressure='165.06 bar' ndl='128:00 min' rbt='43:00 min' />
+  <sample time='15:00 min' depth='11.125 m' pressure='163.957 bar' ndl='115:00 min' rbt='42:00 min' />
+  <sample time='15:15 min' depth='11.182 m' pressure='163.13 bar' ndl='121:00 min' rbt='37:00 min' />
+  <sample time='15:30 min' depth='11.487 m' pressure='162.027 bar' ndl='109:00 min' rbt='35:00 min' />
+  <sample time='15:45 min' depth='11.068 m' pressure='161.475 bar' ndl='127:00 min' rbt='38:00 min' />
+  <sample time='16:00 min' depth='11.316 m' pressure='160.51 bar' ndl='114:00 min' />
+  <sample time='16:15 min' depth='10.954 m' pressure='159.131 bar' ndl='120:00 min' rbt='43:00 min' />
+  <sample time='16:30 min' depth='11.487 m' pressure='158.304 bar' ndl='113:00 min' rbt='42:00 min' />
+  <sample time='16:45 min' depth='12.344 m' pressure='157.614 bar' ndl='102:00 min' rbt='43:00 min' />
+  <sample time='17:00 min' depth='12.592 m' pressure='156.649 bar' ndl='91:00 min' rbt='42:00 min' />
+  <sample time='17:15 min' depth='11.868 m' pressure='155.822 bar' ndl='102:00 min' rbt='43:00 min' />
+  <sample time='17:30 min' depth='12.725 m' pressure='155.27 bar' ndl='90:00 min' rbt='44:00 min' />
+  <sample time='17:45 min' depth='12.897 m' pressure='154.029 bar' ndl='84:00 min' rbt='43:00 min' />
+  <sample time='18:00 min' depth='13.278 m' pressure='152.788 bar' />
+  <sample time='18:15 min' depth='13.144 m' pressure='151.133 bar' ndl='78:00 min' rbt='35:00 min' />
+  <sample time='18:30 min' depth='12.592 m' pressure='149.892 bar' ndl='96:00 min' rbt='32:00 min' />
+  <sample time='18:45 min' depth='13.144 m' pressure='148.651 bar' ndl='77:00 min' rbt='26:00 min' />
+  <sample time='19:00 min' depth='12.973 m' pressure='148.375 bar' rbt='25:00 min' />
+  <sample time='19:15 min' depth='13.392 m' pressure='147.686 bar' ndl='72:00 min' rbt='29:00 min' />
+  <sample time='19:30 min' depth='12.725 m' pressure='146.72 bar' ndl='88:00 min' rbt='33:00 min' />
+  <sample time='19:45 min' depth='12.478 m' pressure='145.755 bar' rbt='42:00 min' />
+  <sample time='20:00 min' depth='13.335 m' pressure='144.928 bar' ndl='76:00 min' rbt='43:00 min' />
+  <sample time='20:15 min' depth='13.697 m' pressure='143.135 bar' ndl='68:00 min' rbt='36:00 min' />
+  <sample time='20:30 min' depth='13.392 m' pressure='141.618 bar' ndl='76:00 min' rbt='32:00 min' />
+  <sample time='20:45 min' depth='13.144 m' pressure='140.791 bar' ndl='81:00 min' rbt='28:00 min' />
+  <sample time='21:00 min' depth='12.592 m' pressure='140.239 bar' ndl='87:00 min' />
+  <sample time='21:15 min' depth='13.392 m' pressure='138.585 bar' ndl='75:00 min' />
+  <sample time='21:30 min' depth='13.278 m' pressure='138.033 bar' ndl='80:00 min' rbt='30:00 min' />
+  <sample time='21:45 min' depth='13.335 m' pressure='136.516 bar' ndl='74:00 min' rbt='31:00 min' />
+  <sample time='22:00 min' depth='12.783 m' pressure='135.689 bar' ndl='80:00 min' rbt='28:00 min' />
+  <sample time='22:15 min' depth='12.897 m' pressure='134.724 bar' ndl='85:00 min' />
+  <sample time='22:30 min' depth='13.335 m' pressure='134.034 bar' ndl='79:00 min' rbt='27:00 min' />
+  <sample time='22:45 min' depth='11.487 m' pressure='132.655 bar' ndl='106:00 min' rbt='33:00 min' />
+  <sample time='23:00 min' depth='11.925 m' pressure='132.379 bar' ndl='96:00 min' rbt='32:00 min' />
+  <sample time='23:15 min' depth='13.335 m' pressure='131.0 bar' ndl='73:00 min' />
+  <sample time='23:30 min' depth='13.449 m' pressure='130.035 bar' ndl='69:00 min' rbt='31:00 min' />
+  <sample time='23:45 min' depth='12.897 m' pressure='128.932 bar' ndl='78:00 min' rbt='28:00 min' />
+  <sample time='24:00 min' depth='12.592 m' pressure='128.242 bar' ndl='84:00 min' rbt='30:00 min' />
+  <sample time='24:15 min' depth='12.973 m' pressure='126.864 bar' ndl='83:00 min' rbt='29:00 min' />
+  <sample time='24:30 min' depth='13.392 m' pressure='126.45 bar' ndl='72:00 min' rbt='28:00 min' />
+  <sample time='24:45 min' depth='12.973 m' pressure='124.657 bar' ndl='77:00 min' />
+  <sample time='25:00 min' depth='13.278 m' pressure='123.83 bar' ndl='71:00 min' rbt='26:00 min' />
+  <sample time='25:15 min' depth='13.392 m' pressure='122.589 bar' rbt='23:00 min' />
+  <sample time='25:30 min' depth='13.392 m' pressure='122.037 bar' rbt='24:00 min' />
+  <sample time='25:45 min' depth='12.897 m' pressure='120.658 bar' ndl='76:00 min' rbt='27:00 min' />
+  <sample time='26:00 min' depth='13.03 m' pressure='120.52 bar' ndl='82:00 min' />
+  <sample time='26:15 min' depth='12.897 m' pressure='119.141 bar' ndl='75:00 min' rbt='30:00 min' />
+  <sample time='26:30 min' depth='13.83 m' pressure='118.314 bar' ndl='66:00 min' rbt='27:00 min' />
+  <sample time='26:45 min' depth='13.754 m' pressure='116.797 bar' ndl='65:00 min' />
+  <sample time='27:00 min' depth='13.506 m' pressure='116.246 bar' rbt='28:00 min' />
+  <sample time='27:15 min' depth='13.64 m' pressure='115.418 bar' ndl='61:00 min' rbt='26:00 min' />
+  <sample time='27:30 min' depth='13.583 m' pressure='114.729 bar' ndl='65:00 min' rbt='23:00 min' />
+  <sample time='27:45 min' depth='14.002 m' pressure='113.901 bar' ndl='58:00 min' />
+  <sample time='28:00 min' depth='14.192 m' pressure='112.385 bar' ndl='57:00 min' rbt='22:00 min' />
+  <sample time='28:15 min' depth='14.059 m' pressure='111.419 bar' ndl='60:00 min' rbt='21:00 min' />
+  <sample time='28:30 min' depth='14.249 m' pressure='110.73 bar' ndl='57:00 min' rbt='22:00 min' />
+  <sample time='28:45 min' depth='14.135 m' pressure='110.04 bar' ndl='54:00 min' rbt='23:00 min' />
+  <sample time='29:00 min' depth='14.745 m' pressure='108.937 bar' ndl='53:00 min' rbt='22:00 min' />
+  <sample time='29:15 min' depth='14.859 m' pressure='108.661 bar' ndl='51:00 min' rbt='25:00 min' />
+  <sample time='29:30 min' depth='13.583 m' pressure='107.558 bar' ndl='63:00 min' rbt='28:00 min' />
+  <sample time='29:45 min' depth='13.144 m' pressure='106.593 bar' ndl='66:00 min' rbt='30:00 min' />
+  <sample time='30:00 min' depth='13.278 m' pressure='105.49 bar' rbt='29:00 min' />
+  <sample time='30:15 min' depth='13.03 m' pressure='103.697 bar' ndl='71:00 min' rbt='25:00 min' />
+  <sample time='30:30 min' depth='13.202 m' ndl='66:00 min' rbt='24:00 min' />
+  <sample time='30:45 min' depth='13.278 m' pressure='102.456 bar' ndl='65:00 min' rbt='18:00 min' />
+  <sample time='31:00 min' depth='13.697 m' pressure='101.629 bar' ndl='61:00 min' rbt='20:00 min' />
+  <sample time='31:15 min' depth='13.697 m' pressure='100.388 bar' ndl='57:00 min' rbt='21:00 min' />
+  <sample time='31:30 min' depth='14.135 m' pressure='99.56 bar' rbt='19:00 min' />
+  <sample time='31:45 min' depth='14.135 m' pressure='97.906 bar' rbt='17:00 min' />
+  <sample time='32:00 min' depth='12.973 m' pressure='97.354 bar' ndl='64:00 min' rbt='16:00 min' />
+  <sample time='32:15 min' depth='13.583 m' pressure='95.975 bar' ndl='60:00 min' rbt='15:00 min' />
+  <sample time='32:30 min' depth='13.392 m' pressure='94.734 bar' ndl='64:00 min' rbt='16:00 min' />
+  <sample time='32:45 min' depth='12.535 m' pressure='94.596 bar' ndl='81:00 min' rbt='19:00 min' />
+  <sample time='33:00 min' depth='12.344 m' pressure='93.631 bar' ndl='80:00 min' rbt='20:00 min' />
+  <sample time='33:15 min' depth='11.316 m' pressure='92.528 bar' ndl='88:00 min' />
+  <sample time='33:30 min' depth='11.563 m' pressure='92.114 bar' ndl='93:00 min' rbt='19:00 min' />
+  <sample time='33:45 min' depth='10.878 m' ndl='104:00 min' rbt='26:00 min' />
+  <sample time='34:00 min' depth='9.963 m' pressure='90.459 bar' ndl='129:00 min' rbt='27:00 min' />
+  <sample time='34:15 min' depth='10.268 m' pressure='89.494 bar' rbt='26:00 min' />
+  <sample time='34:30 min' depth='9.411 m' pressure='88.529 bar' ndl='172:00 min' rbt='25:00 min' />
+  <sample time='34:45 min' depth='9.849 m' pressure='88.115 bar' ndl='128:00 min' rbt='20:00 min' />
+  <sample time='35:00 min' depth='8.611 m' pressure='86.874 bar' ndl='171:00 min' rbt='18:00 min' />
+  <sample time='35:15 min' depth='8.439 m' pressure='86.322 bar' ndl='195:00 min' />
+  <sample time='35:30 min' depth='8.744 m' pressure='85.495 bar' ndl='194:00 min' />
+  <sample time='35:45 min' depth='8.077 m' pressure='84.668 bar' ndl='282:00 min' rbt='19:00 min' />
+  <sample time='36:00 min' depth='6.534 m' pressure='84.254 bar' ndl='490:00 min' rbt='21:00 min' />
+  <sample time='36:15 min' depth='7.144 m' pressure='84.116 bar' ndl='438:00 min' rbt='26:00 min' />
+  <sample time='36:30 min' depth='5.867 m' pressure='82.875 bar' ndl='599:00 min' rbt='30:00 min' />
+  <sample time='36:45 min' depth='6.477 m' pressure='82.323 bar' />
+  <sample time='37:00 min' depth='7.144 m' pressure='81.634 bar' ndl='438:00 min' rbt='23:00 min' />
+  <sample time='37:15 min' depth='7.525 m' pressure='80.393 bar' ndl='397:00 min' rbt='19:00 min' />
+  <sample time='37:30 min' depth='7.449 m' pressure='80.117 bar' rbt='18:00 min' />
+  <sample time='37:45 min' depth='6.363 m' pressure='79.152 bar' ndl='555:00 min' rbt='19:00 min' />
+  <sample time='38:00 min' depth='6.534 m' pressure='78.462 bar' rbt='20:00 min' />
+  <sample time='38:15 min' depth='6.363 m' pressure='78.187 bar' rbt='23:00 min' />
+  <sample time='38:30 min' depth='5.734 m' pressure='77.221 bar' ndl='599:00 min' rbt='26:00 min' />
+  <sample time='38:45 min' depth='6.058 m' pressure='76.945 bar' rbt='27:00 min' />
+  <sample time='39:00 min' depth='5.62 m' pressure='76.394 bar' rbt='30:00 min' />
+  <sample time='39:15 min' depth='5.372 m' pressure='75.842 bar' rbt='28:00 min' />
+  <sample time='39:30 min' depth='5.677 m' pressure='74.739 bar' rbt='26:00 min' />
+  <sample time='39:45 min' depth='5.982 m' pressure='74.601 bar' rbt='25:00 min' />
+  <sample time='40:00 min' depth='5.867 m' pressure='74.05 bar' rbt='23:00 min' />
+  <sample time='40:15 min' depth='6.286 m' pressure='73.084 bar' rbt='20:00 min' />
+  <sample time='40:30 min' depth='5.81 m' pressure='72.257 bar' rbt='19:00 min' />
+  <sample time='40:45 min' depth='4.515 m' pressure='71.292 bar' />
+  <sample time='41:00 min' depth='5.201 m' pressure='71.568 bar' rbt='18:00 min' />
+  <sample time='41:15 min' depth='5.315 m' pressure='70.878 bar' rbt='20:00 min' />
+  <sample time='41:30 min' depth='4.515 m' pressure='70.464 bar' rbt='24:00 min' />
+  <sample time='41:45 min' depth='4.458 m' pressure='70.051 bar' rbt='31:00 min' />
+  <sample time='42:00 min' depth='4.343 m' pressure='69.775 bar' rbt='33:00 min' />
+  <sample time='42:15 min' depth='4.343 m' pressure='68.948 bar' rbt='31:00 min' />
+  <sample time='42:30 min' depth='4.153 m' pressure='68.396 bar' rbt='30:00 min' />
+  <sample time='42:45 min' depth='2.991 m' pressure='68.258 bar' />
+  <sample time='43:00 min' depth='1.276 m' pressure='67.844 bar' rbt='35:00 min' />
+  <sample time='43:15 min' depth='2.991 m' pressure='66.328 bar' rbt='26:00 min' />
+  <sample time='43:30 min' depth='2.743 m' pressure='66.052 bar' rbt='21:00 min' />
+  <sample time='43:45 min' depth='4.458 m' pressure='65.224 bar' rbt='17:00 min' />
+  <sample time='44:00 min' depth='4.896 m' pressure='64.397 bar' rbt='15:00 min' />
+  <sample time='44:15 min' depth='5.258 m' pressure='63.432 bar' />
+  <sample time='44:30 min' depth='4.648 m' pressure='63.294 bar' rbt='16:00 min' />
+  <sample time='44:45 min' depth='3.6 m' pressure='62.742 bar' rbt='18:00 min' />
+  <sample time='45:00 min' depth='2.629 m' pressure='62.604 bar' rbt='22:00 min' />
+  <sample time='45:15 min' depth='1.467 m' pressure='62.191 bar' rbt='27:00 min' />
+  <sample time='45:30 min' depth='1.276 m' pressure='61.915 bar' rbt='33:00 min' />
+  <sample time='45:45 min' depth='0.0 m' rbt='0:00 min' />
+  <sample time='46:00 min' depth='2.934 m' pressure='60.398 bar' rbt='22:00 min' />
+  <sample time='46:15 min' depth='3.486 m' pressure='59.709 bar' rbt='20:00 min' />
+  <sample time='46:30 min' depth='4.267 m' pressure='59.157 bar' rbt='19:00 min' />
+  <sample time='46:45 min' depth='4.153 m' pressure='58.605 bar' rbt='18:00 min' />
+  <sample time='47:00 min' depth='3.238 m' pressure='58.192 bar' />
+  <sample time='47:15 min' depth='3.296 m' pressure='57.364 bar' rbt='16:00 min' />
+  <sample time='47:30 min' depth='3.791 m' pressure='56.813 bar' rbt='15:00 min' />
+  <sample time='47:45 min' depth='3.543 m' pressure='55.985 bar' rbt='14:00 min' />
+  <sample time='48:00 min' depth='3.296 m' pressure='55.572 bar' rbt='15:00 min' />
+  <sample time='48:15 min' depth='3.658 m' temp='10.556 C' pressure='54.606 bar' rbt='14:00 min' />
+  <sample time='48:30 min' depth='3.543 m' temp='10.0 C' pressure='53.917 bar' rbt='12:00 min' />
+  <sample time='48:45 min' depth='3.048 m' pressure='53.503 bar' rbt='13:00 min' />
+  <sample time='49:00 min' depth='3.105 m' pressure='53.09 bar' />
+  <sample time='49:15 min' depth='3.543 m' pressure='52.262 bar' />
+  <sample time='49:30 min' depth='3.41 m' pressure='51.573 bar' />
+  <sample time='49:45 min' depth='3.791 m' />
+  <sample time='50:00 min' depth='3.6 m' pressure='50.745 bar' rbt='12:00 min' />
+  <sample time='50:15 min' depth='3.6 m' pressure='50.47 bar' rbt='13:00 min' />
+  <sample time='50:30 min' depth='2.934 m' pressure='50.056 bar' rbt='16:00 min' />
+  <sample time='50:45 min' depth='2.743 m' pressure='49.504 bar' rbt='17:00 min' />
+  <sample time='51:00 min' depth='3.6 m' pressure='48.953 bar' rbt='16:00 min' />
+  <sample time='51:15 min' depth='2.248 m' pressure='48.263 bar' rbt='17:00 min' />
+  <sample time='51:30 min' depth='2.496 m' pressure='47.988 bar' rbt='15:00 min' />
+  <sample time='51:45 min' depth='1.638 m' pressure='47.574 bar' rbt='16:00 min' />
+  </divecomputer>
+</dive>
+<dive number='115' sac='21.854 l/min' date='2022-11-05' time='12:23:00' duration='31:30 min'>
+  <cylinder size='12.087 l' workpressure='237.318 bar' description='HP100' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <divecomputer model='Aqualung i770R' deviceid='224110ff' diveid='a5db29b5'>
+  <depth max='9.296 m' mean='5.145 m' />
+  <temperature water='9.444 C' />
+  <extradata key='Serial' value='012119' />
+  <sample time='0:15 min' depth='3.543 m' temp='11.667 C' pressure='236.904 bar' ndl='599:00 min' rbt='235:00 min' />
+  <sample time='0:30 min' depth='5.01 m' temp='11.111 C' pressure='234.422 bar' rbt='98:00 min' />
+  <sample time='0:45 min' depth='3.848 m' pressure='232.767 bar' rbt='78:00 min' />
+  <sample time='1:00 min' depth='3.543 m' pressure='230.974 bar' rbt='48:00 min' />
+  <sample time='1:15 min' depth='3.962 m' pressure='230.009 bar' rbt='45:00 min' />
+  <sample time='1:30 min' depth='5.563 m' pressure='228.354 bar' rbt='39:00 min' />
+  <sample time='1:45 min' depth='7.029 m' pressure='227.113 bar' ndl='495:00 min' rbt='37:00 min' />
+  <sample time='2:00 min' depth='6.839 m' pressure='225.872 bar' rbt='43:00 min' />
+  <sample time='2:15 min' depth='7.22 m' pressure='225.596 bar' ndl='443:00 min' rbt='45:00 min' />
+  <sample time='2:30 min' depth='6.668 m' pressure='223.666 bar' ndl='494:00 min' rbt='54:00 min' />
+  <sample time='2:45 min' depth='5.867 m' temp='10.556 C' pressure='222.839 bar' ndl='599:00 min' rbt='57:00 min' />
+  <sample time='3:00 min' depth='6.058 m' pressure='221.873 bar' rbt='61:00 min' />
+  <sample time='3:15 min' depth='5.01 m' pressure='220.77 bar' rbt='69:00 min' />
+  <sample time='3:30 min' depth='4.458 m' pressure='219.391 bar' rbt='68:00 min' />
+  <sample time='3:45 min' depth='5.258 m' pressure='218.426 bar' rbt='64:00 min' />
+  <sample time='4:00 min' depth='5.201 m' pressure='218.012 bar' />
+  <sample time='4:15 min' depth='5.067 m' pressure='217.323 bar' rbt='62:00 min' />
+  <sample time='4:30 min' depth='4.953 m' pressure='216.495 bar' rbt='71:00 min' />
+  <sample time='4:45 min' depth='5.067 m' pressure='215.944 bar' rbt='73:00 min' />
+  <sample time='5:00 min' depth='5.62 m' pressure='215.254 bar' rbt='82:00 min' />
+  <sample time='5:15 min' depth='5.201 m' pressure='214.151 bar' rbt='91:00 min' />
+  <sample time='5:30 min' depth='5.563 m' pressure='213.462 bar' rbt='86:00 min' />
+  <sample time='5:45 min' depth='5.124 m' pressure='212.359 bar' rbt='94:00 min' />
+  <sample time='6:00 min' depth='5.62 m' pressure='212.221 bar' rbt='85:00 min' />
+  <sample time='6:15 min' depth='5.372 m' pressure='211.393 bar' rbt='86:00 min' />
+  <sample time='6:30 min' depth='4.648 m' pressure='210.428 bar' rbt='85:00 min' />
+  <sample time='6:45 min' depth='5.429 m' pressure='209.187 bar' rbt='80:00 min' />
+  <sample time='7:00 min' depth='5.867 m' temp='10.0 C' pressure='208.36 bar' rbt='74:00 min' />
+  <sample time='7:15 min' depth='6.782 m' temp='10.556 C' pressure='208.084 bar' ndl='554:00 min' />
+  <sample time='7:30 min' depth='6.668 m' temp='10.0 C' pressure='207.394 bar' ndl='553:00 min' rbt='75:00 min' />
+  <sample time='7:45 min' depth='6.172 m' ndl='599:00 min' rbt='72:00 min' />
+  <sample time='8:00 min' depth='5.315 m' pressure='205.74 bar' rbt='105:00 min' />
+  <sample time='8:15 min' depth='5.315 m' pressure='205.05 bar' />
+  <sample time='8:30 min' depth='5.81 m' pressure='204.361 bar' rbt='94:00 min' />
+  <sample time='8:45 min' depth='5.867 m' pressure='203.257 bar' rbt='77:00 min' />
+  <sample time='9:00 min' depth='5.258 m' pressure='202.292 bar' rbt='64:00 min' />
+  <sample time='9:15 min' depth='4.82 m' pressure='201.741 bar' rbt='63:00 min' />
+  <sample time='9:30 min' depth='5.124 m' pressure='201.051 bar' rbt='64:00 min' />
+  <sample time='9:45 min' depth='4.896 m' pressure='200.913 bar' rbt='77:00 min' />
+  <sample time='10:00 min' depth='5.372 m' pressure='199.81 bar' rbt='83:00 min' />
+  <sample time='10:15 min' depth='5.62 m' pressure='198.983 bar' rbt='86:00 min' />
+  <sample time='10:30 min' depth='5.372 m' pressure='198.431 bar' rbt='78:00 min' />
+  <sample time='10:45 min' depth='4.572 m' pressure='197.19 bar' rbt='77:00 min' />
+  <sample time='11:00 min' depth='4.515 m' pressure='197.466 bar' rbt='70:00 min' />
+  <sample time='11:15 min' depth='5.067 m' pressure='195.949 bar' rbt='74:00 min' />
+  <sample time='11:30 min' depth='6.115 m' pressure='195.535 bar' rbt='78:00 min' />
+  <sample time='11:45 min' depth='7.144 m' pressure='194.432 bar' ndl='436:00 min' rbt='71:00 min' />
+  <sample time='12:00 min' depth='6.915 m' pressure='193.467 bar' ndl='487:00 min' rbt='73:00 min' />
+  <sample time='12:15 min' depth='7.639 m' pressure='192.088 bar' ndl='302:00 min' rbt='68:00 min' />
+  <sample time='12:30 min' depth='7.887 m' pressure='191.536 bar' ndl='360:00 min' rbt='55:00 min' />
+  <sample time='12:45 min' depth='7.029 m' pressure='190.433 bar' ndl='395:00 min' rbt='54:00 min' />
+  <sample time='13:00 min' depth='6.286 m' pressure='190.02 bar' ndl='599:00 min' rbt='55:00 min' />
+  <sample time='13:15 min' depth='7.22 m' pressure='188.916 bar' ndl='435:00 min' rbt='54:00 min' />
+  <sample time='13:30 min' depth='7.144 m' pressure='188.089 bar' rbt='66:00 min' />
+  <sample time='13:45 min' depth='6.915 m' pressure='187.813 bar' ndl='485:00 min' rbt='71:00 min' />
+  <sample time='14:00 min' depth='7.944 m' pressure='186.71 bar' ndl='359:00 min' />
+  <sample time='14:15 min' depth='7.639 m' pressure='186.021 bar' ndl='394:00 min' rbt='64:00 min' />
+  <sample time='14:30 min' depth='7.391 m' pressure='184.917 bar' ndl='393:00 min' rbt='57:00 min' />
+  <sample time='14:45 min' depth='7.144 m' pressure='183.952 bar' ndl='433:00 min' rbt='58:00 min' />
+  <sample time='15:00 min' depth='7.334 m' pressure='182.987 bar' ndl='393:00 min' rbt='54:00 min' />
+  <sample time='15:15 min' depth='8.192 m' pressure='181.884 bar' ndl='299:00 min' rbt='52:00 min' />
+  <sample time='15:30 min' depth='8.192 m' pressure='181.194 bar' ndl='244:00 min' rbt='51:00 min' />
+  <sample time='15:45 min' depth='6.915 m' pressure='180.918 bar' ndl='483:00 min' rbt='61:00 min' />
+  <sample time='16:00 min' depth='7.277 m' pressure='180.367 bar' ndl='432:00 min' rbt='66:00 min' />
+  <sample time='16:15 min' depth='5.62 m' pressure='179.539 bar' ndl='599:00 min' rbt='77:00 min' />
+  <sample time='16:30 min' depth='4.039 m' rbt='99:00 min' />
+  <sample time='16:45 min' depth='3.238 m' pressure='179.402 bar' rbt='115:00 min' />
+  <sample time='17:00 min' depth='7.029 m' pressure='177.885 bar' ndl='482:00 min' rbt='105:00 min' />
+  <sample time='17:15 min' depth='6.839 m' pressure='176.919 bar' rbt='96:00 min' />
+  <sample time='17:30 min' depth='6.972 m' pressure='176.368 bar' rbt='71:00 min' />
+  <sample time='17:45 min' depth='6.915 m' pressure='175.816 bar' rbt='60:00 min' />
+  <sample time='18:00 min' depth='7.83 m' pressure='174.575 bar' ndl='390:00 min' rbt='51:00 min' />
+  <sample time='18:15 min' depth='8.934 m' pressure='174.299 bar' ndl='208:00 min' rbt='50:00 min' />
+  <sample time='18:30 min' depth='8.306 m' pressure='172.369 bar' ndl='296:00 min' rbt='57:00 min' />
+  <sample time='18:45 min' depth='8.553 m' pressure='171.542 bar' ndl='241:00 min' rbt='56:00 min' />
+  <sample time='19:00 min' depth='7.525 m' pressure='170.576 bar' ndl='389:00 min' rbt='44:00 min' />
+  <sample time='19:15 min' depth='7.639 m' pressure='169.335 bar' ndl='354:00 min' rbt='41:00 min' />
+  <sample time='19:30 min' depth='6.725 m' pressure='168.37 bar' ndl='480:00 min' rbt='39:00 min' />
+  <sample time='19:45 min' depth='6.668 m' pressure='167.818 bar' ndl='599:00 min' rbt='40:00 min' />
+  <sample time='20:00 min' depth='5.867 m' pressure='167.543 bar' rbt='49:00 min' />
+  <sample time='20:15 min' depth='6.058 m' rbt='61:00 min' />
+  <sample time='20:30 min' depth='5.62 m' temp='9.444 C' pressure='166.302 bar' rbt='62:00 min' />
+  <sample time='20:45 min' depth='4.458 m' pressure='165.75 bar' rbt='66:00 min' />
+  <sample time='21:00 min' depth='2.991 m' temp='10.0 C' pressure='165.198 bar' rbt='73:00 min' />
+  <sample time='21:15 min' depth='2.553 m' pressure='165.06 bar' rbt='75:00 min' />
+  <sample time='21:30 min' depth='4.096 m' pressure='164.785 bar' rbt='82:00 min' />
+  <sample time='21:45 min' depth='4.896 m' pressure='163.544 bar' rbt='80:00 min' />
+  <sample time='22:00 min' depth='4.953 m' pressure='162.992 bar' rbt='86:00 min' />
+  <sample time='22:15 min' depth='5.258 m' temp='9.444 C' pressure='162.027 bar' rbt='72:00 min' />
+  <sample time='22:30 min' depth='4.572 m' temp='10.0 C' pressure='161.751 bar' rbt='61:00 min' />
+  <sample time='22:45 min' depth='5.258 m' pressure='160.924 bar' rbt='58:00 min' />
+  <sample time='23:00 min' depth='5.067 m' pressure='160.372 bar' rbt='59:00 min' />
+  <sample time='23:15 min' depth='4.572 m' pressure='159.545 bar' rbt='58:00 min' />
+  <sample time='23:30 min' depth='5.258 m' pressure='159.131 bar' rbt='56:00 min' />
+  <sample time='23:45 min' depth='5.01 m' temp='9.444 C' pressure='158.579 bar' rbt='60:00 min' />
+  <sample time='24:00 min' depth='4.267 m' temp='10.0 C' pressure='157.614 bar' rbt='71:00 min' />
+  <sample time='24:15 min' depth='3.353 m' pressure='156.787 bar' rbt='81:00 min' />
+  <sample time='24:30 min' depth='3.848 m' pressure='156.511 bar' rbt='72:00 min' />
+  <sample time='24:45 min' depth='3.543 m' pressure='155.822 bar' rbt='69:00 min' />
+  <sample time='25:00 min' depth='4.039 m' pressure='155.27 bar' rbt='68:00 min' />
+  <sample time='25:15 min' depth='3.905 m' pressure='154.305 bar' rbt='67:00 min' />
+  <sample time='25:30 min' depth='3.181 m' pressure='154.167 bar' rbt='78:00 min' />
+  <sample time='25:45 min' depth='2.858 m' pressure='153.891 bar' rbt='77:00 min' />
+  <sample time='26:00 min' depth='1.829 m' pressure='153.753 bar' rbt='89:00 min' />
+  <sample time='26:15 min' depth='0.0 m' rbt='0:00 min' />
+  <sample time='26:30 min' depth='4.096 m' pressure='152.236 bar' rbt='117:00 min' />
+  <sample time='26:45 min' depth='2.496 m' pressure='151.409 bar' rbt='107:00 min' />
+  <sample time='27:00 min' depth='2.134 m' pressure='150.719 bar' rbt='87:00 min' />
+  <sample time='27:15 min' depth='2.858 m' pressure='149.478 bar' rbt='57:00 min' />
+  <sample time='27:30 min' depth='2.991 m' pressure='148.927 bar' rbt='47:00 min' />
+  <sample time='27:45 min' depth='2.076 m' temp='9.444 C' pressure='147.134 bar' rbt='31:00 min' />
+  <sample time='28:00 min' depth='3.048 m' temp='10.0 C' pressure='146.169 bar' rbt='28:00 min' />
+  <sample time='28:15 min' depth='3.905 m' pressure='144.79 bar' rbt='27:00 min' />
+  <sample time='28:30 min' depth='3.962 m' temp='9.444 C' pressure='144.1 bar' rbt='37:00 min' />
+  <sample time='28:45 min' depth='3.486 m' pressure='143.135 bar' rbt='38:00 min' />
+  <sample time='29:00 min' depth='3.791 m' temp='10.0 C' pressure='142.859 bar' />
+  <sample time='29:15 min' depth='3.105 m' pressure='141.756 bar' rbt='39:00 min' />
+  <sample time='29:30 min' depth='2.934 m' pressure='141.205 bar' rbt='45:00 min' />
+  <sample time='29:45 min' depth='3.105 m' pressure='140.377 bar' rbt='48:00 min' />
+  <sample time='30:00 min' depth='2.134 m' pressure='139.964 bar' rbt='52:00 min' />
+  <sample time='30:15 min' depth='1.772 m' pressure='139.55 bar' rbt='54:00 min' />
+  <sample time='30:30 min' depth='2.743 m' temp='9.444 C' pressure='139.274 bar' />
+  <sample time='30:45 min' depth='2.496 m' pressure='138.171 bar' rbt='57:00 min' />
+  <sample time='31:00 min' depth='2.991 m' temp='10.0 C' pressure='137.895 bar' rbt='60:00 min' />
+  <sample time='31:15 min' depth='1.638 m' pressure='137.481 bar' rbt='68:00 min' />
+  <sample time='31:30 min' depth='1.695 m' pressure='136.792 bar' rbt='71:00 min' />
+  </divecomputer>
+</dive>
+<dive number='116' sac='20.458 l/min' otu='6' cns='4%' date='2022-11-20' time='10:46:00' duration='47:00 min'>
+  <cylinder size='10.0 l' description='10.0ℓ' o2='31.0%' depth='41.052 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <divecomputer model='Aqualung i770R' deviceid='224110ff' diveid='ae025bac'>
+  <depth max='12.04 m' mean='6.487 m' />
+  <temperature water='8.889 C' />
+  <extradata key='Serial' value='012119' />
+  <sample time='0:15 min' depth='2.324 m' temp='12.778 C' pressure='225.045 bar' ndl='599:00 min' rbt='332:00 min' />
+  <sample time='0:30 min' depth='3.105 m' pressure='223.114 bar' rbt='90:00 min' />
+  <sample time='0:45 min' depth='3.41 m' pressure='221.597 bar' rbt='63:00 min' />
+  <sample time='1:00 min' depth='3.962 m' temp='12.222 C' pressure='220.081 bar' rbt='39:00 min' />
+  <sample time='1:15 min' depth='4.153 m' pressure='218.977 bar' rbt='37:00 min' />
+  <sample time='1:30 min' depth='4.153 m' pressure='218.012 bar' rbt='41:00 min' />
+  <sample time='1:45 min' depth='4.096 m' temp='11.667 C' pressure='216.771 bar' rbt='42:00 min' />
+  <sample time='2:00 min' depth='4.343 m' pressure='215.944 bar' rbt='48:00 min' />
+  <sample time='2:15 min' depth='4.705 m' pressure='214.565 bar' rbt='50:00 min' />
+  <sample time='2:30 min' depth='4.896 m' pressure='213.324 bar' rbt='55:00 min' />
+  <sample time='2:45 min' depth='5.372 m' pressure='212.359 bar' rbt='53:00 min' />
+  <sample time='3:00 min' depth='4.572 m' temp='11.111 C' pressure='210.428 bar' />
+  <sample time='3:15 min' depth='5.372 m' pressure='209.463 bar' rbt='47:00 min' />
+  <sample time='3:30 min' depth='5.067 m' pressure='208.084 bar' rbt='45:00 min' />
+  <sample time='3:45 min' depth='4.82 m' pressure='207.394 bar' rbt='47:00 min' />
+  <sample time='4:00 min' depth='5.124 m' temp='10.556 C' pressure='205.74 bar' rbt='46:00 min' />
+  <sample time='4:15 min' depth='4.572 m' pressure='205.05 bar' rbt='52:00 min' />
+  <sample time='4:30 min' depth='5.124 m' pressure='204.085 bar' rbt='54:00 min' />
+  <sample time='4:45 min' depth='5.258 m' pressure='203.257 bar' rbt='55:00 min' />
+  <sample time='5:00 min' depth='6.363 m' pressure='202.844 bar' rbt='56:00 min' />
+  <sample time='5:15 min' depth='6.172 m' pressure='201.603 bar' rbt='53:00 min' />
+  <sample time='5:30 min' depth='5.372 m' pressure='199.948 bar' rbt='58:00 min' />
+  <sample time='5:45 min' depth='6.725 m' pressure='198.983 bar' rbt='57:00 min' />
+  <sample time='6:00 min' depth='6.972 m' pressure='198.707 bar' rbt='53:00 min' />
+  <sample time='6:15 min' depth='6.839 m' pressure='197.19 bar' rbt='52:00 min' />
+  <sample time='6:30 min' depth='7.753 m' pressure='195.949 bar' rbt='50:00 min' />
+  <sample time='6:45 min' depth='7.22 m' pressure='195.122 bar' rbt='48:00 min' />
+  <sample time='7:00 min' depth='7.029 m' pressure='193.881 bar' rbt='51:00 min' />
+  <sample time='7:15 min' depth='7.582 m' pressure='192.915 bar' rbt='49:00 min' />
+  <sample time='7:30 min' depth='7.087 m' temp='10.0 C' pressure='191.812 bar' rbt='48:00 min' />
+  <sample time='7:45 min' depth='6.534 m' pressure='191.123 bar' rbt='55:00 min' />
+  <sample time='8:00 min' depth='6.915 m' pressure='190.571 bar' />
+  <sample time='8:15 min' depth='7.277 m' temp='10.556 C' pressure='189.882 bar' rbt='59:00 min' />
+  <sample time='8:30 min' depth='6.915 m' temp='10.0 C' pressure='189.054 bar' rbt='67:00 min' />
+  <sample time='8:45 min' depth='7.22 m' pressure='187.262 bar' rbt='66:00 min' />
+  <sample time='9:00 min' depth='6.725 m' pressure='185.883 bar' rbt='60:00 min' />
+  <sample time='9:15 min' depth='7.087 m' pressure='185.193 bar' rbt='54:00 min' />
+  <sample time='9:30 min' depth='6.839 m' pressure='184.366 bar' rbt='48:00 min' />
+  <sample time='9:45 min' depth='6.725 m' pressure='183.538 bar' rbt='46:00 min' />
+  <sample time='10:00 min' depth='6.477 m' pressure='182.297 bar' rbt='50:00 min' />
+  <sample time='10:15 min' depth='7.753 m' pressure='181.194 bar' rbt='48:00 min' />
+  <sample time='10:30 min' depth='7.277 m' pressure='179.953 bar' rbt='50:00 min' />
+  <sample time='10:45 min' depth='8.858 m' pressure='179.539 bar' rbt='43:00 min' />
+  <sample time='11:00 min' depth='9.106 m' pressure='177.609 bar' ndl='537:00 min' rbt='41:00 min' />
+  <sample time='11:15 min' depth='7.696 m' pressure='177.195 bar' ndl='599:00 min' />
+  <sample time='11:30 min' depth='8.439 m' pressure='175.403 bar' />
+  <sample time='11:45 min' depth='8.306 m' pressure='174.851 bar' rbt='43:00 min' />
+  <sample time='12:00 min' depth='8.496 m' temp='9.444 C' pressure='173.334 bar' rbt='42:00 min' />
+  <sample time='12:15 min' depth='8.192 m' pressure='172.369 bar' rbt='43:00 min' />
+  <sample time='12:30 min' depth='8.382 m' pressure='171.128 bar' rbt='40:00 min' />
+  <sample time='12:45 min' depth='7.029 m' pressure='170.438 bar' rbt='43:00 min' />
+  <sample time='13:00 min' depth='6.725 m' pressure='169.611 bar' rbt='44:00 min' />
+  <sample time='13:15 min' depth='7.449 m' pressure='168.37 bar' rbt='43:00 min' />
+  <sample time='13:30 min' depth='7.696 m' pressure='167.543 bar' rbt='46:00 min' />
+  <sample time='13:45 min' depth='7.83 m' pressure='167.129 bar' rbt='48:00 min' />
+  <sample time='14:00 min' depth='7.277 m' pressure='166.164 bar' rbt='54:00 min' />
+  <sample time='14:15 min' depth='6.591 m' pressure='164.923 bar' />
+  <sample time='14:30 min' depth='7.391 m' pressure='164.095 bar' rbt='48:00 min' />
+  <sample time='14:45 min' depth='7.087 m' pressure='163.406 bar' rbt='47:00 min' />
+  <sample time='15:00 min' depth='6.477 m' pressure='162.578 bar' />
+  <sample time='15:15 min' depth='8.001 m' pressure='161.613 bar' rbt='42:00 min' />
+  <sample time='15:30 min' depth='7.277 m' pressure='160.648 bar' rbt='49:00 min' />
+  <sample time='15:45 min' depth='7.277 m' pressure='160.234 bar' rbt='48:00 min' />
+  <sample time='16:00 min' depth='7.334 m' pressure='159.131 bar' rbt='47:00 min' />
+  <sample time='16:15 min' depth='7.696 m' pressure='158.304 bar' rbt='44:00 min' />
+  <sample time='16:30 min' depth='7.887 m' pressure='156.649 bar' rbt='45:00 min' />
+  <sample time='16:45 min' depth='7.944 m' pressure='155.822 bar' rbt='42:00 min' />
+  <sample time='17:00 min' depth='9.049 m' pressure='154.58 bar' ndl='532:00 min' rbt='36:00 min' />
+  <sample time='17:15 min' depth='7.83 m' pressure='153.753 bar' ndl='599:00 min' rbt='39:00 min' />
+  <sample time='17:30 min' depth='6.668 m' pressure='152.236 bar' rbt='41:00 min' />
+  <sample time='17:45 min' depth='8.382 m' pressure='151.823 bar' rbt='37:00 min' />
+  <sample time='18:00 min' depth='8.306 m' pressure='151.133 bar' />
+  <sample time='18:15 min' depth='8.134 m' pressure='150.168 bar' />
+  <sample time='18:30 min' depth='7.753 m' pressure='148.927 bar' />
+  <sample time='18:45 min' depth='8.001 m' pressure='147.961 bar' rbt='39:00 min' />
+  <sample time='19:00 min' depth='8.611 m' pressure='147.272 bar' rbt='37:00 min' />
+  <sample time='19:15 min' depth='9.411 m' pressure='145.617 bar' ndl='530:00 min' />
+  <sample time='19:30 min' depth='8.496 m' pressure='144.79 bar' ndl='599:00 min' rbt='36:00 min' />
+  <sample time='19:45 min' depth='9.716 m' pressure='143.825 bar' ndl='446:00 min' rbt='32:00 min' />
+  <sample time='20:00 min' depth='9.354 m' pressure='143.135 bar' ndl='530:00 min' rbt='35:00 min' />
+  <sample time='20:15 min' depth='9.849 m' pressure='142.17 bar' ndl='445:00 min' rbt='33:00 min' />
+  <sample time='20:30 min' depth='10.096 m' pressure='141.343 bar' rbt='34:00 min' />
+  <sample time='20:45 min' depth='9.544 m' pressure='140.791 bar' ndl='529:00 min' rbt='35:00 min' />
+  <sample time='21:00 min' depth='9.354 m' pressure='139.55 bar' ndl='482:00 min' rbt='38:00 min' />
+  <sample time='21:15 min' depth='9.239 m' pressure='138.309 bar' ndl='587:00 min' rbt='37:00 min' />
+  <sample time='21:30 min' depth='9.716 m' pressure='137.068 bar' ndl='482:00 min' rbt='34:00 min' />
+  <sample time='21:45 min' depth='10.096 m' pressure='136.378 bar' ndl='412:00 min' rbt='29:00 min' />
+  <sample time='22:00 min' depth='9.239 m' pressure='135.551 bar' ndl='528:00 min' />
+  <sample time='22:15 min' depth='9.354 m' pressure='134.724 bar' ndl='527:00 min' />
+  <sample time='22:30 min' depth='10.154 m' pressure='133.345 bar' ndl='411:00 min' rbt='32:00 min' />
+  <sample time='22:45 min' depth='9.963 m' pressure='132.104 bar' ndl='443:00 min' rbt='34:00 min' />
+  <sample time='23:00 min' depth='9.849 m' pressure='131.138 bar' ndl='442:00 min' rbt='30:00 min' />
+  <sample time='23:15 min' depth='10.516 m' pressure='130.173 bar' ndl='411:00 min' rbt='26:00 min' />
+  <sample time='23:30 min' depth='10.878 m' pressure='129.346 bar' ndl='292:00 min' rbt='24:00 min' />
+  <sample time='23:45 min' depth='11.678 m' pressure='127.829 bar' ndl='202:00 min' />
+  <sample time='24:00 min' depth='11.811 m' pressure='126.588 bar' />
+  <sample time='24:15 min' depth='11.678 m' pressure='125.071 bar' rbt='23:00 min' />
+  <sample time='24:30 min' depth='11.62 m' pressure='124.106 bar' rbt='20:00 min' />
+  <sample time='24:45 min' depth='11.735 m' pressure='123.278 bar' ndl='185:00 min' />
+  <sample time='25:00 min' depth='10.954 m' pressure='122.451 bar' ndl='290:00 min' rbt='23:00 min' />
+  <sample time='25:15 min' depth='11.068 m' pressure='121.486 bar' ndl='250:00 min' />
+  <sample time='25:30 min' depth='11.735 m' pressure='120.107 bar' ndl='201:00 min' rbt='26:00 min' />
+  <sample time='25:45 min' depth='11.735 m' pressure='119.004 bar' ndl='184:00 min' rbt='25:00 min' />
+  <sample time='26:00 min' depth='11.811 m' pressure='118.038 bar' ndl='200:00 min' rbt='23:00 min' />
+  <sample time='26:15 min' depth='11.011 m' temp='8.889 C' pressure='116.797 bar' ndl='289:00 min' rbt='22:00 min' />
+  <sample time='26:30 min' depth='11.678 m' temp='9.444 C' pressure='115.694 bar' ndl='200:00 min' rbt='20:00 min' />
+  <sample time='26:45 min' depth='11.487 m' pressure='114.453 bar' ndl='220:00 min' rbt='21:00 min' />
+  <sample time='27:00 min' depth='11.316 m' pressure='113.901 bar' ndl='248:00 min' rbt='22:00 min' />
+  <sample time='27:15 min' depth='10.763 m' pressure='113.074 bar' ndl='357:00 min' rbt='24:00 min' />
+  <sample time='27:30 min' depth='11.487 m' pressure='112.109 bar' ndl='220:00 min' rbt='25:00 min' />
+  <sample time='27:45 min' depth='11.925 m' pressure='111.143 bar' ndl='199:00 min' />
+  <sample time='28:00 min' depth='10.268 m' pressure='110.454 bar' ndl='405:00 min' rbt='26:00 min' />
+  <sample time='28:15 min' depth='10.573 m' pressure='108.523 bar' />
+  <sample time='28:30 min' depth='10.516 m' pressure='108.11 bar' ndl='287:00 min' rbt='20:00 min' />
+  <sample time='28:45 min' depth='10.154 m' pressure='106.869 bar' ndl='436:00 min' />
+  <sample time='29:00 min' depth='9.658 m' pressure='106.041 bar' ndl='473:00 min' />
+  <sample time='29:15 min' depth='9.658 m' pressure='105.076 bar' ndl='435:00 min' />
+  <sample time='29:30 min' depth='8.192 m' temp='8.889 C' pressure='104.8 bar' ndl='599:00 min' rbt='25:00 min' />
+  <sample time='29:45 min' depth='8.192 m' temp='9.444 C' pressure='103.283 bar' rbt='27:00 min' />
+  <sample time='30:00 min' depth='7.753 m' pressure='103.146 bar' rbt='31:00 min' />
+  <sample time='30:15 min' depth='8.382 m' pressure='102.18 bar' rbt='29:00 min' />
+  <sample time='30:30 min' depth='7.887 m' pressure='101.353 bar' rbt='28:00 min' />
+  <sample time='30:45 min' depth='8.611 m' pressure='100.663 bar' rbt='24:00 min' />
+  <sample time='31:00 min' depth='8.306 m' pressure='99.836 bar' rbt='25:00 min' />
+  <sample time='31:15 min' depth='7.525 m' pressure='99.422 bar' rbt='27:00 min' />
+  <sample time='31:30 min' depth='8.192 m' pressure='98.181 bar' rbt='26:00 min' />
+  <sample time='31:45 min' depth='7.334 m' pressure='97.354 bar' rbt='28:00 min' />
+  <sample time='32:00 min' depth='5.734 m' pressure='96.94 bar' rbt='26:00 min' />
+  <sample time='32:15 min' depth='6.286 m' temp='8.889 C' pressure='96.113 bar' rbt='24:00 min' />
+  <sample time='32:30 min' depth='5.505 m' temp='9.444 C' pressure='95.423 bar' rbt='25:00 min' />
+  <sample time='32:45 min' depth='6.591 m' pressure='94.32 bar' rbt='23:00 min' />
+  <sample time='33:00 min' depth='6.782 m' pressure='94.044 bar' rbt='24:00 min' />
+  <sample time='33:15 min' depth='5.677 m' pressure='93.769 bar' rbt='29:00 min' />
+  <sample time='33:30 min' depth='5.677 m' temp='8.889 C' pressure='92.528 bar' rbt='30:00 min' />
+  <sample time='33:45 min' depth='5.124 m' pressure='91.838 bar' rbt='36:00 min' />
+  <sample time='34:00 min' depth='4.267 m' temp='9.444 C' pressure='91.287 bar' rbt='33:00 min' />
+  <sample time='34:15 min' depth='5.315 m' pressure='90.597 bar' rbt='29:00 min' />
+  <sample time='34:30 min' depth='4.705 m' temp='8.889 C' rbt='28:00 min' />
+  <sample time='34:45 min' depth='4.153 m' pressure='90.046 bar' rbt='30:00 min' />
+  <sample time='35:00 min' depth='4.515 m' temp='9.444 C' pressure='89.218 bar' rbt='39:00 min' />
+  <sample time='35:15 min' depth='4.153 m' pressure='88.529 bar' rbt='37:00 min' />
+  <sample time='35:30 min' depth='4.153 m' pressure='87.701 bar' rbt='31:00 min' />
+  <sample time='35:45 min' depth='2.934 m' pressure='87.426 bar' />
+  <sample time='36:00 min' depth='2.553 m' pressure='86.736 bar' rbt='30:00 min' />
+  <sample time='36:15 min' depth='2.496 m' pressure='86.46 bar' rbt='32:00 min' />
+  <sample time='36:30 min' depth='2.076 m' pressure='85.909 bar' rbt='40:00 min' />
+  <sample time='36:45 min' depth='0.0 m' rbt='0:00 min' />
+  <sample time='37:00 min' depth='0.0 m' />
+  <sample time='37:15 min' depth='0.0 m' />
+  <sample time='37:30 min' depth='0.0 m' />
+  <sample time='37:45 min' depth='0.0 m' />
+  <sample time='38:00 min' depth='2.553 m' pressure='84.254 bar' />
+  <sample time='38:15 min' depth='3.353 m' pressure='83.151 bar' rbt='22:00 min' />
+  <sample time='38:30 min' depth='3.791 m' temp='10.0 C' pressure='82.461 bar' rbt='17:00 min' />
+  <sample time='38:45 min' depth='3.791 m' pressure='81.772 bar' rbt='27:00 min' />
+  <sample time='39:00 min' depth='4.343 m' pressure='81.082 bar' rbt='20:00 min' />
+  <sample time='39:15 min' depth='4.039 m' temp='9.444 C' pressure='80.117 bar' />
+  <sample time='39:30 min' depth='3.848 m' temp='10.0 C' pressure='79.29 bar' />
+  <sample time='39:45 min' depth='3.353 m' temp='9.444 C' pressure='78.738 bar' />
+  <sample time='40:00 min' depth='2.858 m' pressure='77.773 bar' />
+  <sample time='40:15 min' depth='2.629 m' pressure='77.359 bar' rbt='22:00 min' />
+  <sample time='40:30 min' depth='1.943 m' pressure='76.808 bar' rbt='24:00 min' />
+  <sample time='40:45 min' depth='1.334 m' pressure='76.532 bar' rbt='26:00 min' />
+  <sample time='41:00 min' depth='2.381 m' temp='10.0 C' pressure='75.153 bar' />
+  <sample time='41:15 min' depth='2.496 m' temp='9.444 C' pressure='74.325 bar' rbt='24:00 min' />
+  <sample time='41:30 min' depth='2.248 m' pressure='73.498 bar' rbt='23:00 min' />
+  <sample time='41:45 min' depth='2.496 m' pressure='72.809 bar' rbt='19:00 min' />
+  <sample time='42:00 min' depth='3.105 m' pressure='72.119 bar' rbt='18:00 min' />
+  <sample time='42:15 min' depth='2.686 m' pressure='71.43 bar' />
+  <sample time='42:30 min' depth='3.658 m' pressure='70.602 bar' rbt='17:00 min' />
+  <sample time='42:45 min' depth='3.181 m' pressure='69.499 bar' rbt='16:00 min' />
+  <sample time='43:00 min' depth='3.181 m' pressure='68.672 bar' rbt='15:00 min' />
+  <sample time='43:15 min' depth='2.858 m' pressure='68.258 bar' rbt='14:00 min' />
+  <sample time='43:30 min' depth='2.743 m' pressure='67.569 bar' />
+  <sample time='43:45 min' depth='3.296 m' pressure='66.603 bar' rbt='15:00 min' />
+  <sample time='44:00 min' depth='2.991 m' pressure='66.052 bar' />
+  <sample time='44:15 min' depth='3.181 m' pressure='65.224 bar' rbt='17:00 min' />
+  <sample time='44:30 min' depth='2.8 m' pressure='64.673 bar' />
+  <sample time='44:45 min' depth='3.905 m' pressure='63.708 bar' rbt='15:00 min' />
+  <sample time='45:00 min' depth='2.686 m' pressure='63.156 bar' rbt='16:00 min' />
+  <sample time='45:15 min' depth='3.105 m' pressure='62.191 bar' />
+  <sample time='45:30 min' depth='2.8 m' pressure='61.088 bar' rbt='15:00 min' />
+  <sample time='45:45 min' depth='2.743 m' pressure='60.674 bar' rbt='14:00 min' />
+  <sample time='46:00 min' depth='2.553 m' pressure='60.398 bar' />
+  <sample time='46:15 min' depth='2.8 m' pressure='59.709 bar' />
+  <sample time='46:30 min' depth='2.019 m' pressure='59.433 bar' rbt='17:00 min' />
+  <sample time='46:45 min' depth='2.019 m' pressure='58.743 bar' rbt='19:00 min' />
+  <sample time='47:00 min' depth='1.467 m' pressure='58.054 bar' rbt='21:00 min' />
+  <sample time='47:15 min' depth='1.581 m' pressure='56.813 bar' rbt='11:00 min' />
+  <sample time='47:30 min' depth='1.391 m' pressure='56.951 bar' />
+  <sample time='47:45 min' depth='0.0 m' rbt='0:00 min' />
+  <sample time='48:00 min' depth='1.276 m' pressure='55.158 bar' rbt='27:00 min' />
+  </divecomputer>
+</dive>
+<dive number='117' sac='27.290 l/min' cns='3%' date='2022-11-20' time='12:33:00' duration='31:00 min'>
+  <cylinder size='12.9 l' workpressure='237.318 bar' description='HP100' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <cylinder size='10.0 l' description='10.0ℓ' depth='65.378 m' />
+  <divecomputer model='Aqualung i770R' deviceid='224110ff' diveid='5cba6459'>
+  <depth max='9.163 m' mean='5.041 m' />
+  <temperature water='9.444 C' />
+  <extradata key='Serial' value='012119' />
+  <sample time='0:15 min' depth='1.581 m' temp='18.889 C' pressure='233.732 bar' ndl='599:00 min' rbt='38:00 min' />
+  <sample time='0:30 min' depth='1.943 m' temp='18.333 C' pressure='231.526 bar' rbt='37:00 min' />
+  <sample time='0:45 min' depth='1.943 m' pressure='229.458 bar' rbt='38:00 min' />
+  <sample time='1:00 min' depth='2.496 m' pressure='227.665 bar' rbt='36:00 min' />
+  <sample time='1:15 min' depth='2.8 m' temp='17.778 C' pressure='225.734 bar' rbt='35:00 min' />
+  <sample time='1:30 min' depth='2.934 m' temp='17.222 C' pressure='224.355 bar' />
+  <sample time='1:45 min' depth='3.105 m' pressure='222.563 bar' rbt='34:00 min' />
+  <sample time='2:00 min' depth='3.353 m' temp='16.667 C' pressure='221.046 bar' rbt='36:00 min' />
+  <sample time='2:15 min' depth='2.8 m' pressure='220.356 bar' rbt='38:00 min' />
+  <sample time='2:30 min' depth='1.829 m' temp='16.111 C' pressure='218.977 bar' rbt='45:00 min' />
+  <sample time='2:45 min' depth='2.019 m' temp='15.556 C' pressure='218.012 bar' rbt='49:00 min' />
+  <sample time='3:00 min' depth='3.048 m' pressure='217.185 bar' rbt='51:00 min' />
+  <sample time='3:15 min' depth='3.486 m' pressure='215.668 bar' rbt='56:00 min' />
+  <sample time='3:30 min' depth='2.743 m' pressure='214.703 bar' rbt='59:00 min' />
+  <sample time='3:45 min' depth='3.6 m' temp='15.0 C' pressure='213.737 bar' rbt='56:00 min' />
+  <sample time='4:00 min' depth='3.296 m' pressure='213.186 bar' rbt='62:00 min' />
+  <sample time='4:15 min' depth='4.039 m' pressure='211.945 bar' rbt='56:00 min' />
+  <sample time='4:30 min' depth='4.343 m' temp='14.444 C' pressure='211.117 bar' rbt='63:00 min' />
+  <sample time='4:45 min' depth='4.343 m' temp='13.889 C' pressure='210.152 bar' rbt='58:00 min' />
+  <sample time='5:00 min' depth='4.343 m' pressure='209.187 bar' rbt='62:00 min' />
+  <sample time='5:15 min' depth='4.153 m' pressure='208.911 bar' rbt='61:00 min' />
+  <sample time='5:30 min' depth='4.267 m' pressure='207.256 bar' rbt='62:00 min' />
+  <sample time='5:45 min' depth='4.515 m' pressure='206.567 bar' rbt='63:00 min' />
+  <sample time='6:00 min' depth='4.515 m' pressure='205.464 bar' rbt='64:00 min' />
+  <sample time='6:15 min' depth='4.401 m' pressure='204.774 bar' rbt='66:00 min' />
+  <sample time='6:30 min' depth='4.648 m' temp='13.333 C' pressure='203.809 bar' rbt='62:00 min' />
+  <sample time='6:45 min' depth='4.953 m' pressure='202.706 bar' rbt='63:00 min' />
+  <sample time='7:00 min' depth='5.124 m' pressure='201.878 bar' />
+  <sample time='7:15 min' depth='4.953 m' pressure='201.327 bar' rbt='66:00 min' />
+  <sample time='7:30 min' depth='4.896 m' pressure='199.81 bar' rbt='65:00 min' />
+  <sample time='7:45 min' depth='4.82 m' temp='12.778 C' pressure='198.707 bar' rbt='69:00 min' />
+  <sample time='8:00 min' depth='4.572 m' pressure='197.742 bar' rbt='61:00 min' />
+  <sample time='8:15 min' depth='5.62 m' pressure='197.466 bar' rbt='52:00 min' />
+  <sample time='8:30 min' depth='5.372 m' temp='12.222 C' rbt='55:00 min' />
+  <sample time='8:45 min' depth='5.372 m' pressure='196.225 bar' rbt='72:00 min' />
+  <sample time='9:00 min' depth='5.067 m' pressure='194.57 bar' rbt='71:00 min' />
+  <sample time='9:15 min' depth='5.258 m' pressure='193.881 bar' rbt='73:00 min' />
+  <sample time='9:30 min' depth='5.067 m' pressure='193.467 bar' />
+  <sample time='9:45 min' depth='5.734 m' temp='11.667 C' pressure='192.64 bar' rbt='63:00 min' />
+  <sample time='10:00 min' depth='5.505 m' pressure='191.398 bar' rbt='61:00 min' />
+  <sample time='10:15 min' depth='6.725 m' pressure='191.123 bar' rbt='55:00 min' />
+  <sample time='10:30 min' depth='6.668 m' pressure='190.571 bar' ndl='519:00 min' rbt='59:00 min' />
+  <sample time='10:45 min' depth='6.477 m' pressure='190.02 bar' ndl='585:00 min' rbt='70:00 min' />
+  <sample time='11:00 min' depth='6.363 m' pressure='188.778 bar' rbt='77:00 min' />
+  <sample time='11:15 min' depth='5.258 m' temp='11.111 C' pressure='188.089 bar' ndl='599:00 min' rbt='89:00 min' />
+  <sample time='11:30 min' depth='6.172 m' pressure='186.71 bar' rbt='84:00 min' />
+  <sample time='11:45 min' depth='6.477 m' pressure='186.296 bar' rbt='59:00 min' />
+  <sample time='12:00 min' depth='6.42 m' pressure='184.779 bar' ndl='584:00 min' rbt='53:00 min' />
+  <sample time='12:15 min' depth='6.668 m' pressure='184.228 bar' rbt='48:00 min' />
+  <sample time='12:30 min' depth='7.087 m' pressure='183.676 bar' ndl='465:00 min' rbt='46:00 min' />
+  <sample time='12:45 min' depth='7.087 m' pressure='181.884 bar' rbt='53:00 min' />
+  <sample time='13:00 min' depth='7.22 m' pressure='180.918 bar' rbt='52:00 min' />
+  <sample time='13:15 min' depth='6.725 m' temp='10.556 C' pressure='179.402 bar' ndl='517:00 min' rbt='50:00 min' />
+  <sample time='13:30 min' depth='7.029 m' pressure='178.988 bar' rbt='48:00 min' />
+  <sample time='13:45 min' depth='7.944 m' pressure='177.747 bar' ndl='422:00 min' rbt='42:00 min' />
+  <sample time='14:00 min' depth='8.439 m' pressure='176.368 bar' ndl='223:00 min' rbt='40:00 min' />
+  <sample time='14:15 min' depth='7.696 m' pressure='175.127 bar' ndl='382:00 min' rbt='41:00 min' />
+  <sample time='14:30 min' depth='8.077 m' pressure='174.437 bar' ndl='313:00 min' rbt='40:00 min' />
+  <sample time='14:45 min' depth='8.496 m' pressure='173.748 bar' ndl='257:00 min' rbt='39:00 min' />
+  <sample time='15:00 min' depth='7.83 m' pressure='172.783 bar' ndl='381:00 min' rbt='40:00 min' />
+  <sample time='15:15 min' depth='8.496 m' pressure='172.093 bar' ndl='222:00 min' rbt='43:00 min' />
+  <sample time='15:30 min' depth='8.496 m' temp='10.0 C' pressure='170.438 bar' rbt='45:00 min' />
+  <sample time='15:45 min' depth='8.553 m' pressure='169.749 bar' rbt='44:00 min' />
+  <sample time='16:00 min' depth='8.553 m' pressure='168.646 bar' ndl='256:00 min' rbt='43:00 min' />
+  <sample time='16:15 min' depth='8.382 m' rbt='45:00 min' />
+  <sample time='16:30 min' depth='8.611 m' pressure='166.164 bar' ndl='255:00 min' rbt='42:00 min' />
+  <sample time='16:45 min' depth='8.077 m' pressure='164.371 bar' rbt='40:00 min' />
+  <sample time='17:00 min' depth='8.134 m' pressure='163.682 bar' ndl='311:00 min' rbt='37:00 min' />
+  <sample time='17:15 min' depth='8.249 m' pressure='162.992 bar' ndl='310:00 min' rbt='33:00 min' />
+  <sample time='17:30 min' depth='7.887 m' pressure='161.751 bar' rbt='34:00 min' />
+  <sample time='17:45 min' depth='7.887 m' pressure='160.648 bar' ndl='378:00 min' rbt='36:00 min' />
+  <sample time='18:00 min' depth='7.582 m' pressure='160.51 bar' rbt='41:00 min' />
+  <sample time='18:15 min' depth='7.144 m' pressure='159.683 bar' ndl='459:00 min' rbt='51:00 min' />
+  <sample time='18:30 min' depth='7.087 m' pressure='158.579 bar' ndl='511:00 min' />
+  <sample time='18:45 min' depth='6.42 m' pressure='157.89 bar' ndl='599:00 min' rbt='55:00 min' />
+  <sample time='19:00 min' depth='7.029 m' temp='9.444 C' pressure='156.925 bar' ndl='458:00 min' rbt='53:00 min' />
+  <sample time='19:15 min' depth='6.534 m' temp='10.0 C' ndl='576:00 min' rbt='54:00 min' />
+  <sample time='19:30 min' depth='6.42 m' pressure='154.994 bar' ndl='575:00 min' rbt='57:00 min' />
+  <sample time='19:45 min' depth='6.286 m' temp='9.444 C' pressure='154.718 bar' />
+  <sample time='20:00 min' depth='5.982 m' pressure='153.615 bar' ndl='599:00 min' rbt='58:00 min' />
+  <sample time='20:15 min' depth='5.867 m' pressure='153.339 bar' />
+  <sample time='20:30 min' depth='5.982 m' pressure='153.064 bar' rbt='53:00 min' />
+  <sample time='20:45 min' depth='5.982 m' pressure='152.098 bar' rbt='51:00 min' />
+  <sample time='21:00 min' depth='5.925 m' pressure='150.995 bar' />
+  <sample time='21:15 min' depth='5.982 m' pressure='150.444 bar' rbt='60:00 min' />
+  <sample time='21:30 min' depth='5.982 m' pressure='149.34 bar' rbt='53:00 min' />
+  <sample time='21:45 min' depth='5.677 m' pressure='148.651 bar' rbt='50:00 min' />
+  <sample time='22:00 min' depth='5.62 m' pressure='147.961 bar' rbt='46:00 min' />
+  <sample time='22:15 min' depth='5.677 m' pressure='147.272 bar' />
+  <sample time='22:30 min' depth='5.124 m' pressure='146.583 bar' rbt='48:00 min' />
+  <sample time='22:45 min' depth='4.82 m' pressure='146.031 bar' />
+  <sample time='23:00 min' depth='4.267 m' pressure='144.79 bar' rbt='50:00 min' />
+  <sample time='23:15 min' depth='4.82 m' pressure='143.963 bar' rbt='49:00 min' />
+  <sample time='23:30 min' depth='5.505 m' pressure='143.135 bar' rbt='42:00 min' />
+  <sample time='23:45 min' depth='5.201 m' pressure='141.894 bar' />
+  <sample time='24:00 min' depth='4.762 m' pressure='141.205 bar' rbt='41:00 min' />
+  <sample time='24:15 min' depth='4.267 m' pressure='140.515 bar' rbt='40:00 min' />
+  <sample time='24:30 min' depth='4.401 m' pressure='140.101 bar' rbt='44:00 min' />
+  <sample time='24:45 min' depth='4.572 m' pressure='139.274 bar' rbt='43:00 min' />
+  <sample time='25:00 min' depth='4.458 m' pressure='138.033 bar' rbt='45:00 min' />
+  <sample time='25:15 min' depth='3.905 m' pressure='137.481 bar' rbt='47:00 min' />
+  <sample time='25:30 min' depth='3.6 m' pressure='137.068 bar' rbt='42:00 min' />
+  <sample time='25:45 min' depth='4.153 m' pressure='136.516 bar' rbt='44:00 min' />
+  <sample time='26:00 min' depth='3.6 m' pressure='135.275 bar' rbt='45:00 min' />
+  <sample time='26:15 min' depth='3.715 m' pressure='134.586 bar' rbt='46:00 min' />
+  <sample time='26:30 min' depth='4.267 m' pressure='134.172 bar' rbt='44:00 min' />
+  <sample time='26:45 min' depth='4.039 m' pressure='133.758 bar' rbt='45:00 min' />
+  <sample time='27:00 min' depth='4.039 m' pressure='132.655 bar' rbt='48:00 min' />
+  <sample time='27:15 min' depth='3.238 m' pressure='132.241 bar' rbt='53:00 min' />
+  <sample time='27:30 min' depth='3.238 m' pressure='131.69 bar' rbt='60:00 min' />
+  <sample time='27:45 min' depth='3.353 m' pressure='131.0 bar' rbt='56:00 min' />
+  <sample time='28:00 min' depth='3.658 m' pressure='130.035 bar' rbt='49:00 min' />
+  <sample time='28:15 min' depth='2.934 m' pressure='129.759 bar' rbt='47:00 min' />
+  <sample time='28:30 min' depth='1.943 m' rbt='55:00 min' />
+  <sample time='28:45 min' depth='1.581 m' pressure='128.518 bar' rbt='57:00 min' />
+  <sample time='29:00 min' depth='1.829 m' pressure='127.553 bar' />
+  <sample time='29:15 min' depth='1.467 m' pressure='127.139 bar' />
+  <sample time='29:30 min' depth='2.381 m' pressure='125.898 bar' rbt='42:00 min' />
+  <sample time='29:45 min' depth='2.8 m' pressure='124.933 bar' rbt='37:00 min' />
+  <sample time='30:00 min' depth='2.134 m' pressure='124.106 bar' />
+  <sample time='30:15 min' depth='2.496 m' pressure='123.692 bar' rbt='38:00 min' />
+  <sample time='30:30 min' depth='1.695 m' rbt='43:00 min' />
+  <sample time='30:45 min' depth='1.829 m' pressure='122.175 bar' rbt='44:00 min' />
+  <sample time='31:00 min' depth='1.581 m' pressure='121.072 bar' rbt='46:00 min' />
+  </divecomputer>
+</dive>
+</dives>
+</divelog>

@@ -1,0 +1,196 @@
+{
+    "backgroundImage": "/home/arnaud/Code/unabara/resources/images/Petrel_Titanium.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 97
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 23,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.14184397163120568,
+                "y": 0.27491408934707906
+            },
+            "textColor": "#ff0562d5",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 96
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 18,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.14184397163120568,
+                "y": 0.7101947308132874
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 98
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 15,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.40526849037487334,
+                "y": 0.27491408934707906
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 81
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 18,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.547112462006079,
+                "y": 0.7101947308132874
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 115
+            },
+            "cellId": "po2_cell1",
+            "cellType": "PO2Cell1",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 24,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.14184397163120568,
+                "y": 0.48109965635738833
+            },
+            "textColor": "#ff05f610",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 115
+            },
+            "cellId": "po2_cell2",
+            "cellType": "PO2Cell2",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 24,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.364741641337386,
+                "y": 0.48109965635738833
+            },
+            "textColor": "#ff05f610",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 115
+            },
+            "cellId": "po2_cell3",
+            "cellType": "PO2Cell3",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 24,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5876393110435664,
+                "y": 0.48109965635738833
+            },
+            "textColor": "#ff05f610",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 77,
+                "width": 115
+            },
+            "cellId": "composite_po2",
+            "cellType": "CompositePO2",
+            "font": {
+                "bold": false,
+                "family": "Droid Sans",
+                "italic": false,
+                "pointSize": 18,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.364741641337386,
+                "y": 0.7101947308132874
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Droid Sans",
+        "italic": false,
+        "pointSize": 13,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "CCR_Petrel_Titanium",
+    "version": "1.0"
+}

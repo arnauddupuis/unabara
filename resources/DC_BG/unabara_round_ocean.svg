@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Unabara Round Ocean — dive computer background
+  Style: Watch-form factor, deep ocean navy, cyan accents
+  Screen area: dark fill (#040810), telemetry cells render on top
+  Transparent overall background (no background rect)
+  ViewBox: 500 × 600  |  Center: 250, 300
+-->
+<svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Deep ocean navy case — radial 3D highlight top-left -->
+    <radialGradient id="o_case" cx="36%" cy="28%" r="74%" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#1D3F5C"/>
+      <stop offset="45%"  stop-color="#0C1E2E"/>
+      <stop offset="100%" stop-color="#040A12"/>
+    </radialGradient>
+
+    <!-- Bezel ring — slightly cooler/darker than the case -->
+    <linearGradient id="o_ring" x1="25%" y1="5%" x2="75%" y2="95%">
+      <stop offset="0%"   stop-color="#16364F"/>
+      <stop offset="50%"  stop-color="#0A2438"/>
+      <stop offset="100%" stop-color="#061523"/>
+    </linearGradient>
+
+    <!-- Inner dark halo between tick ring and screen -->
+    <radialGradient id="o_inner" cx="50%" cy="46%" r="54%">
+      <stop offset="78%"  stop-color="#050E18"/>
+      <stop offset="100%" stop-color="#010305"/>
+    </radialGradient>
+
+    <!-- Screen fill — very dark navy, nearly black -->
+    <radialGradient id="o_screen" cx="40%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#080F19"/>
+      <stop offset="100%" stop-color="#020509"/>
+    </radialGradient>
+
+    <!-- Rubber strap — narrow side-to-side gradient -->
+    <linearGradient id="o_strap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#030609"/>
+      <stop offset="22%"  stop-color="#0D1B26"/>
+      <stop offset="50%"  stop-color="#121F2C"/>
+      <stop offset="78%"  stop-color="#0D1B26"/>
+      <stop offset="100%" stop-color="#030609"/>
+    </linearGradient>
+
+    <!-- Side buttons -->
+    <linearGradient id="o_btn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#020710"/>
+      <stop offset="50%"  stop-color="#112336"/>
+      <stop offset="100%" stop-color="#020710"/>
+    </linearGradient>
+
+    <!-- Screw heads — cool blue-steel radial -->
+    <radialGradient id="o_screw" cx="34%" cy="30%" r="66%">
+      <stop offset="0%"   stop-color="#3D6480"/>
+      <stop offset="55%"  stop-color="#152638"/>
+      <stop offset="100%" stop-color="#060D15"/>
+    </radialGradient>
+
+    <!-- Drop shadow for the main case
+         filterUnits="userSpaceOnUse" with explicit SVG coords avoids the
+         objectBoundingBox % clipping that strips the outer bezel rim -->
+    <filter id="o_shadow" filterUnits="userSpaceOnUse"
+            x="0" y="40" width="520" height="520">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur"/>
+      <feOffset dx="2" dy="5" result="offsetBlur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.80" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Inset glow on screen edge -->
+    <filter id="o_glow" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Brand text arc: 9-o'clock → 6-o'clock → 3-o'clock (counter-clockwise via bottom)
+         sweep=0 in SVG y-down = counter-clockwise visually.
+         Travel direction at 6-o'clock = +x → glyph-up = -y (toward center) → upright ✓ -->
+    <path id="o_brand" d="M 50,300 A 200,200 0 0,0 450,300"/>
+  </defs>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- TOP STRAP                              -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="183" y="10" width="134" height="122" rx="9" fill="url(#o_strap)"/>
+  <rect x="183" y="10" width="134" height="122" rx="9" fill="none"
+        stroke="#08131C" stroke-width="1.5"/>
+  <!-- Edge sheen strips -->
+  <rect x="186" y="13" width="3"   height="116" rx="1.5" fill="#1A3045" opacity="0.45"/>
+  <rect x="311" y="13" width="3"   height="116" rx="1.5" fill="#1A3045" opacity="0.45"/>
+  <!-- Horizontal grooves -->
+  <line x1="183" y1="35"  x2="317" y2="35"  stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="56"  x2="317" y2="56"  stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="77"  x2="317" y2="77"  stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="98"  x2="317" y2="98"  stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="119" x2="317" y2="119" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <!-- Clasp bar -->
+  <rect x="231" y="19" width="38" height="9" rx="3.5"
+        fill="#0D2234" stroke="#1E4A68" stroke-width="0.8" opacity="0.95"/>
+  <circle cx="250" cy="23.5" r="2.5" fill="#3498DB" opacity="0.65"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BOTTOM STRAP                           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="183" y="468" width="134" height="122" rx="9" fill="url(#o_strap)"/>
+  <rect x="183" y="468" width="134" height="122" rx="9" fill="none"
+        stroke="#08131C" stroke-width="1.5"/>
+  <rect x="186" y="471" width="3"   height="116" rx="1.5" fill="#1A3045" opacity="0.45"/>
+  <rect x="311" y="471" width="3"   height="116" rx="1.5" fill="#1A3045" opacity="0.45"/>
+  <line x1="183" y1="488" x2="317" y2="488" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="508" x2="317" y2="508" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="528" x2="317" y2="528" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="548" x2="317" y2="548" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <line x1="183" y1="568" x2="317" y2="568" stroke="#020507" stroke-width="1.5" opacity="0.9"/>
+  <!-- Strap pin-holes -->
+  <ellipse cx="250" cy="563" rx="4.5" ry="3.5"
+           fill="#020507" stroke="#0D1F2C" stroke-width="1"/>
+  <ellipse cx="250" cy="549" rx="4" ry="3"
+           fill="#020507" stroke="#0D1F2C" stroke-width="1"/>
+  <ellipse cx="250" cy="536" rx="3.5" ry="2.5"
+           fill="#020507" stroke="#0D1F2C" stroke-width="1"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SIDE BUTTONS                           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Upper-left  LIGHT -->
+  <rect x="11" y="213" width="46" height="25" rx="7" fill="url(#o_btn)"/>
+  <rect x="12" y="214" width="44" height="23" rx="6" fill="none"
+        stroke="#163856" stroke-width="1"/>
+  <rect x="16" y="218" width="30" height="15" rx="3" fill="none"
+        stroke="#3498DB" stroke-width="0.6" opacity="0.4"/>
+  <text x="32" y="228.5" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.85">LIGHT</text>
+
+  <!-- Lower-left  MENU -->
+  <rect x="11" y="362" width="46" height="25" rx="7" fill="url(#o_btn)"/>
+  <rect x="12" y="363" width="44" height="23" rx="6" fill="none"
+        stroke="#163856" stroke-width="1"/>
+  <rect x="16" y="367" width="30" height="15" rx="3" fill="none"
+        stroke="#3498DB" stroke-width="0.6" opacity="0.4"/>
+  <text x="32" y="377.5" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.85">MENU</text>
+
+  <!-- Upper-right  FUNC -->
+  <rect x="443" y="213" width="46" height="25" rx="7" fill="url(#o_btn)"/>
+  <rect x="444" y="214" width="44" height="23" rx="6" fill="none"
+        stroke="#163856" stroke-width="1"/>
+  <rect x="456" y="218" width="30" height="15" rx="3" fill="none"
+        stroke="#3498DB" stroke-width="0.6" opacity="0.4"/>
+  <text x="468" y="228.5" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.85">FUNC</text>
+
+  <!-- Lower-right  INFO -->
+  <rect x="443" y="362" width="46" height="25" rx="7" fill="url(#o_btn)"/>
+  <rect x="444" y="363" width="44" height="23" rx="6" fill="none"
+        stroke="#163856" stroke-width="1"/>
+  <rect x="456" y="367" width="30" height="15" rx="3" fill="none"
+        stroke="#3498DB" stroke-width="0.6" opacity="0.4"/>
+  <text x="468" y="377.5" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="7" font-weight="bold" opacity="0.85">INFO</text>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- MAIN CASE BODY                         -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="228"
+          fill="url(#o_case)" filter="url(#o_shadow)"/>
+  <!-- Top-left highlight arc -->
+  <circle cx="250" cy="300" r="228" fill="none"
+          stroke="#1E4060" stroke-width="2" opacity="0.55"/>
+  <!-- Bottom-right shadow arc (half-dash) -->
+  <circle cx="250" cy="300" r="226" fill="none"
+          stroke="#000000" stroke-width="3" opacity="0.30"
+          stroke-dasharray="718" stroke-dashoffset="539"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BEZEL RING (tick-mark zone r=192–212)  -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="212" fill="url(#o_ring)"/>
+  <circle cx="250" cy="300" r="212" fill="none"
+          stroke="#06111A" stroke-width="1.2"/>
+
+  <!-- Tick marks: rotate group so first mark hits 12 o'clock
+       (SVG circles default-start at 3 o'clock; -90° rotation corrects this) -->
+  <g transform="rotate(-90, 250, 300)">
+    <!-- Minor ticks — 60 marks, r=204, circ≈1281.5, slot≈21.36 → dash "2 19.36" -->
+    <circle cx="250" cy="300" r="204" fill="none"
+            stroke="#3498DB" stroke-width="3"
+            stroke-dasharray="2 19.36" stroke-dashoffset="-1"
+            opacity="0.38"/>
+    <!-- Major ticks — 12 marks, r=204, slot≈106.8 → dash "5 101.8" -->
+    <circle cx="250" cy="300" r="204" fill="none"
+            stroke="#3498DB" stroke-width="7"
+            stroke-dasharray="5 101.8" stroke-dashoffset="-2.5"
+            opacity="0.92"/>
+  </g>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- INNER BEVEL (dark halo)                -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="192" fill="url(#o_inner)"/>
+  <circle cx="250" cy="300" r="192" fill="none"
+          stroke="#06101A" stroke-width="2"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREEN AREA (dark fill)                -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <circle cx="250" cy="300" r="180" fill="url(#o_screen)"/>
+
+  <!-- Screen edge accent rings -->
+  <circle cx="250" cy="300" r="181" fill="none"
+          stroke="#3498DB" stroke-width="1.8" opacity="0.55"
+          filter="url(#o_glow)"/>
+  <circle cx="250" cy="300" r="179" fill="none"
+          stroke="#1B4A6A" stroke-width="1"   opacity="0.30"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- 12 O'CLOCK INDICATOR                   -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <polygon points="250,90 244,108 256,108"
+           fill="#3498DB" opacity="0.95"/>
+  <!-- Equator reference dots (3 and 9 o'clock inside bezel ring) -->
+  <circle cx="210" cy="300" r="3.5" fill="#3498DB" opacity="0.55"/>
+  <circle cx="290" cy="300" r="3.5" fill="#3498DB" opacity="0.55"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREWS  (8 positions, r=215 from ctr)  -->
+  <!-- avoiding top/bottom strap zones        -->
+  <!-- angles: ±30°, ±60°, ±120°, ±150°      -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Helper macro (repeated for each screw) -->
+  <!-- +30° → (358, 114)  -->
+  <circle cx="358" cy="114" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="358" cy="114" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="354" y1="114" x2="362" y2="114" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="358" y1="110" x2="358" y2="118" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +60° → (436, 193) -->
+  <circle cx="436" cy="193" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="436" cy="193" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="432" y1="193" x2="440" y2="193" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="436" y1="189" x2="436" y2="197" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +120° → (436, 407) -->
+  <circle cx="436" cy="407" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="436" cy="407" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="432" y1="407" x2="440" y2="407" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="436" y1="403" x2="436" y2="411" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +150° → (358, 486) -->
+  <circle cx="358" cy="486" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="358" cy="486" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="354" y1="486" x2="362" y2="486" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="358" y1="482" x2="358" y2="490" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +210° → (142, 486) -->
+  <circle cx="142" cy="486" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="142" cy="486" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="138" y1="486" x2="146" y2="486" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="142" y1="482" x2="142" y2="490" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +240° → (64, 407) -->
+  <circle cx="64" cy="407" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="64" cy="407" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="60" y1="407" x2="68" y2="407" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="64" y1="403" x2="64" y2="411" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +300° → (64, 193) -->
+  <circle cx="64" cy="193" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="64" cy="193" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="60" y1="193" x2="68" y2="193" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="64" y1="189" x2="64" y2="197" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- +330° → (142, 114) -->
+  <circle cx="142" cy="114" r="9.5" fill="url(#o_screw)"/>
+  <circle cx="142" cy="114" r="9.5" fill="none" stroke="#000" stroke-width="0.6" opacity="0.5"/>
+  <line x1="138" y1="114" x2="146" y2="114" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+  <line x1="142" y1="110" x2="142" y2="118" stroke="#5A9CC0" stroke-width="1.8" opacity="0.70"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BRAND TEXT — curved at 6 o'clock      -->
+  <!-- textPath along clockwise bottom arc    -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <text font-family="'Courier New',Courier,monospace"
+        font-size="14.5" font-weight="bold"
+        fill="#3498DB" letter-spacing="6" opacity="0.90">
+    <textPath href="#o_brand" text-anchor="middle" startOffset="50%">UNABARA</textPath>
+  </text>
+</svg>

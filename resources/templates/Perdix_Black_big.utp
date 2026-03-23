@@ -1,0 +1,201 @@
+{
+    "backgroundImage": "/home/arnaud/Code/unabara/resources/DC_BG/Perdix Black.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 111
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": true,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 22,
+                "weight": 700
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.1875,
+                "y": 0.3024193548387097
+            },
+            "textColor": "#ff0e2efc",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 110
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 15,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.6111111111111112,
+                "y": 0.5000000000000001
+            },
+            "textColor": "#ffb705a9",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 16,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.47500000000000003,
+                "y": 0.3024193548387097
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_0",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 14,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.16666666666666666,
+                "y": 0.5000000000000001
+            },
+            "tankIndex": 0,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_1",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 14,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.3981481481481482,
+                "y": 0.5000000000000001
+            },
+            "tankIndex": 1,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_2",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.17592592592592593,
+                "y": 0.6111111111111112
+            },
+            "tankIndex": 2,
+            "textColor": "#ff03fa47",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 124
+            },
+            "cellId": "tank_3",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.40740740740740744,
+                "y": 0.6111111111111112
+            },
+            "tankIndex": 3,
+            "textColor": "#ff27b1fd",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 94
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 13,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.5875,
+                "y": 0.6149193548387097
+            },
+            "textColor": "#fffbc30d",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Sans Serif",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "Perdix_Black_big",
+    "version": "1.0"
+}

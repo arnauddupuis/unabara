@@ -1,0 +1,95 @@
+{
+    "backgroundImage": "/home/arnaud/Code/unabara/resources/DC_BG/Right NERD.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 134
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "hasCustomColor": true,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.28596187175043325,
+                "y": 0.09054325955734405
+            },
+            "textColor": "#ff0494f1",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 134
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.22530329289428078,
+                "y": 0.36217303822937624
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 163
+            },
+            "cellId": "po2_cell1",
+            "cellType": "PO2Cell1",
+            "hasCustomColor": true,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.14731369150779894,
+                "y": 0.2414486921529175
+            },
+            "textColor": "#ff05fb16",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 163
+            },
+            "cellId": "po2_cell2",
+            "cellType": "PO2Cell2",
+            "hasCustomColor": true,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.28596187175043325,
+                "y": 0.2414486921529175
+            },
+            "textColor": "#ff05fb16",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 163
+            },
+            "cellId": "po2_cell3",
+            "cellType": "PO2Cell3",
+            "hasCustomColor": true,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.42461005199306756,
+                "y": 0.2414486921529175
+            },
+            "textColor": "#ff05fb16",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Sans Serif",
+        "italic": false,
+        "pointSize": 9,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "CCR_Nerd_Right",
+    "version": "1.0"
+}

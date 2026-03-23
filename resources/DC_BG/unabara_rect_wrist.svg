@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Unabara Rect Wrist — dive computer background
+  Style: Peregrine TX-inspired wrist-mount rectangle with rubber strap
+  Portrait-leaning landscape with side buttons, brand header bar, 4 corner screws
+  Screen area: dark fill, telemetry cells render on top
+  Transparent overall background (no background rect)
+  ViewBox: 500 × 620
+-->
+<svg viewBox="0 0 500 620" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Body shell — dark charcoal/navy with subtle 3D -->
+    <radialGradient id="w_body" cx="35%" cy="28%" r="75%">
+      <stop offset="0%"   stop-color="#1A2A3A"/>
+      <stop offset="50%"  stop-color="#0A1520"/>
+      <stop offset="100%" stop-color="#04080F"/>
+    </radialGradient>
+
+    <!-- Screen bezel inset — deeper navy -->
+    <linearGradient id="w_bezel" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%"   stop-color="#0E1E2E"/>
+      <stop offset="100%" stop-color="#050C14"/>
+    </linearGradient>
+
+    <!-- Screen fill — very dark -->
+    <radialGradient id="w_screen" cx="38%" cy="32%" r="68%">
+      <stop offset="0%"   stop-color="#060A10"/>
+      <stop offset="100%" stop-color="#020406"/>
+    </radialGradient>
+
+    <!-- Rubber strap — dark with edge sheen -->
+    <linearGradient id="w_strap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#03060A"/>
+      <stop offset="20%"  stop-color="#0E1A24"/>
+      <stop offset="50%"  stop-color="#141E28"/>
+      <stop offset="80%"  stop-color="#0E1A24"/>
+      <stop offset="100%" stop-color="#03060A"/>
+    </linearGradient>
+
+    <!-- Header bar — Unabara navy gradient -->
+    <linearGradient id="w_header" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#06182A"/>
+      <stop offset="35%"  stop-color="#0A3D62"/>
+      <stop offset="65%"  stop-color="#0A3D62"/>
+      <stop offset="100%" stop-color="#06182A"/>
+    </linearGradient>
+
+    <!-- Side buttons — dark with slight highlight -->
+    <linearGradient id="w_btn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#1A2A3A"/>
+      <stop offset="50%"  stop-color="#0C1824"/>
+      <stop offset="100%" stop-color="#04080F"/>
+    </linearGradient>
+
+    <!-- Corner screws -->
+    <radialGradient id="w_screw" cx="33%" cy="29%" r="67%">
+      <stop offset="0%"   stop-color="#3A5C78"/>
+      <stop offset="55%"  stop-color="#152535"/>
+      <stop offset="100%" stop-color="#060D16"/>
+    </radialGradient>
+
+    <!-- Body shadow -->
+    <filter id="w_shadow" filterUnits="userSpaceOnUse"
+            x="0" y="40" width="530" height="600">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="blur"/>
+      <feOffset dx="2" dy="4" result="offsetBlur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.75" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle glow on screen edge -->
+    <filter id="w_glow" x="-4%" y="-4%" width="108%" height="108%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- TOP STRAP                              -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Two strap legs (double-pin Peregrine-style) — halved length -->
+  <rect x="143" y="59"  width="70" height="67"  rx="8" fill="url(#w_strap)"/>
+  <rect x="143" y="59"  width="70" height="67"  rx="8" fill="none"
+        stroke="#08121C" stroke-width="1.5"/>
+  <rect x="287" y="59"  width="70" height="67"  rx="8" fill="url(#w_strap)"/>
+  <rect x="287" y="59"  width="70" height="67"  rx="8" fill="none"
+        stroke="#08121C" stroke-width="1.5"/>
+  <!-- Strap groove texture (3 lines per leg) -->
+  <line x1="143" y1="72"  x2="213" y2="72"  stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="143" y1="87"  x2="213" y2="87"  stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="143" y1="102" x2="213" y2="102" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="72"  x2="357" y2="72"  stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="87"  x2="357" y2="87"  stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="102" x2="357" y2="102" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BOTTOM STRAP                           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Bottom strap legs — halved length -->
+  <rect x="143" y="494" width="70" height="67"  rx="8" fill="url(#w_strap)"/>
+  <rect x="143" y="494" width="70" height="67"  rx="8" fill="none"
+        stroke="#08121C" stroke-width="1.5"/>
+  <rect x="287" y="494" width="70" height="67"  rx="8" fill="url(#w_strap)"/>
+  <rect x="287" y="494" width="70" height="67"  rx="8" fill="none"
+        stroke="#08121C" stroke-width="1.5"/>
+  <!-- Strap groove texture (3 lines per leg) -->
+  <line x1="143" y1="518" x2="213" y2="518" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="143" y1="533" x2="213" y2="533" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="143" y1="548" x2="213" y2="548" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="518" x2="357" y2="518" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="533" x2="357" y2="533" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <line x1="287" y1="548" x2="357" y2="548" stroke="#030609" stroke-width="1.5" opacity="0.9"/>
+  <!-- Strap pin holes -->
+  <ellipse cx="178" cy="553" rx="4.5" ry="3.5"
+           fill="#030609" stroke="#0C1820" stroke-width="1"/>
+  <ellipse cx="322" cy="553" rx="4.5" ry="3.5"
+           fill="#030609" stroke="#0C1820" stroke-width="1"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SIDE BUTTONS                           -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Left — MENU (single wide button) -->
+  <rect x="14"  y="270" width="44" height="80" rx="9" fill="url(#w_btn)"/>
+  <rect x="15"  y="271" width="42" height="78" rx="8" fill="none"
+        stroke="#1A2E42" stroke-width="1.2"/>
+  <!-- Grip ridges -->
+  <line x1="20" y1="290" x2="52" y2="290" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="20" y1="305" x2="52" y2="305" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="20" y1="320" x2="52" y2="320" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="20" y1="335" x2="52" y2="335" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <text x="36"  y="313" text-anchor="middle" transform="rotate(-90,36,313)"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="8" font-weight="bold" opacity="0.80">MENU</text>
+
+  <!-- Right — FUNC (single wide button) -->
+  <rect x="442" y="270" width="44" height="80" rx="9" fill="url(#w_btn)"/>
+  <rect x="443" y="271" width="42" height="78" rx="8" fill="none"
+        stroke="#1A2E42" stroke-width="1.2"/>
+  <line x1="448" y1="290" x2="480" y2="290" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="448" y1="305" x2="480" y2="305" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="448" y1="320" x2="480" y2="320" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <line x1="448" y1="335" x2="480" y2="335" stroke="#3498DB" stroke-width="0.7" opacity="0.30"/>
+  <text x="464" y="313" text-anchor="middle" transform="rotate(90,464,313)"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="8" font-weight="bold" opacity="0.80">FUNC</text>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- MAIN BODY                              -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="58"  y="110" width="384" height="400" rx="20"
+        fill="url(#w_body)" filter="url(#w_shadow)"/>
+  <!-- Body edge highlight -->
+  <rect x="58"  y="110" width="384" height="400" rx="20" fill="none"
+        stroke="#1E3A54" stroke-width="1.5" opacity="0.50"/>
+  <!-- Body edge shadow (bottom-right) -->
+  <rect x="60"  y="112" width="380" height="396" rx="19" fill="none"
+        stroke="#000000" stroke-width="2"   opacity="0.25"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BRAND HEADER BAR                       -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="58"  y="110" width="384" height="44" rx="20"
+        fill="url(#w_header)"/>
+  <!-- Smooth bottom edge of header into body -->
+  <rect x="58"  y="130" width="384" height="24"
+        fill="url(#w_header)"/>
+  <!-- Header bottom separator line -->
+  <line x1="68"  y1="153" x2="432" y2="153"
+        stroke="#3498DB" stroke-width="1"   opacity="0.45"/>
+  <!-- "SHEARWATER" replaced with "UNABARA" brand -->
+  <text x="250" y="138" text-anchor="middle"
+        font-family="'Courier New',Courier,monospace"
+        font-size="16" font-weight="bold"
+        fill="#FFFFFF" letter-spacing="7" opacity="0.90">UNABARA</text>
+  <!-- Tiny wave icon in header (left of text) -->
+  <g transform="translate(88, 132)">
+    <path d="M -10,4 Q -5,-4 0,4 Q 5,12 10,4" fill="none"
+          stroke="#3498DB" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+    <path d="M -10,-1 Q -5,-9 0,-1 Q 5,7 10,-1" fill="none"
+          stroke="#3498DB" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
+  </g>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREEN BEZEL (inner chamfer frame)     -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="76"  y="165" width="348" height="298" rx="14"
+        fill="url(#w_bezel)"/>
+  <rect x="76"  y="165" width="348" height="298" rx="14" fill="none"
+        stroke="#0A1E30" stroke-width="2"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- SCREEN AREA (dark fill)                -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <rect x="90"  y="178" width="320" height="272" rx="8"
+        fill="url(#w_screen)"/>
+  <!-- Screen glow ring -->
+  <rect x="90"  y="178" width="320" height="272" rx="8" fill="none"
+        stroke="#3498DB" stroke-width="2" opacity="0.50"
+        filter="url(#w_glow)"/>
+  <rect x="92"  y="180" width="316" height="268" rx="7" fill="none"
+        stroke="#1B4A6A" stroke-width="1"   opacity="0.28"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- 4 CORNER SCREWS                        -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Top-left (80, 132) -->
+  <circle cx="80"  cy="132" r="9" fill="url(#w_screw)"/>
+  <circle cx="80"  cy="132" r="9" fill="none" stroke="#000" stroke-width="0.7" opacity="0.5"/>
+  <line x1="76"  y1="132" x2="84"  y2="132" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+  <line x1="80"  y1="128" x2="80"  y2="136" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+
+  <!-- Top-right (420, 132) -->
+  <circle cx="420" cy="132" r="9" fill="url(#w_screw)"/>
+  <circle cx="420" cy="132" r="9" fill="none" stroke="#000" stroke-width="0.7" opacity="0.5"/>
+  <line x1="416" y1="132" x2="424" y2="132" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+  <line x1="420" y1="128" x2="420" y2="136" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+
+  <!-- Bottom-right (420, 488) -->
+  <circle cx="420" cy="488" r="9" fill="url(#w_screw)"/>
+  <circle cx="420" cy="488" r="9" fill="none" stroke="#000" stroke-width="0.7" opacity="0.5"/>
+  <line x1="416" y1="488" x2="424" y2="488" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+  <line x1="420" y1="484" x2="420" y2="492" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+
+  <!-- Bottom-left (80, 488) -->
+  <circle cx="80"  cy="488" r="9" fill="url(#w_screw)"/>
+  <circle cx="80"  cy="488" r="9" fill="none" stroke="#000" stroke-width="0.7" opacity="0.5"/>
+  <line x1="76"  y1="488" x2="84"  y2="488" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+  <line x1="80"  y1="484" x2="80"  y2="492" stroke="#4A90B8" stroke-width="1.7" opacity="0.68"/>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- BOTTOM STATUS BAR (decorative)         -->
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <!-- Separator line -->
+  <line x1="90"  y1="460" x2="410" y2="460"
+        stroke="#3498DB" stroke-width="0.8" opacity="0.22"/>
+  <!-- Dive data labels (decorative) -->
+  <text x="135" y="478" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="9" letter-spacing="1" opacity="0.45">DEPTH</text>
+  <text x="250" y="478" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="9" letter-spacing="1" opacity="0.45">TIME</text>
+  <text x="365" y="478" text-anchor="middle"
+        fill="#3498DB" font-family="'Courier New',Courier,monospace"
+        font-size="9" letter-spacing="1" opacity="0.45">TEMP</text>
+</svg>

@@ -1,0 +1,76 @@
+{
+    "backgroundImage": "/home/arnaud/Code/unabara/resources/All Shearwater Computers v3/Teric Black.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 80
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.2911674827009593,
+                "y": 0.4376325381047051
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 80
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.5328519637206481,
+                "y": 0.4382400044179369
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 80
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.4437528350700551,
+                "y": 0.2929589131875414
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 60,
+                "width": 80
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.37733490603021086,
+                "y": 0.569162800971946
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Arial",
+        "italic": false,
+        "pointSize": 8,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "test_no_tanks",
+    "version": "1.0"
+}

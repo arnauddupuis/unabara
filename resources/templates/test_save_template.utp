@@ -1,0 +1,108 @@
+{
+    "backgroundImage": "/home/arnaud/Code/unabara/resources/images/DC_Faces/unabara_rect_wrist.png",
+    "backgroundOpacity": 1,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 134
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.2125,
+                "y": 0.3024193548387097
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 129
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.3875,
+                "y": 0.3024193548387097
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 134
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.2125,
+                "y": 0.42338709677419356
+            },
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 151
+            },
+            "cellId": "tank_0",
+            "cellType": "Pressure",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.2125,
+                "y": 0.564516129032258
+            },
+            "tankIndex": 0,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 151
+            },
+            "cellId": "tank_1",
+            "cellType": "Pressure",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.4625,
+                "y": 0.564516129032258
+            },
+            "tankIndex": 1,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 89,
+                "width": 113
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.575,
+                "y": 0.3024193548387097
+            },
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Sans Serif",
+        "italic": false,
+        "pointSize": 14,
+        "weight": 400
+    },
+    "defaultTextColor": "#ffffffff",
+    "templateName": "test_save_template",
+    "version": "1.0"
+}

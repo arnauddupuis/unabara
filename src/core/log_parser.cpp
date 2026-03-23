@@ -182,8 +182,8 @@ QList<QString> LogParser::getDiveList(const QString &filePath)
                     }
                     
                     // Read dive location
-                    while (!xml.atEnd() && !(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "dive")) {
-                        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == "location") {
+                    while (!xml.atEnd() && !(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("dive"))) {
+                        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == QStringLiteral("location")) {
                             diveLocation = xml.readElementText();
                             break;
                         }
@@ -931,7 +931,7 @@ void LogParser::parseSampleElement(QXmlStreamReader &xml, DiveData* dive, double
     }
     
     // Skip to the end of the sample element
-    while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "sample")) {
+    while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("sample"))) {
         xml.readNext();
         if (xml.atEnd()) break;
     }

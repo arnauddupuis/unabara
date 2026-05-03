@@ -55,6 +55,14 @@ void DiveData::setDiveSiteId(const QString &siteId)
     }
 }
 
+void DiveData::setDiveMode(DiveMode mode)
+{
+    if (m_diveMode != mode) {
+        m_diveMode = mode;
+        emit diveModeChanged();
+    }
+}
+
 int DiveData::durationSeconds() const
 {
     if (m_dataPoints.isEmpty()) {

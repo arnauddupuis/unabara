@@ -36,6 +36,9 @@ set(PROJECT_SOURCES
     src/main.cpp
     src/core/dive_data.cpp
     src/core/log_parser.cpp
+    src/core/format_parsers/parse_utils.cpp
+    src/core/format_parsers/subsurface_parser.cpp
+    src/core/format_parsers/uddf_parser.cpp
     src/core/config.cpp
     src/core/units.cpp
     src/core/cell_data.cpp
@@ -54,6 +57,10 @@ set(PROJECT_SOURCES
 set(PROJECT_HEADERS
     include/core/dive_data.h
     include/core/log_parser.h
+    include/core/format_parsers/idive_log_format_parser.h
+    include/core/format_parsers/parse_utils.h
+    include/core/format_parsers/subsurface_parser.h
+    include/core/format_parsers/uddf_parser.h
     include/core/config.h
     include/core/units.h
     include/core/cell_data.h

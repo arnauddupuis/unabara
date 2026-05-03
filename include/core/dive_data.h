@@ -94,7 +94,7 @@ struct GasSwitch {
 class DiveData : public QObject
 {
     Q_OBJECT
-    
+
     Q_PROPERTY(QString diveName READ diveName WRITE setDiveName NOTIFY diveNameChanged)
     Q_PROPERTY(QDateTime startTime READ startTime WRITE setStartTime NOTIFY startTimeChanged)
     Q_PROPERTY(int durationSeconds READ durationSeconds NOTIFY durationChanged)
@@ -105,10 +105,18 @@ class DiveData : public QObject
     Q_PROPERTY(int diveNumber READ diveNumber WRITE setDiveNumber NOTIFY diveNumberChanged)
     Q_PROPERTY(QString diveSiteName READ diveSiteName WRITE setDiveSiteName NOTIFY diveSiteNameChanged)
     Q_PROPERTY(QString diveSiteId READ diveSiteId WRITE setDiveSiteId NOTIFY diveSiteIdChanged)
-    
+    Q_PROPERTY(DiveMode diveMode READ diveMode WRITE setDiveMode NOTIFY diveModeChanged)
+
 public:
+    enum DiveMode {
+        UnknownMode = 0,
+        OpenCircuit = 1,
+        ClosedCircuit = 2
+    };
+    Q_ENUM(DiveMode)
+
     explicit DiveData(QObject *parent = nullptr);
-    
+
     // Getters
     QString diveName() const { return m_diveName; }
     QDateTime startTime() const { return m_startTime; }
@@ -119,7 +127,8 @@ public:
     int diveNumber() const { return m_diveNumber; }
     QString diveSiteName() const { return m_diveSiteName; }
     QString diveSiteId() const { return m_diveSiteId; }
-    
+    DiveMode diveMode() const { return m_diveMode; }
+
     // Setters
     void setDiveName(const QString &name);
     void setStartTime(const QDateTime &time);
@@ -127,6 +136,7 @@ public:
     void setDiveNumber(int number);
     void setDiveSiteName(const QString &siteName);
     void setDiveSiteId(const QString &siteId);
+    void setDiveMode(DiveMode mode);
 
     // Cylinder management
     int cylinderCount() const { return m_cylinders.size(); }
@@ -165,7 +175,8 @@ signals:
     void diveNumberChanged();
     void diveSiteNameChanged();
     void diveSiteIdChanged();
-    
+    void diveModeChanged();
+
 private:
     QString m_diveName;
     QDateTime m_startTime;
@@ -173,6 +184,7 @@ private:
     int m_diveNumber;
     QString m_diveSiteName;
     QString m_diveSiteId;
+    DiveMode m_diveMode = UnknownMode;
     QVector<DiveDataPoint> m_dataPoints;
     QVector<CylinderInfo> m_cylinders;
     QList<GasSwitch> m_gasSwitches;

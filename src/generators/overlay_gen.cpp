@@ -16,6 +16,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_templateHeight(120)
     , m_font(QFont("Sans Serif", 12))
     , m_textColor(Qt::white)
+    , m_showLabel(true)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
     , m_showTemperature(true)
@@ -152,6 +153,33 @@ void OverlayGenerator::setTextColor(const QColor &color)
         Unabara::CellData* cell = getCellData(m_selectedCellId);
         if (cell && cell->textColor() != color) {
             cell->setTextColor(color, true); // true = custom color
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShowLabel(bool show)
+{
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_showLabel != show) {
+            m_showLabel = show;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShowLabel()) {
+                    cell.setShowLabel(show, false); // false = inherited from global
+                }
+            }
+
+            emit showLabelChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->showLabel() != show) {
+            cell->setShowLabel(show, true); // true = custom override
             emit cellsChanged();
         }
     }
@@ -409,6 +437,16 @@ void OverlayGenerator::resetCellColor(const QString& cellId)
     }
 }
 
+void OverlayGenerator::resetCellShowLabel(const QString& cellId)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShowLabel()) {
+        // Reset to global default
+        cell->setShowLabel(m_showLabel, false);  // false = inherited from global
+        emit cellsChanged();
+    }
+}
+
 // Cell-based layout management methods
 
 Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId)
@@ -480,6 +518,26 @@ void OverlayGenerator::setCellColor(const QString& cellId, const QColor& color)
     } else {
         qWarning() << "setCellColor: Cell not found:" << cellId;
     }
+}
+
+void OverlayGenerator::setCellShowLabel(const QString& cellId, bool show)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setShowLabel(show, true);  // true = per-cell override
+        emit cellsChanged();
+    } else {
+        qWarning() << "setCellShowLabel: Cell not found:" << cellId;
+    }
+}
+
+bool OverlayGenerator::getCellShowLabel(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShowLabel()) {
+        return cell->showLabel();
+    }
+    return m_showLabel;
 }
 
 void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
@@ -1031,23 +1089,29 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
 // Generate display text for a cell - matches CellModel::formatValue() for QML consistency
 QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
                                                    const DiveDataPoint& dataPoint,
-                                                   int tankIndex, DiveData* dive) const
+                                                   int tankIndex, DiveData* dive,
+                                                   bool showLabel) const
 {
     Units::UnitSystem unitSystem = Config::instance()->unitSystem();
     bool inDeco = (dataPoint.ndl <= 0);
 
+    auto format = [showLabel](const QString& label, const QString& value) {
+        return showLabel ? QString("%1\n%2").arg(label, value) : value;
+    };
+
     switch (cellType) {
     case Unabara::CellType::Depth:
-        return QString("DEPTH\n%1").arg(Units::formatDepthValue(dataPoint.depth, unitSystem));
+        return format("DEPTH", Units::formatDepthValue(dataPoint.depth, unitSystem));
 
     case Unabara::CellType::Temperature:
-        return QString("TEMP\n%1").arg(Units::formatTemperatureValue(dataPoint.temperature, unitSystem));
+        return format("TEMP", Units::formatTemperatureValue(dataPoint.temperature, unitSystem));
 
     case Unabara::CellType::Time: {
         int totalSeconds = static_cast<int>(dataPoint.timestamp);
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
-        return QString("DIVE TIME\n%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
+        return format("DIVE TIME",
+                      QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0')));
     }
 
     case Unabara::CellType::NDL:
@@ -1058,15 +1122,15 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             if (dataPoint.ceiling > 0) {
                 decoInfo = QString("\nDECO (%1)").arg(Units::formatDepthValue(dataPoint.ceiling, unitSystem));
             }
-            return QString("TTS\n%1%2").arg(ttsStr).arg(decoInfo);
+            return format("TTS", ttsStr + decoInfo);
         } else {
             QString ndlStr = dataPoint.ndl > 0 ? QString("%1 min").arg(qRound(dataPoint.ndl)) : "---";
-            return QString("NDL\n%1").arg(ndlStr);
+            return format("NDL", ndlStr);
         }
 
     case Unabara::CellType::TTS: {
         QString ttsStr = dataPoint.tts > 0 ? QString("%1 min").arg(qRound(dataPoint.tts)) : "---";
-        return QString("TTS\n%1").arg(ttsStr);
+        return format("TTS", ttsStr);
     }
 
     case Unabara::CellType::Pressure: {
@@ -1114,28 +1178,28 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             label = "PRESSURE";
         }
 
-        return QString("%1\n%2").arg(label).arg(value);
+        return format(label, value);
     }
 
     case Unabara::CellType::PO2Cell1: {
         QString value = (!dataPoint.po2Sensors.isEmpty() && dataPoint.po2Sensors.size() > 0)
             ? QString("%1").arg(dataPoint.po2Sensors[0], 0, 'f', 2)
             : "---";
-        return QString("CELL 1\n%1").arg(value);
+        return format("CELL 1", value);
     }
 
     case Unabara::CellType::PO2Cell2: {
         QString value = (dataPoint.po2Sensors.size() > 1)
             ? QString("%1").arg(dataPoint.po2Sensors[1], 0, 'f', 2)
             : "---";
-        return QString("CELL 2\n%1").arg(value);
+        return format("CELL 2", value);
     }
 
     case Unabara::CellType::PO2Cell3: {
         QString value = (dataPoint.po2Sensors.size() > 2)
             ? QString("%1").arg(dataPoint.po2Sensors[2], 0, 'f', 2)
             : "---";
-        return QString("CELL 3\n%1").arg(value);
+        return format("CELL 3", value);
     }
 
     case Unabara::CellType::CompositePO2: {
@@ -1143,7 +1207,7 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
         QString value = (compositePO2 > 0)
             ? QString("%1").arg(compositePO2, 0, 'f', 2)
             : "---";
-        return QString("PO2\n%1").arg(value);
+        return format("PO2", value);
     }
 
     default:
@@ -1168,7 +1232,8 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
 
         // Generate displayText (same format as QML CellModel)
         QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
-                                                       cell.tankIndex(), dive);
+                                                       cell.tankIndex(), dive,
+                                                       cell.showLabel());
 
         // Scale font for template resolution (match calculateCellSize behavior)
         // QML renders at preview size, but C++ renders at full template resolution

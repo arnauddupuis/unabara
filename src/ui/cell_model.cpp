@@ -47,6 +47,10 @@ QVariant CellModel::data(const QModelIndex &index, int role) const
         return cell.hasCustomColor();
     case TankIndexRole:
         return cell.tankIndex();
+    case ShowLabelRole:
+        return cell.showLabel();
+    case HasCustomShowLabelRole:
+        return cell.hasCustomShowLabel();
     default:
         return QVariant();
     }
@@ -66,6 +70,8 @@ QHash<int, QByteArray> CellModel::roleNames() const
     roles[HasCustomFontRole] = "hasCustomFont";
     roles[HasCustomColorRole] = "hasCustomColor";
     roles[TankIndexRole] = "tankIndex";
+    roles[ShowLabelRole] = "showLabel";
+    roles[HasCustomShowLabelRole] = "hasCustomShowLabel";
     return roles;
 }
 
@@ -201,22 +207,27 @@ QString CellModel::generateDisplayText(const Unabara::CellData& cell) const
         return "No Data";
 
     DiveDataPoint dataPoint = m_dive->dataAtTime(m_timePoint);
-    return formatValue(cell.cellType(), dataPoint, cell.tankIndex());
+    return formatValue(cell.cellType(), dataPoint, cell.tankIndex(), cell.showLabel());
 }
 
-QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& dataPoint, int tankIndex) const
+QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& dataPoint,
+                               int tankIndex, bool showLabel) const
 {
     Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+
+    auto format = [showLabel](const QString& label, const QString& value) {
+        return showLabel ? QString("%1\n%2").arg(label, value) : value;
+    };
 
     switch (type) {
     case Unabara::CellType::Depth: {
         QString value = Units::formatDepthValue(dataPoint.depth, unitSystem);
-        return QString("DEPTH\n%1").arg(value);
+        return format("DEPTH", value);
     }
 
     case Unabara::CellType::Temperature: {
         QString value = Units::formatTemperatureValue(dataPoint.temperature, unitSystem);
-        return QString("TEMP\n%1").arg(value);
+        return format("TEMP", value);
     }
 
     case Unabara::CellType::Time: {
@@ -224,7 +235,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
         QString value = QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
-        return QString("DIVE TIME\n%1").arg(value);
+        return format("DIVE TIME", value);
     }
 
     case Unabara::CellType::NDL: {
@@ -247,7 +258,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
                 decoInfo = QString("\nDECO (%1)").arg(ceilingStr);
             }
 
-            return QString("TTS\n%1%2").arg(value).arg(decoInfo);
+            return format("TTS", value + decoInfo);
         } else {
             // Show NDL when not in decompression
             QString value;
@@ -256,7 +267,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
             } else {
                 value = "---";
             }
-            return QString("NDL\n%1").arg(value);
+            return format("NDL", value);
         }
     }
 
@@ -267,7 +278,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         } else {
             value = "---";
         }
-        return QString("TTS\n%1").arg(value);
+        return format("TTS", value);
     }
 
     case Unabara::CellType::Pressure: {
@@ -325,7 +336,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
             label = "PRESSURE";
         }
 
-        return QString("%1\n%2").arg(label).arg(value);
+        return format(label, value);
     }
 
     case Unabara::CellType::PO2Cell1: {
@@ -335,7 +346,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         } else {
             value = "---";
         }
-        return QString("CELL 1\n%1").arg(value);
+        return format("CELL 1", value);
     }
 
     case Unabara::CellType::PO2Cell2: {
@@ -345,7 +356,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         } else {
             value = "---";
         }
-        return QString("CELL 2\n%1").arg(value);
+        return format("CELL 2", value);
     }
 
     case Unabara::CellType::PO2Cell3: {
@@ -355,7 +366,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         } else {
             value = "---";
         }
-        return QString("CELL 3\n%1").arg(value);
+        return format("CELL 3", value);
     }
 
     case Unabara::CellType::CompositePO2: {
@@ -366,7 +377,7 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         } else {
             value = "---";
         }
-        return QString("PO2\n%1").arg(value);
+        return format("PO2", value);
     }
 
     default:

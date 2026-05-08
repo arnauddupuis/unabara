@@ -29,7 +29,9 @@ public:
         CalculatedSizeRole,
         HasCustomFontRole,
         HasCustomColorRole,
-        TankIndexRole
+        TankIndexRole,
+        ShowLabelRole,
+        HasCustomShowLabelRole
     };
 
     explicit CellModel(QObject *parent = nullptr);
@@ -62,7 +64,8 @@ private:
 
     // Helper to generate display text for a cell
     QString generateDisplayText(const Unabara::CellData& cell) const;
-    QString formatValue(Unabara::CellType type, const DiveDataPoint& dataPoint, int tankIndex = 0) const;
+    QString formatValue(Unabara::CellType type, const DiveDataPoint& dataPoint,
+                        int tankIndex = 0, bool showLabel = true) const;
 };
 
 #endif // CELL_MODEL_H

@@ -12,6 +12,8 @@ CellData::CellData()
     , m_calculatedSize(0.0, 0.0)
     , m_hasCustomFont(false)
     , m_hasCustomColor(false)
+    , m_showLabel(true)
+    , m_hasCustomShowLabel(false)
     , m_tankIndex(-1)
 {
 }
@@ -26,6 +28,8 @@ CellData::CellData(const QString& cellId, CellType cellType)
     , m_calculatedSize(0.0, 0.0)
     , m_hasCustomFont(false)
     , m_hasCustomColor(false)
+    , m_showLabel(true)
+    , m_hasCustomShowLabel(false)
     , m_tankIndex(-1)
 {
 }
@@ -40,6 +44,12 @@ void CellData::setTextColor(const QColor& color, bool isCustom)
 {
     m_textColor = color;
     m_hasCustomColor = isCustom;
+}
+
+void CellData::setShowLabel(bool show, bool isCustom)
+{
+    m_showLabel = show;
+    m_hasCustomShowLabel = isCustom;
 }
 
 QJsonObject CellData::toJson() const
@@ -87,6 +97,9 @@ QJsonObject CellData::toJson() const
     json["hasCustomFont"] = m_hasCustomFont;
     json["hasCustomColor"] = m_hasCustomColor;
 
+    json["showLabel"] = m_showLabel;
+    json["hasCustomShowLabel"] = m_hasCustomShowLabel;
+
     return json;
 }
 
@@ -131,6 +144,11 @@ CellData CellData::fromJson(const QJsonObject& json)
 
     // Tank index
     cell.m_tankIndex = json["tankIndex"].toInt(-1);
+
+    // Show-label toggle (defaults: visible label, no per-cell override —
+    // matches behaviour for old .utp files predating this field).
+    cell.m_showLabel = json["showLabel"].toBool(true);
+    cell.m_hasCustomShowLabel = json["hasCustomShowLabel"].toBool(false);
 
     return cell;
 }

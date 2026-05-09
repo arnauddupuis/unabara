@@ -22,6 +22,7 @@ class OverlayGenerator : public QObject
     Q_PROPERTY(int templateHeight READ templateHeight NOTIFY templateChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
+    Q_PROPERTY(bool showLabel READ showLabel WRITE setShowLabel NOTIFY showLabelChanged)
     Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(bool showDepth READ showDepth WRITE setShowDepth NOTIFY showDepthChanged)
     Q_PROPERTY(bool showTemperature READ showTemperature WRITE setShowTemperature NOTIFY showTemperatureChanged)
@@ -55,6 +56,7 @@ public:
     int templateHeight() const { return m_templateHeight; }
     QFont font() const { return m_font; }
     QColor textColor() const { return m_textColor; }
+    bool showLabel() const { return m_showLabel; }
     double backgroundOpacity() const { return m_backgroundOpacity; }
     bool showDepth() const { return m_showDepth; }
     bool showTemperature() const { return m_showTemperature; }
@@ -83,6 +85,7 @@ public:
     void setTemplatePath(const QString &path);
     void setFont(const QFont &font);
     void setTextColor(const QColor &color);
+    void setShowLabel(bool show);
     void setBackgroundOpacity(double opacity);
     void setShowDepth(bool show);
     void setShowTemperature(bool show);
@@ -117,9 +120,12 @@ public:
     Q_INVOKABLE QColor getCellColor(const QString& cellId) const;
     Q_INVOKABLE void setCellFont(const QString& cellId, const QFont& font);
     Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
+    Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
+    Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void resetCellFont(const QString& cellId);
     Q_INVOKABLE void resetCellColor(const QString& cellId);
+    Q_INVOKABLE void resetCellShowLabel(const QString& cellId);
     bool useCellBasedLayout() const { return m_useCellBasedLayout; }
     void setUseCellBasedLayout(bool use);
 
@@ -149,6 +155,7 @@ signals:
     void templateChanged();
     void fontChanged();
     void textColorChanged();
+    void showLabelChanged();
     void backgroundOpacityChanged();
     void showDepthChanged();
     void showTemperatureChanged();
@@ -187,6 +194,7 @@ private:
     int m_templateHeight;
     QFont m_font;
     QColor m_textColor;
+    bool m_showLabel;
     double m_backgroundOpacity;
     bool m_showDepth;
     bool m_showTemperature;
@@ -245,7 +253,8 @@ private:
 
     // Generate display text for a cell (matches CellModel::formatValue for QML consistency)
     QString generateCellDisplayText(Unabara::CellType cellType, const DiveDataPoint& dataPoint,
-                                    int tankIndex, DiveData* dive) const;
+                                    int tankIndex, DiveData* dive,
+                                    bool showLabel = true) const;
 };
 
 #endif // OVERLAY_GEN_H

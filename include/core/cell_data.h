@@ -49,7 +49,9 @@ public:
     QSizeF calculatedSize() const { return m_calculatedSize; }
     bool hasCustomFont() const { return m_hasCustomFont; }
     bool hasCustomColor() const { return m_hasCustomColor; }
+    bool hasCustomShowLabel() const { return m_hasCustomShowLabel; }
     int tankIndex() const { return m_tankIndex; }
+    bool showLabel() const { return m_showLabel; }
 
     // Setters
     void setCellId(const QString& id) { m_cellId = id; }
@@ -58,12 +60,14 @@ public:
     void setVisible(bool visible) { m_visible = visible; }
     void setFont(const QFont& font, bool isCustom = true);
     void setTextColor(const QColor& color, bool isCustom = true);
+    void setShowLabel(bool show, bool isCustom = true);
     void setCalculatedSize(const QSizeF& size) { m_calculatedSize = size; }
     void setTankIndex(int index) { m_tankIndex = index; }
 
     // Reset custom properties to inherit from global
     void resetFont() { m_hasCustomFont = false; }
     void resetColor() { m_hasCustomColor = false; }
+    void resetShowLabel() { m_hasCustomShowLabel = false; }
 
     // Serialization
     QJsonObject toJson() const;
@@ -83,6 +87,8 @@ private:
     QSizeF m_calculatedSize;       // Calculated size based on content and font
     bool m_hasCustomFont;          // True if font differs from global default
     bool m_hasCustomColor;         // True if color differs from global default
+    bool m_showLabel;              // Whether the label row ("DEPTH" etc.) is rendered above the value
+    bool m_hasCustomShowLabel;     // True if showLabel differs from global default
     int m_tankIndex;               // For pressure cells: which tank (0-based), -1 for N/A
 };
 

@@ -19,6 +19,8 @@ Item {
     property var currentColor: getCurrentColor()
     property bool currentHasCustomFont: getSelectedCellHasCustomFont()
     property bool currentHasCustomColor: getSelectedCellHasCustomColor()
+    property bool currentShowLabel: getCurrentShowLabel()
+    property bool currentHasCustomShowLabel: getSelectedCellHasCustomShowLabel()
 
     implicitHeight: mainColumn.implicitHeight
 
@@ -74,6 +76,24 @@ Item {
         return hasCustom === true
     }
 
+    // Get the effective showLabel (selected cell or global)
+    function getCurrentShowLabel() {
+        if (!generator) return true
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShowLabel(selectedCellId)
+        }
+
+        return generator.showLabel
+    }
+
+    function getSelectedCellHasCustomShowLabel() {
+        if (!hasSelection || !selectedCellId) return false
+
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomShowLabel")
+        return hasCustom === true
+    }
+
     // Update reactive properties when selection or cells change
     onSelectedCellIdChanged: {
         console.log("Selection changed to:", selectedCellId)
@@ -101,6 +121,13 @@ Item {
                 updateCurrentProperties()
             }
         }
+
+        function onShowLabelChanged() {
+            if (!hasSelection) {
+                console.log("Global showLabel changed")
+                updateCurrentProperties()
+            }
+        }
     }
 
     function updateCurrentProperties() {
@@ -111,6 +138,8 @@ Item {
         currentColor = newColor
         currentHasCustomFont = getSelectedCellHasCustomFont()
         currentHasCustomColor = getSelectedCellHasCustomColor()
+        currentShowLabel = getCurrentShowLabel()
+        currentHasCustomShowLabel = getSelectedCellHasCustomShowLabel()
     }
 
     // Cell model for interactive preview
@@ -660,6 +689,39 @@ Item {
                     onClicked: {
                         if (root.generator && root.selectedCellId) {
                             root.generator.resetCellColor(root.selectedCellId)
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Label:") }
+                CheckBox {
+                    id: showLabelCheckBox
+                    Layout.fillWidth: true
+                    text: qsTr("Show label")
+                    checked: root.currentShowLabel
+                    Connections {
+                        target: root
+                        function onCurrentShowLabelChanged() {
+                            showLabelCheckBox.checked = root.currentShowLabel
+                        }
+                    }
+                    onClicked: {
+                        if (root.generator) {
+                            root.generator.showLabel = checked
+                        }
+                    }
+                }
+
+                Button {
+                    text: "↺"
+                    Layout.preferredWidth: 40
+                    enabled: root.hasSelection && root.currentHasCustomShowLabel
+                    opacity: enabled ? 1.0 : 0.3
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ? qsTr("Reset to global label setting") : qsTr("No custom label setting")
+                    onClicked: {
+                        if (root.generator && root.selectedCellId) {
+                            root.generator.resetCellShowLabel(root.selectedCellId)
                         }
                     }
                 }

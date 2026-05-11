@@ -1,4 +1,6 @@
 #include "include/ui/timeline.h"
+#include "include/generators/overlay_image_provider.h"
+#include "include/generators/profile_image_provider.h"
 #include <QVariantList>
 #include <QVariantMap>
 #include <cmath>
@@ -57,10 +59,14 @@ void Timeline::setCurrentTime(double time)
             m_currentTime = time;
             ensureTimeIsVisible(time);
 
-            // Update the image provider with the new time
+            // Update the image providers with the new time
             extern OverlayImageProvider* g_imageProvider;
             if (g_imageProvider) {
                 g_imageProvider->setCurrentTime(time);
+            }
+            extern ProfileImageProvider* g_profileImageProvider;
+            if (g_profileImageProvider) {
+                g_profileImageProvider->setCurrentTime(time);
             }
 
             emit currentTimeChanged();

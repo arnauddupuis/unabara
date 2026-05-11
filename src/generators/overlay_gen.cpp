@@ -317,6 +317,19 @@ void OverlayGenerator::setShowCellBackgrounds(bool show)
     }
 }
 
+void OverlayGenerator::beginExport()
+{
+    // Cell backgrounds are an editor-only affordance — never render them
+    // into export frames. Stash the user's current value and force off.
+    m_savedShowCellBackgrounds = m_showCellBackgrounds;
+    m_showCellBackgrounds = false;
+}
+
+void OverlayGenerator::endExport()
+{
+    m_showCellBackgrounds = m_savedShowCellBackgrounds;
+}
+
 QStringList OverlayGenerator::getAvailableTemplates()
 {
     if (m_templateNames.isEmpty()) {

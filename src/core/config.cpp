@@ -30,6 +30,15 @@ Config::Config(QObject *parent)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
+    , m_profileBackgroundColor(Qt::black)
+    , m_profileBackgroundOpacity(0.0)
+    , m_profileCurveColor(QColor("#9C27B0"))
+    , m_profileIndicatorColor(QColor(0, 255, 0))
+    , m_profileIndicatorMode(0)   // 0 = Static, 1 = Pulsing
+    , m_profileIndicatorRadius(8)
+    , m_profilePulsePeriodMs(2000)
+    , m_profileOutputWidth(1920)
+    , m_profileOutputHeight(400)
 {
     // Load settings from disk
     loadConfig();
@@ -298,6 +307,94 @@ void Config::setShowCompositePO2(bool show)
     }
 }
 
+// ---- Profile settings -----------------------------------------------------
+
+QColor Config::profileBackgroundColor() const { return m_profileBackgroundColor; }
+void Config::setProfileBackgroundColor(const QColor& color)
+{
+    if (m_profileBackgroundColor != color) {
+        m_profileBackgroundColor = color;
+        emit profileBackgroundColorChanged();
+    }
+}
+
+double Config::profileBackgroundOpacity() const { return m_profileBackgroundOpacity; }
+void Config::setProfileBackgroundOpacity(double opacity)
+{
+    opacity = qBound(0.0, opacity, 1.0);
+    if (qAbs(m_profileBackgroundOpacity - opacity) > 0.001) {
+        m_profileBackgroundOpacity = opacity;
+        emit profileBackgroundOpacityChanged();
+    }
+}
+
+QColor Config::profileCurveColor() const { return m_profileCurveColor; }
+void Config::setProfileCurveColor(const QColor& color)
+{
+    if (m_profileCurveColor != color) {
+        m_profileCurveColor = color;
+        emit profileCurveColorChanged();
+    }
+}
+
+QColor Config::profileIndicatorColor() const { return m_profileIndicatorColor; }
+void Config::setProfileIndicatorColor(const QColor& color)
+{
+    if (m_profileIndicatorColor != color) {
+        m_profileIndicatorColor = color;
+        emit profileIndicatorColorChanged();
+    }
+}
+
+int Config::profileIndicatorMode() const { return m_profileIndicatorMode; }
+void Config::setProfileIndicatorMode(int mode)
+{
+    if (m_profileIndicatorMode != mode) {
+        m_profileIndicatorMode = mode;
+        emit profileIndicatorModeChanged();
+    }
+}
+
+int Config::profileIndicatorRadius() const { return m_profileIndicatorRadius; }
+void Config::setProfileIndicatorRadius(int radius)
+{
+    radius = qMax(1, radius);
+    if (m_profileIndicatorRadius != radius) {
+        m_profileIndicatorRadius = radius;
+        emit profileIndicatorRadiusChanged();
+    }
+}
+
+int Config::profilePulsePeriodMs() const { return m_profilePulsePeriodMs; }
+void Config::setProfilePulsePeriodMs(int periodMs)
+{
+    periodMs = qMax(100, periodMs);
+    if (m_profilePulsePeriodMs != periodMs) {
+        m_profilePulsePeriodMs = periodMs;
+        emit profilePulsePeriodMsChanged();
+    }
+}
+
+int Config::profileOutputWidth() const { return m_profileOutputWidth; }
+void Config::setProfileOutputWidth(int w)
+{
+    w = qMax(16, w);
+    if (m_profileOutputWidth != w) {
+        m_profileOutputWidth = w;
+        emit profileOutputWidthChanged();
+    }
+}
+
+int Config::profileOutputHeight() const { return m_profileOutputHeight; }
+void Config::setProfileOutputHeight(int h)
+{
+    h = qMax(16, h);
+    if (m_profileOutputHeight != h) {
+        m_profileOutputHeight = h;
+        emit profileOutputHeightChanged();
+    }
+}
+
 void Config::loadConfig()
 {
     // Load general settings
@@ -359,6 +456,32 @@ void Config::loadConfig()
 
     // Load export settings
     m_frameRate = m_settings.value("export/frameRate", 10.0).toDouble();
+
+    // Load profile settings
+    {
+        const int bgR = m_settings.value("profile/backgroundColorR", 0).toInt();
+        const int bgG = m_settings.value("profile/backgroundColorG", 0).toInt();
+        const int bgB = m_settings.value("profile/backgroundColorB", 0).toInt();
+        m_profileBackgroundColor = QColor(bgR, bgG, bgB);
+    }
+    m_profileBackgroundOpacity = m_settings.value("profile/backgroundOpacity", 0.0).toDouble();
+    {
+        const int cR = m_settings.value("profile/curveColorR", 0x9C).toInt();
+        const int cG = m_settings.value("profile/curveColorG", 0x27).toInt();
+        const int cB = m_settings.value("profile/curveColorB", 0xB0).toInt();
+        m_profileCurveColor = QColor(cR, cG, cB);
+    }
+    {
+        const int iR = m_settings.value("profile/indicatorColorR", 0).toInt();
+        const int iG = m_settings.value("profile/indicatorColorG", 255).toInt();
+        const int iB = m_settings.value("profile/indicatorColorB", 0).toInt();
+        m_profileIndicatorColor = QColor(iR, iG, iB);
+    }
+    m_profileIndicatorMode = m_settings.value("profile/indicatorMode", 0).toInt();
+    m_profileIndicatorRadius = m_settings.value("profile/indicatorRadius", 8).toInt();
+    m_profilePulsePeriodMs = m_settings.value("profile/pulsePeriodMs", 2000).toInt();
+    m_profileOutputWidth = m_settings.value("profile/outputWidth", 1920).toInt();
+    m_profileOutputHeight = m_settings.value("profile/outputHeight", 400).toInt();
 }
 
 void Config::saveConfig()
@@ -408,7 +531,24 @@ void Config::saveConfig()
 
     // Save export settings
     m_settings.setValue("export/frameRate", m_frameRate);
-    
+
+    // Save profile settings
+    m_settings.setValue("profile/backgroundColorR", m_profileBackgroundColor.red());
+    m_settings.setValue("profile/backgroundColorG", m_profileBackgroundColor.green());
+    m_settings.setValue("profile/backgroundColorB", m_profileBackgroundColor.blue());
+    m_settings.setValue("profile/backgroundOpacity", m_profileBackgroundOpacity);
+    m_settings.setValue("profile/curveColorR", m_profileCurveColor.red());
+    m_settings.setValue("profile/curveColorG", m_profileCurveColor.green());
+    m_settings.setValue("profile/curveColorB", m_profileCurveColor.blue());
+    m_settings.setValue("profile/indicatorColorR", m_profileIndicatorColor.red());
+    m_settings.setValue("profile/indicatorColorG", m_profileIndicatorColor.green());
+    m_settings.setValue("profile/indicatorColorB", m_profileIndicatorColor.blue());
+    m_settings.setValue("profile/indicatorMode", m_profileIndicatorMode);
+    m_settings.setValue("profile/indicatorRadius", m_profileIndicatorRadius);
+    m_settings.setValue("profile/pulsePeriodMs", m_profilePulsePeriodMs);
+    m_settings.setValue("profile/outputWidth", m_profileOutputWidth);
+    m_settings.setValue("profile/outputHeight", m_profileOutputHeight);
+
     // Force write to disk
     m_settings.sync();
 }

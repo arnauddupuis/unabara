@@ -12,8 +12,9 @@
 #include "include/core/units.h"
 #include "include/core/cell_data.h"
 #include "include/core/overlay_template.h"
+#include "include/generators/i_frame_generator.h"
 
-class OverlayGenerator : public QObject
+class OverlayGenerator : public QObject, public IFrameGenerator
 {
     Q_OBJECT
     
@@ -150,6 +151,11 @@ public:
 
     // Generate a preview image
     Q_INVOKABLE QImage generatePreview(DiveData* dive);
+
+    // IFrameGenerator
+    QImage generate(DiveData* dive, double timePoint) override { return generateOverlay(dive, timePoint); }
+    void beginExport() override;
+    void endExport() override;
     
 signals:
     void templateChanged();
@@ -226,6 +232,9 @@ private:
     bool m_snapToGrid;
     int m_gridSpacing;  // Grid spacing in pixels
     bool m_showGrid;
+
+    // Export-pass state stash (saved by beginExport, restored by endExport)
+    bool m_savedShowCellBackgrounds = true;
 
     // Helper methods for drawing
     int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;

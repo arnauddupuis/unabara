@@ -6,7 +6,7 @@
 #include <QDir>
 #include <QImage>
 #include "include/core/dive_data.h"
-#include "include/generators/overlay_gen.h"
+#include "include/generators/i_frame_generator.h"
 
 class ImageExporter : public QObject
 {
@@ -30,13 +30,21 @@ public:
     void setExportPath(const QString &path);
     void setFrameRate(double fps);
     
-    // Export methods
-    Q_INVOKABLE bool exportImages(DiveData* dive, OverlayGenerator* generator);
-    Q_INVOKABLE bool exportImageRange(DiveData* dive, OverlayGenerator* generator,
+    // Export methods. `generator` is accepted as a QObject* so QML can pass
+    // either OverlayGenerator or ProfileGenerator transparently (the meta-
+    // object system can't convert to a non-QObject interface). Internally
+    // we dynamic_cast to IFrameGenerator and fail fast if the cast doesn't
+    // succeed.
+    Q_INVOKABLE bool exportImages(DiveData* dive, QObject* generator);
+    Q_INVOKABLE bool exportImageRange(DiveData* dive, QObject* generator,
                                       double startTime, double endTime);
-    
-    // Create default export directory
-    Q_INVOKABLE QString createDefaultExportDir(DiveData* dive, const QString &videoFilePath = QString());
+
+    // Create default export directory. `contentType` (e.g. "dive_computer",
+    // "dive_profile") is appended to the directory name so that exports of
+    // different overlays for the same dive end up in distinct directories.
+    Q_INVOKABLE QString createDefaultExportDir(DiveData* dive,
+                                               const QString &videoFilePath = QString(),
+                                               const QString &contentType = QString());
     
 signals:
     void exportPathChanged();
@@ -54,7 +62,9 @@ private:
     bool m_busy;
     
     // Helper methods
-    QString generateUniqueDirectoryName(DiveData* dive, const QString &videoFilePath = QString());
+    QString generateUniqueDirectoryName(DiveData* dive,
+                                        const QString &videoFilePath = QString(),
+                                        const QString &contentType = QString());
     QString sanitizeFileName(const QString &fileName);
 };
 

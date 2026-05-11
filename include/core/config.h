@@ -42,7 +42,18 @@ class Config : public QObject
 
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
-    
+
+    // Dive profile settings
+    Q_PROPERTY(QColor profileBackgroundColor READ profileBackgroundColor WRITE setProfileBackgroundColor NOTIFY profileBackgroundColorChanged)
+    Q_PROPERTY(double profileBackgroundOpacity READ profileBackgroundOpacity WRITE setProfileBackgroundOpacity NOTIFY profileBackgroundOpacityChanged)
+    Q_PROPERTY(QColor profileCurveColor READ profileCurveColor WRITE setProfileCurveColor NOTIFY profileCurveColorChanged)
+    Q_PROPERTY(QColor profileIndicatorColor READ profileIndicatorColor WRITE setProfileIndicatorColor NOTIFY profileIndicatorColorChanged)
+    Q_PROPERTY(int profileIndicatorMode READ profileIndicatorMode WRITE setProfileIndicatorMode NOTIFY profileIndicatorModeChanged)
+    Q_PROPERTY(int profileIndicatorRadius READ profileIndicatorRadius WRITE setProfileIndicatorRadius NOTIFY profileIndicatorRadiusChanged)
+    Q_PROPERTY(int profilePulsePeriodMs READ profilePulsePeriodMs WRITE setProfilePulsePeriodMs NOTIFY profilePulsePeriodMsChanged)
+    Q_PROPERTY(int profileOutputWidth READ profileOutputWidth WRITE setProfileOutputWidth NOTIFY profileOutputWidthChanged)
+    Q_PROPERTY(int profileOutputHeight READ profileOutputHeight WRITE setProfileOutputHeight NOTIFY profileOutputHeightChanged)
+
 public:
     static Config* instance();
     
@@ -108,7 +119,35 @@ public:
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
-    
+
+    // Dive profile settings
+    QColor profileBackgroundColor() const;
+    void setProfileBackgroundColor(const QColor& color);
+
+    double profileBackgroundOpacity() const;
+    void setProfileBackgroundOpacity(double opacity);
+
+    QColor profileCurveColor() const;
+    void setProfileCurveColor(const QColor& color);
+
+    QColor profileIndicatorColor() const;
+    void setProfileIndicatorColor(const QColor& color);
+
+    int profileIndicatorMode() const;
+    void setProfileIndicatorMode(int mode);
+
+    int profileIndicatorRadius() const;
+    void setProfileIndicatorRadius(int radius);
+
+    int profilePulsePeriodMs() const;
+    void setProfilePulsePeriodMs(int periodMs);
+
+    int profileOutputWidth() const;
+    void setProfileOutputWidth(int w);
+
+    int profileOutputHeight() const;
+    void setProfileOutputHeight(int h);
+
     // Save configuration to disk
     void saveConfig();
     
@@ -134,7 +173,18 @@ signals:
     void showPO2Cell2Changed();
     void showPO2Cell3Changed();
     void showCompositePO2Changed();
-    
+
+    // Profile signals
+    void profileBackgroundColorChanged();
+    void profileBackgroundOpacityChanged();
+    void profileCurveColorChanged();
+    void profileIndicatorColorChanged();
+    void profileIndicatorModeChanged();
+    void profileIndicatorRadiusChanged();
+    void profilePulsePeriodMsChanged();
+    void profileOutputWidthChanged();
+    void profileOutputHeightChanged();
+
 private:
     explicit Config(QObject *parent = nullptr);
     ~Config();
@@ -167,7 +217,18 @@ private:
     bool m_showPO2Cell2;
     bool m_showPO2Cell3;
     bool m_showCompositePO2;
-    
+
+    // Profile settings
+    QColor m_profileBackgroundColor;
+    double m_profileBackgroundOpacity;
+    QColor m_profileCurveColor;
+    QColor m_profileIndicatorColor;
+    int m_profileIndicatorMode;
+    int m_profileIndicatorRadius;
+    int m_profilePulsePeriodMs;
+    int m_profileOutputWidth;
+    int m_profileOutputHeight;
+
     // Load configuration from disk
     void loadConfig();
 };

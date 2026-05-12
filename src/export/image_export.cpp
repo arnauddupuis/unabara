@@ -38,33 +38,34 @@ void ImageExporter::setFrameRate(double fps)
     }
 }
 
-bool ImageExporter::exportImages(DiveData* dive, OverlayGenerator* generator)
+bool ImageExporter::exportImages(DiveData* dive, QObject* generator)
 {
     if (!dive || !generator) {
-        emit exportError(tr("Invalid dive data or overlay generator"));
+        emit exportError(tr("Invalid dive data or generator"));
         return false;
     }
-    
+
     // Export the full dive
     return exportImageRange(dive, generator, 0, dive->durationSeconds());
 }
 
-bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator,
+bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
                                      double startTime, double endTime)
 {
     if (m_busy) {
         emit exportError(tr("Already exporting images"));
         return false;
     }
-    
-    if (!dive || !generator) {
-        emit exportError(tr("Invalid dive data or overlay generator"));
+
+    IFrameGenerator* gen = dynamic_cast<IFrameGenerator*>(generator);
+    if (!dive || !gen) {
+        emit exportError(tr("Invalid dive data or generator"));
         return false;
     }
-    
+
     m_busy = true;
     emit busyChanged();
-    
+
     // Create the export directory if it doesn't exist
     QDir dir(m_exportPath);
     if (!dir.exists() && !dir.mkpath(".")) {
@@ -73,56 +74,56 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
         emit busyChanged();
         return false;
     }
-    
+
     // Notify that export has started
     emit exportStarted();
 
-    // Disable cell backgrounds for export
-    bool prevShowCellBg = generator->showCellBackgrounds();
-    generator->setShowCellBackgrounds(false);
+    // Let the generator stage any export-only state (e.g. overlay hides its
+    // editor-only cell backgrounds).
+    gen->beginExport();
 
     // Calculate the number of frames to generate
     double timeStep = 1.0 / m_frameRate;
     int totalFrames = qRound((endTime - startTime) * m_frameRate);
     int processedFrames = 0;
-    
-    qDebug() << "Exporting images from" << startTime << "to" << endTime 
+
+    qDebug() << "Exporting images from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
-    
+
     // Generate and save images
     for (double time = startTime; time <= endTime; time += timeStep) {
-        // Generate the overlay for this time point
-        QImage overlay = generator->generateOverlay(dive, time);
-        
+        // Generate the frame for this time point
+        QImage overlay = gen->generate(dive, time);
+
         if (overlay.isNull()) {
-            qWarning() << "Failed to generate overlay at time:" << time;
+            qWarning() << "Failed to generate frame at time:" << time;
             continue;
         }
-        
+
         // Create a filename with the frame number
         QString frameNumberStr = QString("%1").arg(processedFrames, 6, 10, QChar('0'));
         QString filename = QString("frame_%1.png").arg(frameNumberStr);
         QString filePath = QDir(m_exportPath).filePath(filename);
-        
+
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
+            gen->endExport();
             emit exportError(tr("Failed to save image: %1").arg(filePath));
             m_busy = false;
             emit busyChanged();
             return false;
         }
-        
+
         // Update progress
         processedFrames++;
         m_progress = (processedFrames * 100) / totalFrames;
         emit progressChanged();
-        
+
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
     }
-    
-    // Restore cell background setting
-    generator->setShowCellBackgrounds(prevShowCellBg);
+
+    gen->endExport();
 
     // Export completed successfully
     m_progress = 100;
@@ -135,14 +136,16 @@ bool ImageExporter::exportImageRange(DiveData* dive, OverlayGenerator* generator
     return true;
 }
 
-QString ImageExporter::createDefaultExportDir(DiveData* dive, const QString &videoFilePath)
+QString ImageExporter::createDefaultExportDir(DiveData* dive,
+                                              const QString &videoFilePath,
+                                              const QString &contentType)
 {
     if (!dive) {
         return QString();
     }
 
     // Create a unique directory for this dive
-    QString dirName = generateUniqueDirectoryName(dive, videoFilePath);
+    QString dirName = generateUniqueDirectoryName(dive, videoFilePath, contentType);
     QString path = QDir(m_exportPath).filePath(dirName);
 
     QDir dir;
@@ -154,7 +157,9 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive, const QString &vid
     return path;
 }
 
-QString ImageExporter::generateUniqueDirectoryName(DiveData* dive, const QString &videoFilePath)
+QString ImageExporter::generateUniqueDirectoryName(DiveData* dive,
+                                                   const QString &videoFilePath,
+                                                   const QString &contentType)
 {
     QString baseName;
 
@@ -182,6 +187,12 @@ QString ImageExporter::generateUniqueDirectoryName(DiveData* dive, const QString
         if (!videoStem.isEmpty()) {
             baseName += "_" + sanitizeFileName(videoStem);
         }
+    }
+
+    // Append the content-type tag (e.g. "dive_computer" / "dive_profile")
+    // so exports of different overlays for the same dive don't collide.
+    if (!contentType.isEmpty()) {
+        baseName += "_" + sanitizeFileName(contentType);
     }
 
     return baseName;

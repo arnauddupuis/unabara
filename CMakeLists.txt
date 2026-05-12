@@ -48,6 +48,9 @@ set(PROJECT_SOURCES
     src/ui/cell_model.cpp
     src/generators/overlay_gen.cpp
     src/generators/overlay_image_provider.cpp
+    src/generators/profile_renderer.cpp
+    src/generators/profile_gen.cpp
+    src/generators/profile_image_provider.cpp
     src/export/image_export.cpp
     src/core/update_checker.cpp
     src/export/video_export.cpp
@@ -70,6 +73,10 @@ set(PROJECT_HEADERS
     include/ui/cell_model.h
     include/generators/overlay_gen.h
     include/generators/overlay_image_provider.h
+    include/generators/i_frame_generator.h
+    include/generators/profile_renderer.h
+    include/generators/profile_gen.h
+    include/generators/profile_image_provider.h
     include/export/image_export.h
     include/core/update_checker.h
     include/export/video_export.h

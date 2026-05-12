@@ -18,6 +18,8 @@
 #include "include/export/image_export.h"
 #include "include/export/video_export.h"
 #include "include/generators/overlay_image_provider.h"
+#include "include/generators/profile_gen.h"
+#include "include/generators/profile_image_provider.h"
 #include "include/core/config.h"
 #include "include/core/units.h"
 #include "include/core/update_checker.h"
@@ -41,10 +43,19 @@ int main(int argc, char *argv[])
     qmlRegisterType<Timeline>("Unabara.UI", 1, 0, "Timeline");
     qmlRegisterType<CellModel>("Unabara.UI", 1, 0, "CellModel");
     qmlRegisterType<OverlayGenerator>("Unabara.Generators", 1, 0, "OverlayGenerator");
+    qmlRegisterType<ProfileGenerator>("Unabara.Generators", 1, 0, "ProfileGenerator");
     qmlRegisterType<ImageExporter>("Unabara.Export", 1, 0, "ImageExporter");
     qmlRegisterType<VideoExporter>("Unabara.Export", 1, 0, "VideoExporter");
     qmlRegisterUncreatableMetaObject(Units::staticMetaObject, "Unabara.Core", 1, 0, "Units", "Units is a utility class");
     
+    // Persist configuration on application quit. Config's destructor calls
+    // saveConfig(), but the singleton is never explicitly deleted, so without
+    // this hook only the few setters that explicitly call saveConfig() persist
+    // their values across runs.
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, []() {
+        Config::instance()->saveConfig();
+    });
+
     // Create the QML engine
     QQmlApplicationEngine engine;
     
@@ -63,17 +74,25 @@ int main(int argc, char *argv[])
     engine.addImageProvider("overlay", imageProvider);
 
     g_imageProvider = imageProvider;  // Set the global variable
-    
+
+    // Create the profile generator and image provider (mirrors the overlay pair)
+    ProfileGenerator* profileGenerator = new ProfileGenerator();
+    ProfileImageProvider* profileImageProvider = new ProfileImageProvider(profileGenerator);
+    engine.addImageProvider("profile", profileImageProvider);
+    g_profileImageProvider = profileImageProvider;
+
     // Connect the LogParser signals to MainWindow slots
-    QObject::connect(&logParser, &LogParser::diveImported, 
+    QObject::connect(&logParser, &LogParser::diveImported,
                      &mainWindow, &MainWindow::onDiveImported);
-    QObject::connect(&logParser, &LogParser::multipleImported, 
+    QObject::connect(&logParser, &LogParser::multipleImported,
                      &mainWindow, &MainWindow::onMultipleDivesImported);
-    
-    // Connect signals to update the image provider
-    QObject::connect(&mainWindow, &MainWindow::currentDiveChanged, 
-                    [imageProvider, &mainWindow]() {
-                        imageProvider->setCurrentDive(mainWindow.currentDive());
+
+    // Connect signals to update the image providers when the active dive changes
+    QObject::connect(&mainWindow, &MainWindow::currentDiveChanged,
+                    [imageProvider, profileImageProvider, &mainWindow]() {
+                        DiveData* dive = mainWindow.currentDive();
+                        imageProvider->setCurrentDive(dive);
+                        profileImageProvider->setCurrentDive(dive);
                     });
     
     qDebug() << "Connected LogParser::diveImported to MainWindow::onDiveImported";
@@ -82,6 +101,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mainWindow", &mainWindow);
     engine.rootContext()->setContextProperty("logParser", &logParser);
     engine.rootContext()->setContextProperty("overlayGenerator", overlayGenerator);
+    engine.rootContext()->setContextProperty("profileGenerator", profileGenerator);
     engine.rootContext()->setContextProperty("config", Config::instance());
 
     // Expose version to QML

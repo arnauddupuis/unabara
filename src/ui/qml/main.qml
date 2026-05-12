@@ -263,10 +263,26 @@ ApplicationWindow {
             }
             
             ToolButton {
-                text: qsTr("Export")
+                // Exports whichever overlay the currently active tab represents.
+                // Tab 0 = dive computer overlay, Tab 1 = dive profile. Tab 2
+                // (video preview placeholder) has nothing to export yet, so
+                // the button is disabled there.
+                text: {
+                    if (contentTabs.currentIndex === 1) return qsTr("Export Profile")
+                    return qsTr("Export Overlay")
+                }
                 icon.name: "document-save"
-                enabled: mainWindow.hasActiveDive
+                enabled: mainWindow.hasActiveDive && contentTabs.currentIndex !== 2
                 onClicked: {
+                    if (contentTabs.currentIndex === 1) {
+                        exportImagesDialog.targetGenerator = profileGenerator
+                        exportImagesDialog.contentType = "dive_profile"
+                        exportImagesDialog.title = qsTr("Export Dive Profile")
+                    } else {
+                        exportImagesDialog.targetGenerator = overlayGenerator
+                        exportImagesDialog.contentType = "dive_computer"
+                        exportImagesDialog.title = qsTr("Export Dive Computer Overlay")
+                    }
                     exportImagesDialog.open()
                 }
             }
@@ -298,12 +314,34 @@ ApplicationWindow {
         anchors.fill: parent
         orientation: Qt.Vertical
         
-        // Main content area with horizontal split for overlay editor panel
-        SplitView {
-            id: mainContentArea
+        // Tab container: overlay (Tab 1), dive profile (Tab 2), video preview (Tab 3).
+        // Timeline below stays global so all tabs share the same temporal state.
+        Item {
+            id: tabContainer
             SplitView.fillHeight: true
             SplitView.minimumHeight: 300
-            orientation: Qt.Horizontal
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                TabBar {
+                    id: contentTabs
+                    Layout.fillWidth: true
+                    TabButton { text: qsTr("Dive Computer Overlay") }
+                    TabButton { text: qsTr("Dive Profile") }
+                    TabButton { text: qsTr("Video Preview") }
+                }
+
+                StackLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    currentIndex: contentTabs.currentIndex
+
+                    // Tab 1: Overlay (existing flow — preview + editor)
+                    SplitView {
+                        id: mainContentArea
+                        orientation: Qt.Horizontal
 
             // Main preview area
             Item {
@@ -455,8 +493,194 @@ ApplicationWindow {
                     }
                 }
             }
-        }
-        
+                    } // end Tab 1 SplitView (mainContentArea)
+
+                    // Tab 2: Dive Profile — preview (depth curve + indicator) + editor sidebar
+                    SplitView {
+                        id: profileTab
+                        orientation: Qt.Horizontal
+
+                        // Preview area
+                        Item {
+                            id: profilePreviewArea
+                            SplitView.fillWidth: true
+                            SplitView.minimumWidth: 400
+
+                            Rectangle {
+                                id: profilePreviewFrame
+                                anchors.centerIn: parent
+                                width: parent.width * 0.95
+                                height: parent.height * 0.95
+                                color: "transparent"
+                                border.color: palette.mid
+                                border.width: 1
+                                visible: mainWindow.hasActiveDive
+
+                                // Double-buffered preview: two Image elements share the
+                                // same anchored rect. We always load the next frame into
+                                // the BACK buffer (the hidden one); once it reports Ready
+                                // we flip `useA` so the freshly-loaded buffer becomes the
+                                // visible one. The previously-visible buffer stays on
+                                // screen until the next frame's load completes, so the
+                                // user never sees a blank gap between frames.
+                                Item {
+                                    id: profilePreviewImage
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+
+                                    property bool useA: true
+                                    property real pulseAnchorMs: Date.now()
+
+                                    function setSource(url) {
+                                        if (useA) {
+                                            bufferB.source = url
+                                        } else {
+                                            bufferA.source = url
+                                        }
+                                    }
+
+                                    Image {
+                                        id: bufferA
+                                        anchors.fill: parent
+                                        fillMode: Image.PreserveAspectFit
+                                        cache: false
+                                        asynchronous: true
+                                        visible: profilePreviewImage.useA
+                                        onStatusChanged: {
+                                            if (status === Image.Ready && !profilePreviewImage.useA) {
+                                                profilePreviewImage.useA = true
+                                            }
+                                        }
+                                    }
+                                    Image {
+                                        id: bufferB
+                                        anchors.fill: parent
+                                        fillMode: Image.PreserveAspectFit
+                                        cache: false
+                                        asynchronous: true
+                                        visible: !profilePreviewImage.useA
+                                        onStatusChanged: {
+                                            if (status === Image.Ready && profilePreviewImage.useA) {
+                                                profilePreviewImage.useA = false
+                                            }
+                                        }
+                                    }
+
+                                    // 100 ms debounce — used for property-change triggered
+                                    // refreshes (e.g. color change). The pulse-mode tick
+                                    // skips this debounce to keep its own cadence.
+                                    Timer {
+                                        id: profileUpdateTimer
+                                        interval: 100
+                                        repeat: false
+                                        onTriggered: {
+                                            profilePreviewImage.setSource("image://profile/preview/" + Date.now())
+                                        }
+                                    }
+
+                                    property var updatePreview: function() {
+                                        if (mainWindow.hasActiveDive && timelineView.visible) {
+                                            profileUpdateTimer.restart()
+                                        }
+                                    }
+
+                                    Component.onCompleted: {
+                                        Qt.callLater(function() {
+                                            profilePreviewImage.setSource("image://profile/preview/" + Date.now())
+                                        })
+                                    }
+
+                                    Connections {
+                                        target: profileGenerator
+                                        function onBackgroundColorChanged()   { profilePreviewImage.updatePreview() }
+                                        function onBackgroundOpacityChanged() { profilePreviewImage.updatePreview() }
+                                        function onCurveColorChanged()        { profilePreviewImage.updatePreview() }
+                                        function onIndicatorColorChanged()    { profilePreviewImage.updatePreview() }
+                                        function onIndicatorModeChanged()     { profilePreviewImage.updatePreview() }
+                                        function onIndicatorRadiusChanged()   { profilePreviewImage.updatePreview() }
+                                        function onPulsePeriodMsChanged()     { profilePreviewImage.updatePreview() }
+                                        function onOutputWidthChanged()       { profilePreviewImage.updatePreview() }
+                                        function onOutputHeightChanged()      { profilePreviewImage.updatePreview() }
+                                    }
+
+                                    Connections {
+                                        target: timelineView.timeline
+                                        function onCurrentTimeChanged() {
+                                            profilePreviewImage.updatePreview()
+                                        }
+                                    }
+
+                                    // Pulse-mode animation tick. Wall-clock phase passes
+                                    // through the URL so each tick produces a distinct
+                                    // frame even when the dive cursor is idle. Goes
+                                    // straight through setSource — the double-buffer
+                                    // handles smooth swap-on-Ready.
+                                    Timer {
+                                        interval: 80
+                                        repeat: true
+                                        running: profileGenerator && profileGenerator.indicatorMode === 1 && mainWindow.hasActiveDive
+                                        onTriggered: {
+                                            var period = profileGenerator ? profileGenerator.pulsePeriodMs : 2000
+                                            if (period < 100) period = 100
+                                            var elapsed = Date.now() - profilePreviewImage.pulseAnchorMs
+                                            var phase = (elapsed % period) / period
+                                            profilePreviewImage.setSource(
+                                                "image://profile/preview/phase=" + phase.toFixed(4) +
+                                                "/" + Date.now())
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Placeholder when no dive is loaded
+                            Label {
+                                anchors.centerIn: parent
+                                visible: !mainWindow.hasActiveDive
+                                text: qsTr("Import a dive log to see the profile")
+                                font.pixelSize: 16
+                                color: palette.placeholderText
+                            }
+                        }
+
+                        // Editor sidebar
+                        Rectangle {
+                            id: profileEditorPanel
+                            SplitView.preferredWidth: 400
+                            SplitView.minimumWidth: 280
+                            color: palette.window
+                            border.color: palette.mid
+                            border.width: 1
+
+                            ScrollView {
+                                anchors.fill: parent
+                                anchors.margins: 5
+                                clip: true
+                                contentWidth: profileEditorPanel.width - 10
+                                contentHeight: profileEditor.implicitHeight
+
+                                ProfileEditor {
+                                    id: profileEditor
+                                    width: profileEditorPanel.width - 10
+                                    generator: profileGenerator
+                                }
+                            }
+                        }
+                    }
+
+                    // Tab 3: Video Preview placeholder
+                    Item {
+                        Label {
+                            anchors.centerIn: parent
+                            text: qsTr("Coming soon — video preview.\nYou'll be able to preview your video with the dive computer overlay and dive profile composited here.")
+                            horizontalAlignment: Text.AlignHCenter
+                            font.pixelSize: 18
+                            color: palette.placeholderText
+                        }
+                    }
+                } // end StackLayout
+            } // end ColumnLayout
+        } // end tabContainer Item
+
         // Timeline area
         Rectangle {
             id: timelineArea
@@ -579,9 +803,19 @@ ApplicationWindow {
     
     Dialog {
         id: exportImagesDialog
-        title: qsTr("Export Overlay")
+        title: qsTr("Export")
         modal: true
         width: 500
+
+        // Parameters set by the caller (the per-tab Export button) before open():
+        //   targetGenerator: the QObject* generator to render frames from
+        //     (overlayGenerator or profileGenerator). Both implement
+        //     IFrameGenerator; the exporter does the cross-cast internally.
+        //   contentType: a short tag ("dive_computer" / "dive_profile")
+        //     appended to the export filename/directory so exports of
+        //     different overlays for the same dive don't collide.
+        property var targetGenerator: overlayGenerator
+        property string contentType: "dive_computer"
 
         // Use implicitHeight instead of fixed height to adapt to content
         implicitHeight: contentColumn.implicitHeight + 140 // Add padding for dialog margins
@@ -594,24 +828,27 @@ ApplicationWindow {
                 console.log("Export dialog accepted - this should only print once");
                 // Get the video file path (if any) for unique export naming
                 let videoFile = timelineView.videoPath !== "" ? mainWindow.urlToLocalFile(timelineView.videoPath) : ""
+                // Pull dialog-level parameters set by the caller.
+                let target = exportImagesDialog.targetGenerator
+                let contentType = exportImagesDialog.contentType
                 if (exportTypeImages.checked) {
                     // Images export mode
-                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive, videoFile);
+                    let path = imageExporter.createDefaultExportDir(mainWindow.currentDive, videoFile, contentType);
                     if (path) {
                         imageExporter.exportPath = path;
-                        
+
                         // Check if we have a video and should export only the video portion
                         if (exportVideoRangeOnly.checked && timelineView.videoPath !== "") {
                             // Export only the video range - use the methods
                             let videoStart = timelineView.timeline.getVideoStartTime();
                             let videoEnd = timelineView.timeline.getVideoEndTime();
-                            
+
                             console.log("Exporting video range from", videoStart, "to", videoEnd);
-                            
+
                             imageExporter.exportImageRange(
-                                mainWindow.currentDive, 
-                                overlayGenerator,
-                                videoStart,  
+                                mainWindow.currentDive,
+                                target,
+                                videoStart,
                                 videoEnd
                             );
                         }
@@ -619,14 +856,14 @@ ApplicationWindow {
                         else if (exportRangeOnly.checked) {
                             // Export only the visible range from the timeline
                             imageExporter.exportImageRange(
-                                mainWindow.currentDive, 
-                                overlayGenerator,
-                                timelineView.visibleStartTime,  
+                                mainWindow.currentDive,
+                                target,
+                                timelineView.visibleStartTime,
                                 timelineView.visibleEndTime
                             );
                         } else {
                             // Export the full dive
-                            imageExporter.exportImages(mainWindow.currentDive, overlayGenerator);
+                            imageExporter.exportImages(mainWindow.currentDive, target);
                         }
                     } else {
                         messageDialog.title = qsTr("Export Error");
@@ -635,7 +872,7 @@ ApplicationWindow {
                     }
                 } else {
                     // Video export mode
-                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive, videoFile);
+                    let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive, videoFile, contentType);
                     if (outputFile) {
                         // Just pass the file path directly, don't manipulate it further
                         videoExporter.frameRate = videoFrameRateSpinBox.value;
@@ -672,7 +909,7 @@ ApplicationWindow {
                         }
                         
                         console.log("Exporting video from", startTime, "to", endTime);
-                        videoExporter.exportVideo(mainWindow.currentDive, overlayGenerator, startTime, endTime);
+                        videoExporter.exportVideo(mainWindow.currentDive, target, startTime, endTime);
                     } else {
                         messageDialog.title = qsTr("Export Error");
                         messageDialog.message = qsTr("Failed to create export file");

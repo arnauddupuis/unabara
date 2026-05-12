@@ -8,7 +8,7 @@
 #include <QTemporaryDir>
 #include <QSize>
 #include "include/core/dive_data.h"
-#include "include/generators/overlay_gen.h"
+#include "include/generators/i_frame_generator.h"
 
 class VideoExporter : public QObject
 {
@@ -51,14 +51,21 @@ public:
     void setVideoCodec(const QString &codec);
     void setCustomResolution(const QSize &size);
     
-    // Export methods
-    Q_INVOKABLE bool exportVideo(DiveData* dive, OverlayGenerator* generator,
+    // Export methods. Accepts `generator` as a QObject* — internally
+    // dynamic_cast to IFrameGenerator, so both OverlayGenerator and
+    // ProfileGenerator work transparently from QML.
+    Q_INVOKABLE bool exportVideo(DiveData* dive, QObject* generator,
                                 double startTime, double endTime);
     Q_INVOKABLE void cancelExport();
-    
+
     // Helper methods
     Q_INVOKABLE bool isFFmpegAvailable();
-    Q_INVOKABLE QString createDefaultExportFile(DiveData* dive, const QString &videoFilePath = QString());
+    // `contentType` (e.g. "dive_computer", "dive_profile") is appended to the
+    // output filename so exports of different overlays for the same dive land
+    // in distinct files.
+    Q_INVOKABLE QString createDefaultExportFile(DiveData* dive,
+                                                const QString &videoFilePath = QString(),
+                                                const QString &contentType = QString());
     Q_INVOKABLE QSize detectVideoResolution(const QString &videoPath);
     Q_INVOKABLE double extractVideoTimecode(const QString &videoPath);
     
@@ -105,7 +112,7 @@ private:
     // QObject* m_worker;
     
     // Frame generation stages
-    bool generateFrames(DiveData* dive, OverlayGenerator* generator,
+    bool generateFrames(DiveData* dive, IFrameGenerator* generator,
                         double startTime, double endTime);
     bool encodeFramesToVideo(const QString &outputPath);
     
@@ -117,7 +124,10 @@ private:
                                  const QString &outputFile);
     QString getFormatOptions(const QString &codec);
     QString sanitizeFileName(const QString &fileName);
-    QString generateUniqueFileName(DiveData* dive, const QString &extension, const QString &videoFilePath = QString());
+    QString generateUniqueFileName(DiveData* dive,
+                                   const QString &extension,
+                                   const QString &videoFilePath = QString(),
+                                   const QString &contentType = QString());
     void cleanupTempFiles();
     QSize getDefaultOverlaySize();
     QStringList createFFmpegArgs(const QString &outputPath);

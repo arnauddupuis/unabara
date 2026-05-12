@@ -6,6 +6,7 @@
         <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
         <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
+        <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>
         <file>resources/styles/style.qss</file>
         <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
         <file alias="templates/OC_Rec_NoTanks_Titanium.utp">resources/templates/OC_Rec_NoTanks_Titanium.utp</file>

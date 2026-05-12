@@ -1,5 +1,6 @@
 #include "include/ui/main_window.h"
 #include "include/generators/overlay_image_provider.h"
+#include "include/generators/profile_image_provider.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QCoreApplication>
@@ -22,12 +23,16 @@ void MainWindow::setCurrentDive(DiveData* dive)
     if (m_currentDive != dive) {
         m_currentDive = dive;
         
-        // Update the global image provider with the new dive
+        // Update the global image providers with the new dive
         extern OverlayImageProvider* g_imageProvider;
         if (g_imageProvider) {
             g_imageProvider->setCurrentDive(dive);
         }
-        
+        extern ProfileImageProvider* g_profileImageProvider;
+        if (g_profileImageProvider) {
+            g_profileImageProvider->setCurrentDive(dive);
+        }
+
         emit currentDiveChanged();
     }
 }

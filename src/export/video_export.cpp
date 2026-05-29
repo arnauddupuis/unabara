@@ -6,6 +6,8 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 VideoExporter::VideoExporter(QObject *parent)
     : QObject(parent)
@@ -665,6 +667,73 @@ double VideoExporter::extractVideoTimecode(const QString &videoPath)
 
     qDebug() << "No timecode found in video:" << videoPath;
     return -1.0;
+}
+
+double VideoExporter::extractVideoCreationTime(const QString &videoPath)
+{
+    if (videoPath.isEmpty()) {
+        return -1.0;
+    }
+
+    QString ffmpegPath = findFFmpegPath();
+    if (ffmpegPath.isEmpty()) {
+        return -1.0;
+    }
+
+    // Use ffprobe (alongside ffmpeg) to get format metadata as JSON
+    QString ffprobePath = ffmpegPath;
+    ffprobePath.replace("ffmpeg", "ffprobe");
+
+    QProcess process;
+    process.setProcessChannelMode(QProcess::SeparateChannels);
+
+    QStringList args;
+    args << "-v" << "quiet"
+         << "-print_format" << "json"
+         << "-show_format"
+         << videoPath;
+
+    process.start(ffprobePath, args);
+    if (!process.waitForFinished(5000)) {
+        qWarning() << "extractVideoCreationTime: ffprobe timed out for" << videoPath;
+        process.kill();
+        return -1.0;
+    }
+
+    QByteArray output = process.readAllStandardOutput();
+    if (output.isEmpty()) {
+        qDebug() << "extractVideoCreationTime: no output from ffprobe for" << videoPath;
+        return -1.0;
+    }
+
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(output, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << "extractVideoCreationTime: JSON parse error:" << parseError.errorString();
+        return -1.0;
+    }
+
+    QString creationTimeStr = doc.object()
+        .value("format").toObject()
+        .value("tags").toObject()
+        .value("creation_time").toString();
+
+    if (creationTimeStr.isEmpty()) {
+        qDebug() << "extractVideoCreationTime: no creation_time tag in" << videoPath;
+        return -1.0;
+    }
+
+    QDateTime dt = QDateTime::fromString(creationTimeStr, Qt::ISODateWithMs);
+    if (!dt.isValid())
+        dt = QDateTime::fromString(creationTimeStr, Qt::ISODate);
+
+    if (!dt.isValid()) {
+        qWarning() << "extractVideoCreationTime: could not parse datetime:" << creationTimeStr;
+        return -1.0;
+    }
+
+    qDebug() << "extractVideoCreationTime:" << creationTimeStr << "=" << dt.toSecsSinceEpoch();
+    return static_cast<double>(dt.toSecsSinceEpoch());
 }
 
 QSize VideoExporter::detectVideoResolution(const QString &videoPath)

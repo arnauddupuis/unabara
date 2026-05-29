@@ -1,6 +1,11 @@
 #include "include/core/config.h"
 #include <QStandardPaths>
 #include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QtGlobal>
+#include <cmath>
 
 // Initialize static instance
 Config* Config::s_instance = nullptr;
@@ -482,6 +487,24 @@ void Config::loadConfig()
     m_profilePulsePeriodMs = m_settings.value("profile/pulsePeriodMs", 2000).toInt();
     m_profileOutputWidth = m_settings.value("profile/outputWidth", 1920).toInt();
     m_profileOutputHeight = m_settings.value("profile/outputHeight", 400).toInt();
+
+    // Load camera pairings from JSON
+    m_cameraPairings.clear();
+    QString pairingsJson = m_settings.value("video/cameraPairings", "[]").toString();
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(pairingsJson.toUtf8(), &parseError);
+    if (parseError.error == QJsonParseError::NoError && doc.isArray()) {
+        const QJsonArray arr = doc.array();
+        for (const QJsonValue &val : arr) {
+            QJsonObject obj = val.toObject();
+            QString name = obj.value("name").toString();
+            double constant = obj.value("calibrationConstant").toDouble(qQNaN());
+            if (!name.isEmpty() && !std::isnan(constant))
+                m_cameraPairings.insert(name, constant);
+        }
+    } else if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << "Config: failed to parse cameraPairings JSON:" << parseError.errorString();
+    }
 }
 
 void Config::saveConfig()
@@ -549,6 +572,47 @@ void Config::saveConfig()
     m_settings.setValue("profile/outputWidth", m_profileOutputWidth);
     m_settings.setValue("profile/outputHeight", m_profileOutputHeight);
 
+    // Save camera pairings as compact JSON
+    QJsonArray pairingsArray;
+    for (auto it = m_cameraPairings.constBegin(); it != m_cameraPairings.constEnd(); ++it) {
+        QJsonObject obj;
+        obj["name"] = it.key();
+        obj["calibrationConstant"] = it.value();
+        pairingsArray.append(obj);
+    }
+    QJsonDocument pairingsDoc(pairingsArray);
+    m_settings.setValue("video/cameraPairings",
+                        QString::fromUtf8(pairingsDoc.toJson(QJsonDocument::Compact)));
+
     // Force write to disk
     m_settings.sync();
+}
+
+QStringList Config::cameraPairingNames() const
+{
+    return m_cameraPairings.keys();
+}
+
+void Config::addOrUpdateCameraPairing(const QString &name, double calibrationConstant)
+{
+    if (name.trimmed().isEmpty()) {
+        qWarning() << "Config::addOrUpdateCameraPairing: empty name rejected";
+        return;
+    }
+    m_cameraPairings.insert(name, calibrationConstant);
+    saveConfig();
+    emit cameraPairingsChanged();
+}
+
+void Config::removeCameraPairing(const QString &name)
+{
+    if (m_cameraPairings.remove(name) > 0) {
+        saveConfig();
+        emit cameraPairingsChanged();
+    }
+}
+
+double Config::cameraCalibrationConstant(const QString &name) const
+{
+    return m_cameraPairings.value(name, qQNaN());
 }

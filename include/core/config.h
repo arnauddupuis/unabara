@@ -6,6 +6,8 @@
 #include <QString>
 #include <QFont>
 #include <QColor>
+#include <QMap>
+#include <QStringList>
 #include "include/core/units.h"
 
 class Config : public QObject
@@ -150,7 +152,13 @@ public:
 
     // Save configuration to disk
     void saveConfig();
-    
+
+    // Camera pairing persistence
+    Q_INVOKABLE QStringList cameraPairingNames() const;
+    Q_INVOKABLE void addOrUpdateCameraPairing(const QString &name, double calibrationConstant);
+    Q_INVOKABLE void removeCameraPairing(const QString &name);
+    Q_INVOKABLE double cameraCalibrationConstant(const QString &name) const;
+
 signals:
     void lastImportPathChanged();
     void lastExportPathChanged();
@@ -173,6 +181,8 @@ signals:
     void showPO2Cell2Changed();
     void showPO2Cell3Changed();
     void showCompositePO2Changed();
+
+    void cameraPairingsChanged();
 
     // Profile signals
     void profileBackgroundColorChanged();
@@ -228,6 +238,9 @@ private:
     int m_profilePulsePeriodMs;
     int m_profileOutputWidth;
     int m_profileOutputHeight;
+
+    // Camera pairings: maps camera name -> calibration constant (seconds)
+    QMap<QString, double> m_cameraPairings;
 
     // Load configuration from disk
     void loadConfig();

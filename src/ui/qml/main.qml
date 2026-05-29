@@ -15,7 +15,12 @@ ApplicationWindow {
     visible: true
     title: qsTr("Unabara - Dive Telemetry Overlay")
     
-    // Models and objects 
+    // URL of the currently loaded video file (file:// URL, set on video import)
+    property url currentVideoUrl: ""
+    // UTC seconds since epoch from video file metadata; -1 if unavailable
+    property double videoCreationTime: -1
+
+    // Models and objects
     ImageExporter {
         id: imageExporter
         
@@ -182,6 +187,9 @@ ApplicationWindow {
                         let diveStartSecs = diveStart.getHours() * 3600 + diveStart.getMinutes() * 60 + diveStart.getSeconds()
                         let offset = timecodeSeconds - diveStartSecs
                         console.log("Auto-sync video offset: timecode =", timecodeSeconds, "s, dive start =", diveStartSecs, "s, offset =", offset, "s")
+                        if (offset < 0){
+                            offset = 0
+                        }
                         timelineView.timeline.videoOffset = offset
                         autoSynced = true
                     }
@@ -667,14 +675,15 @@ ApplicationWindow {
                         }
                     }
 
-                    // Tab 3: Video Preview placeholder
-                    Item {
-                        Label {
-                            anchors.centerIn: parent
-                            text: qsTr("Coming soon — video preview.\nYou'll be able to preview your video with the dive computer overlay and dive profile composited here.")
-                            horizontalAlignment: Text.AlignHCenter
-                            font.pixelSize: 18
-                            color: palette.placeholderText
+                    // Tab 2: Video Preview and sync workflow
+                    VideoSyncPlayer {
+                        id: videoSyncPlayer
+                        videoSource: window.currentVideoUrl
+                        videoCreationTime: window.videoCreationTime
+                        dive: mainWindow.currentDive
+
+                        onSyncOffsetComputed: function(offset) {
+                            timelineView.timeline.videoOffset = offset
                         }
                     }
                 } // end StackLayout
@@ -747,6 +756,10 @@ ApplicationWindow {
             let filePath = mainWindow.urlToLocalFile(selectedFile.toString());
             console.log("Importing video from:", filePath);
             
+            // Store the file URL and creation time for the video sync player
+            window.currentVideoUrl = selectedFile;
+            window.videoCreationTime = videoExporter.extractVideoCreationTime(filePath);
+
             // First set the video path in timeline
             timelineView.setVideoPath(filePath);
             
@@ -796,7 +809,7 @@ ApplicationWindow {
             
             // Show message about successful import
             messageDialog.title = qsTr("Video Imported");
-            messageDialog.message = qsTr("Video imported successfully. You can now adjust its position on the timeline by dragging the orange rectangle.");
+            messageDialog.message = qsTr("Video imported successfully. You can now adjust its position on the timeline by dragging the orange rectangle.\n\nYou can also use the Video Preview tab to improve the synchronization of the video with the dive time line.");
             messageDialog.open();
         }
     }

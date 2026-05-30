@@ -68,6 +68,7 @@ public:
                                                 const QString &contentType = QString());
     Q_INVOKABLE QSize detectVideoResolution(const QString &videoPath);
     Q_INVOKABLE double extractVideoTimecode(const QString &videoPath);
+    Q_INVOKABLE double extractVideoCreationTime(const QString &videoPath);
     
     // Get information about available codecs and formats
     Q_INVOKABLE QStringList getAvailableCodecs();

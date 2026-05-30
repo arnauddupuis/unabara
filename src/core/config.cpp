@@ -44,6 +44,15 @@ Config::Config(QObject *parent)
     , m_profilePulsePeriodMs(2000)
     , m_profileOutputWidth(1920)
     , m_profileOutputHeight(400)
+    , m_profileDecoZoneColor(QColor(255, 0, 0))
+    , m_profileDecoZoneOpacity(0.35)
+    , m_profileGridEnabled(false)
+    , m_profileGridDepthInterval(10)
+    , m_profileGridTimeInterval(600)
+    , m_profileGridColor(QColor(180, 180, 180))
+    , m_profileGridOpacity(0.5)
+    , m_profileGridLineWidth(1)
+    , m_profileGridShowLabels(true)
 {
     // Load settings from disk
     loadConfig();
@@ -400,6 +409,92 @@ void Config::setProfileOutputHeight(int h)
     }
 }
 
+QColor Config::profileDecoZoneColor() const { return m_profileDecoZoneColor; }
+void Config::setProfileDecoZoneColor(const QColor& color)
+{
+    if (m_profileDecoZoneColor != color) {
+        m_profileDecoZoneColor = color;
+        emit profileDecoZoneColorChanged();
+    }
+}
+
+double Config::profileDecoZoneOpacity() const { return m_profileDecoZoneOpacity; }
+void Config::setProfileDecoZoneOpacity(double opacity)
+{
+    opacity = qBound(0.0, opacity, 1.0);
+    if (qAbs(m_profileDecoZoneOpacity - opacity) > 0.001) {
+        m_profileDecoZoneOpacity = opacity;
+        emit profileDecoZoneOpacityChanged();
+    }
+}
+
+bool Config::profileGridEnabled() const { return m_profileGridEnabled; }
+void Config::setProfileGridEnabled(bool enabled)
+{
+    if (m_profileGridEnabled != enabled) {
+        m_profileGridEnabled = enabled;
+        emit profileGridEnabledChanged();
+    }
+}
+
+int Config::profileGridDepthInterval() const { return m_profileGridDepthInterval; }
+void Config::setProfileGridDepthInterval(int interval)
+{
+    interval = qMax(1, interval);
+    if (m_profileGridDepthInterval != interval) {
+        m_profileGridDepthInterval = interval;
+        emit profileGridDepthIntervalChanged();
+    }
+}
+
+int Config::profileGridTimeInterval() const { return m_profileGridTimeInterval; }
+void Config::setProfileGridTimeInterval(int seconds)
+{
+    seconds = qMax(1, seconds);
+    if (m_profileGridTimeInterval != seconds) {
+        m_profileGridTimeInterval = seconds;
+        emit profileGridTimeIntervalChanged();
+    }
+}
+
+QColor Config::profileGridColor() const { return m_profileGridColor; }
+void Config::setProfileGridColor(const QColor& color)
+{
+    if (m_profileGridColor != color) {
+        m_profileGridColor = color;
+        emit profileGridColorChanged();
+    }
+}
+
+double Config::profileGridOpacity() const { return m_profileGridOpacity; }
+void Config::setProfileGridOpacity(double opacity)
+{
+    opacity = qBound(0.0, opacity, 1.0);
+    if (qAbs(m_profileGridOpacity - opacity) > 0.001) {
+        m_profileGridOpacity = opacity;
+        emit profileGridOpacityChanged();
+    }
+}
+
+int Config::profileGridLineWidth() const { return m_profileGridLineWidth; }
+void Config::setProfileGridLineWidth(int width)
+{
+    width = qMax(1, width);
+    if (m_profileGridLineWidth != width) {
+        m_profileGridLineWidth = width;
+        emit profileGridLineWidthChanged();
+    }
+}
+
+bool Config::profileGridShowLabels() const { return m_profileGridShowLabels; }
+void Config::setProfileGridShowLabels(bool show)
+{
+    if (m_profileGridShowLabels != show) {
+        m_profileGridShowLabels = show;
+        emit profileGridShowLabelsChanged();
+    }
+}
+
 void Config::loadConfig()
 {
     // Load general settings
@@ -487,6 +582,25 @@ void Config::loadConfig()
     m_profilePulsePeriodMs = m_settings.value("profile/pulsePeriodMs", 2000).toInt();
     m_profileOutputWidth = m_settings.value("profile/outputWidth", 1920).toInt();
     m_profileOutputHeight = m_settings.value("profile/outputHeight", 400).toInt();
+    {
+        const int dR = m_settings.value("profile/decoZoneColorR", 255).toInt();
+        const int dG = m_settings.value("profile/decoZoneColorG", 0).toInt();
+        const int dB = m_settings.value("profile/decoZoneColorB", 0).toInt();
+        m_profileDecoZoneColor = QColor(dR, dG, dB);
+    }
+    m_profileDecoZoneOpacity = m_settings.value("profile/decoZoneOpacity", 0.35).toDouble();
+    m_profileGridEnabled = m_settings.value("profile/gridEnabled", false).toBool();
+    m_profileGridDepthInterval = m_settings.value("profile/gridDepthInterval", 10).toInt();
+    m_profileGridTimeInterval = m_settings.value("profile/gridTimeInterval", 600).toInt();
+    {
+        const int gR = m_settings.value("profile/gridColorR", 180).toInt();
+        const int gG = m_settings.value("profile/gridColorG", 180).toInt();
+        const int gB = m_settings.value("profile/gridColorB", 180).toInt();
+        m_profileGridColor = QColor(gR, gG, gB);
+    }
+    m_profileGridOpacity = m_settings.value("profile/gridOpacity", 0.5).toDouble();
+    m_profileGridLineWidth = m_settings.value("profile/gridLineWidth", 1).toInt();
+    m_profileGridShowLabels = m_settings.value("profile/gridShowLabels", true).toBool();
 
     // Load camera pairings from JSON
     m_cameraPairings.clear();
@@ -571,6 +685,19 @@ void Config::saveConfig()
     m_settings.setValue("profile/pulsePeriodMs", m_profilePulsePeriodMs);
     m_settings.setValue("profile/outputWidth", m_profileOutputWidth);
     m_settings.setValue("profile/outputHeight", m_profileOutputHeight);
+    m_settings.setValue("profile/decoZoneColorR", m_profileDecoZoneColor.red());
+    m_settings.setValue("profile/decoZoneColorG", m_profileDecoZoneColor.green());
+    m_settings.setValue("profile/decoZoneColorB", m_profileDecoZoneColor.blue());
+    m_settings.setValue("profile/decoZoneOpacity", m_profileDecoZoneOpacity);
+    m_settings.setValue("profile/gridEnabled", m_profileGridEnabled);
+    m_settings.setValue("profile/gridDepthInterval", m_profileGridDepthInterval);
+    m_settings.setValue("profile/gridTimeInterval", m_profileGridTimeInterval);
+    m_settings.setValue("profile/gridColorR", m_profileGridColor.red());
+    m_settings.setValue("profile/gridColorG", m_profileGridColor.green());
+    m_settings.setValue("profile/gridColorB", m_profileGridColor.blue());
+    m_settings.setValue("profile/gridOpacity", m_profileGridOpacity);
+    m_settings.setValue("profile/gridLineWidth", m_profileGridLineWidth);
+    m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
 
     // Save camera pairings as compact JSON
     QJsonArray pairingsArray;

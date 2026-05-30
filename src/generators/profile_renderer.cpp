@@ -1,7 +1,10 @@
 #include "include/generators/profile_renderer.h"
 #include "include/core/dive_data.h"
+#include "include/core/units.h"
 
+#include <QFontMetricsF>
 #include <QPainterPath>
+#include <QString>
 #include <QtMath>
 
 #include <algorithm>
@@ -92,6 +95,154 @@ void drawDepthCurve(QPainter& p, const QRectF& rect, DiveData* dive,
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
     p.drawPath(path);
+    p.restore();
+}
+
+void drawGrid(QPainter& p, const QRectF& rect, DiveData* dive, const GridOptions& opts)
+{
+    if (!dive || opts.opacity <= 0.0
+        || opts.depthIntervalMeters <= 0.0 || opts.timeIntervalSec <= 0) {
+        return;
+    }
+    const double depthMax = depthAxisMax(dive);
+    const double tMax = timeAxisMax(dive);
+    if (depthMax <= 0.0 || tMax <= 0.0) {
+        return;
+    }
+
+    QColor lineColor = opts.color;
+    lineColor.setAlphaF(std::clamp(opts.opacity, 0.0, 1.0)
+                        * (opts.color.alphaF() > 0 ? opts.color.alphaF() : 1.0));
+
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, false); // crisp 1-px lines
+
+    QPen pen(lineColor);
+    pen.setWidthF(opts.lineWidth);
+    pen.setCapStyle(Qt::FlatCap);
+    p.setPen(pen);
+
+    // Horizontal lines (depth axis). Iterate in meters; convert label using the
+    // user's unit system.
+    for (double dm = opts.depthIntervalMeters; dm <= depthMax; dm += opts.depthIntervalMeters) {
+        const double y = rect.top() + (dm / depthMax) * rect.height();
+        p.drawLine(QPointF(rect.left(), y), QPointF(rect.right(), y));
+    }
+
+    // Vertical lines (time axis).
+    for (double t = opts.timeIntervalSec; t <= tMax; t += opts.timeIntervalSec) {
+        const double x = rect.left() + (t / tMax) * rect.width();
+        p.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()));
+    }
+
+    if (opts.showLabels) {
+        // Labels share the grid color but at full opacity (so they remain
+        // readable when the grid lines are faint).
+        QColor labelColor = opts.color;
+        labelColor.setAlphaF(1.0);
+        p.setPen(labelColor);
+
+        QFont labelFont = p.font();
+        // Scale the label font with the image height so labels stay readable
+        // on a 4K profile without being huge on a small one.
+        const int px = std::max(10, static_cast<int>(rect.height() * 0.04));
+        labelFont.setPixelSize(px);
+        p.setFont(labelFont);
+
+        const QFontMetricsF fm(labelFont);
+
+        // Depth labels — left-anchored just inside the rect, offset above the line.
+        for (double dm = opts.depthIntervalMeters; dm <= depthMax; dm += opts.depthIntervalMeters) {
+            const double y = rect.top() + (dm / depthMax) * rect.height();
+            const QString text = Units::formatDepthValue(dm, opts.unitSystem);
+            p.drawText(QPointF(rect.left() + 4, y - 2), text);
+        }
+
+        // Time labels — top-anchored just inside the rect, mm:ss format.
+        for (double t = opts.timeIntervalSec; t <= tMax; t += opts.timeIntervalSec) {
+            const double x = rect.left() + (t / tMax) * rect.width();
+            const int totalSec = static_cast<int>(t);
+            const int mm = totalSec / 60;
+            const int ss = totalSec % 60;
+            const QString text = QString::asprintf("%d:%02d", mm, ss);
+            p.drawText(QPointF(x + 4, rect.top() + fm.ascent() + 2), text);
+        }
+    }
+
+    p.restore();
+}
+
+void drawDecoZone(QPainter& p, const QRectF& rect, DiveData* dive,
+                  const QColor& color, double opacity)
+{
+    if (!dive || opacity <= 0.0) {
+        return;
+    }
+    const auto& points = dive->allDataPoints();
+    if (points.size() < 2) {
+        return;
+    }
+    const double depthMax = depthAxisMax(dive);
+    const double tMax = timeAxisMax(dive);
+    if (depthMax <= 0.0 || tMax <= 0.0) {
+        return;
+    }
+
+    QColor fill = color;
+    fill.setAlphaF(std::clamp(opacity, 0.0, 1.0) * (color.alphaF() > 0 ? color.alphaF() : 1.0));
+
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setPen(Qt::NoPen);
+    p.setBrush(fill);
+
+    // Walk the samples and emit one filled polygon per consecutive run where
+    // ceiling > 0. Polygon shape: top edge along y=0 (surface), bottom edge
+    // follows the ceiling depth.
+    QPainterPath path;
+    bool inRun = false;
+    QList<QPointF> ceilingPts;   // bottom edge of the current polygon
+    double runStartT = 0.0;
+    double runEndT = 0.0;
+
+    auto flushRun = [&]() {
+        if (ceilingPts.size() < 1) {
+            return;
+        }
+        QPainterPath poly;
+        const QPointF topLeft = samplePoint(rect, runStartT, 0.0, tMax, depthMax);
+        poly.moveTo(topLeft);
+        for (const QPointF& pt : ceilingPts) {
+            poly.lineTo(pt);
+        }
+        const QPointF topRight = samplePoint(rect, runEndT, 0.0, tMax, depthMax);
+        poly.lineTo(topRight);
+        poly.closeSubpath();
+        path.addPath(poly);
+    };
+
+    for (const DiveDataPoint& pt : points) {
+        if (pt.ceiling > 0.0) {
+            if (!inRun) {
+                inRun = true;
+                ceilingPts.clear();
+                runStartT = pt.timestamp;
+            }
+            ceilingPts.append(samplePoint(rect, pt.timestamp, pt.ceiling, tMax, depthMax));
+            runEndT = pt.timestamp;
+        } else if (inRun) {
+            flushRun();
+            inRun = false;
+            ceilingPts.clear();
+        }
+    }
+    if (inRun) {
+        flushRun();
+    }
+
+    if (!path.isEmpty()) {
+        p.drawPath(path);
+    }
     p.restore();
 }
 

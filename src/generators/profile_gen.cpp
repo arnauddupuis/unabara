@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "include/core/config.h"
+#include "include/core/units.h"
 #include "include/generators/profile_renderer.h"
 
 ProfileGenerator::ProfileGenerator(QObject* parent)
@@ -21,6 +22,15 @@ ProfileGenerator::ProfileGenerator(QObject* parent)
     m_pulsePeriodMs     = cfg->profilePulsePeriodMs();
     m_outputWidth       = cfg->profileOutputWidth();
     m_outputHeight      = cfg->profileOutputHeight();
+    m_decoZoneColor     = cfg->profileDecoZoneColor();
+    m_decoZoneOpacity   = cfg->profileDecoZoneOpacity();
+    m_gridEnabled       = cfg->profileGridEnabled();
+    m_gridDepthInterval = cfg->profileGridDepthInterval();
+    m_gridTimeInterval  = cfg->profileGridTimeInterval();
+    m_gridColor         = cfg->profileGridColor();
+    m_gridOpacity       = cfg->profileGridOpacity();
+    m_gridLineWidth     = cfg->profileGridLineWidth();
+    m_gridShowLabels    = cfg->profileGridShowLabels();
 
     // Stay in sync with Config — settings changes flowing in from anywhere
     // (e.g. another window, future preferences dialog) propagate to here.
@@ -59,6 +69,48 @@ ProfileGenerator::ProfileGenerator(QObject* parent)
     connect(cfg, &Config::profileOutputHeightChanged, this, [this]() {
         m_outputHeight = Config::instance()->profileOutputHeight();
         emit outputHeightChanged();
+    });
+    connect(cfg, &Config::profileDecoZoneColorChanged, this, [this]() {
+        m_decoZoneColor = Config::instance()->profileDecoZoneColor();
+        emit decoZoneColorChanged();
+    });
+    connect(cfg, &Config::profileDecoZoneOpacityChanged, this, [this]() {
+        m_decoZoneOpacity = Config::instance()->profileDecoZoneOpacity();
+        emit decoZoneOpacityChanged();
+    });
+    connect(cfg, &Config::profileGridEnabledChanged, this, [this]() {
+        m_gridEnabled = Config::instance()->profileGridEnabled();
+        emit gridEnabledChanged();
+    });
+    connect(cfg, &Config::profileGridDepthIntervalChanged, this, [this]() {
+        m_gridDepthInterval = Config::instance()->profileGridDepthInterval();
+        emit gridDepthIntervalChanged();
+    });
+    connect(cfg, &Config::profileGridTimeIntervalChanged, this, [this]() {
+        m_gridTimeInterval = Config::instance()->profileGridTimeInterval();
+        emit gridTimeIntervalChanged();
+    });
+    connect(cfg, &Config::profileGridColorChanged, this, [this]() {
+        m_gridColor = Config::instance()->profileGridColor();
+        emit gridColorChanged();
+    });
+    connect(cfg, &Config::profileGridOpacityChanged, this, [this]() {
+        m_gridOpacity = Config::instance()->profileGridOpacity();
+        emit gridOpacityChanged();
+    });
+    connect(cfg, &Config::profileGridLineWidthChanged, this, [this]() {
+        m_gridLineWidth = Config::instance()->profileGridLineWidth();
+        emit gridLineWidthChanged();
+    });
+    connect(cfg, &Config::profileGridShowLabelsChanged, this, [this]() {
+        m_gridShowLabels = Config::instance()->profileGridShowLabels();
+        emit gridShowLabelsChanged();
+    });
+
+    // Repaint when the user's unit setting changes — depth-interval labels and
+    // line positions are unit-dependent.
+    connect(cfg, &Config::unitSystemChanged, this, [this]() {
+        if (m_gridEnabled) emit gridDepthIntervalChanged();
     });
 }
 
@@ -148,6 +200,92 @@ void ProfileGenerator::setOutputHeight(int h)
     }
 }
 
+void ProfileGenerator::setDecoZoneColor(const QColor& c)
+{
+    if (m_decoZoneColor != c) {
+        m_decoZoneColor = c;
+        Config::instance()->setProfileDecoZoneColor(c);
+        emit decoZoneColorChanged();
+    }
+}
+
+void ProfileGenerator::setDecoZoneOpacity(double o)
+{
+    o = qBound(0.0, o, 1.0);
+    if (qAbs(m_decoZoneOpacity - o) > 0.001) {
+        m_decoZoneOpacity = o;
+        Config::instance()->setProfileDecoZoneOpacity(o);
+        emit decoZoneOpacityChanged();
+    }
+}
+
+void ProfileGenerator::setGridEnabled(bool enabled)
+{
+    if (m_gridEnabled != enabled) {
+        m_gridEnabled = enabled;
+        Config::instance()->setProfileGridEnabled(enabled);
+        emit gridEnabledChanged();
+    }
+}
+
+void ProfileGenerator::setGridDepthInterval(int interval)
+{
+    interval = qMax(1, interval);
+    if (m_gridDepthInterval != interval) {
+        m_gridDepthInterval = interval;
+        Config::instance()->setProfileGridDepthInterval(interval);
+        emit gridDepthIntervalChanged();
+    }
+}
+
+void ProfileGenerator::setGridTimeInterval(int seconds)
+{
+    seconds = qMax(1, seconds);
+    if (m_gridTimeInterval != seconds) {
+        m_gridTimeInterval = seconds;
+        Config::instance()->setProfileGridTimeInterval(seconds);
+        emit gridTimeIntervalChanged();
+    }
+}
+
+void ProfileGenerator::setGridColor(const QColor& c)
+{
+    if (m_gridColor != c) {
+        m_gridColor = c;
+        Config::instance()->setProfileGridColor(c);
+        emit gridColorChanged();
+    }
+}
+
+void ProfileGenerator::setGridOpacity(double o)
+{
+    o = qBound(0.0, o, 1.0);
+    if (qAbs(m_gridOpacity - o) > 0.001) {
+        m_gridOpacity = o;
+        Config::instance()->setProfileGridOpacity(o);
+        emit gridOpacityChanged();
+    }
+}
+
+void ProfileGenerator::setGridLineWidth(int width)
+{
+    width = qMax(1, width);
+    if (m_gridLineWidth != width) {
+        m_gridLineWidth = width;
+        Config::instance()->setProfileGridLineWidth(width);
+        emit gridLineWidthChanged();
+    }
+}
+
+void ProfileGenerator::setGridShowLabels(bool show)
+{
+    if (m_gridShowLabels != show) {
+        m_gridShowLabels = show;
+        Config::instance()->setProfileGridShowLabels(show);
+        emit gridShowLabelsChanged();
+    }
+}
+
 QImage ProfileGenerator::generate(DiveData* dive, double timePoint)
 {
     // Export path: pulse phase is deterministic from the dive-time so a
@@ -170,6 +308,23 @@ QImage ProfileGenerator::renderFrame(DiveData* dive, double timePoint, double pu
     const QRectF rect(0, 0, m_outputWidth, m_outputHeight);
 
     ProfileRenderer::drawBackground(painter, rect, m_backgroundColor, m_backgroundOpacity);
+    if (m_gridEnabled) {
+        ProfileRenderer::GridOptions g;
+        const Units::UnitSystem unitSystem = Config::instance()->unitSystem();
+        // depth interval is entered in the user's unit; convert to meters.
+        const double intervalMeters = (unitSystem == Units::UnitSystem::Imperial)
+            ? Units::feetToMeters(static_cast<double>(m_gridDepthInterval))
+            : static_cast<double>(m_gridDepthInterval);
+        g.depthIntervalMeters = intervalMeters;
+        g.timeIntervalSec = m_gridTimeInterval;
+        g.color = m_gridColor;
+        g.opacity = m_gridOpacity;
+        g.lineWidth = static_cast<double>(m_gridLineWidth);
+        g.showLabels = m_gridShowLabels;
+        g.unitSystem = unitSystem;
+        ProfileRenderer::drawGrid(painter, rect, dive, g);
+    }
+    ProfileRenderer::drawDecoZone(painter, rect, dive, m_decoZoneColor, m_decoZoneOpacity);
     ProfileRenderer::drawDepthCurve(painter, rect, dive, m_curveColor);
     ProfileRenderer::drawIndicator(painter, rect, dive, timePoint, m_indicatorColor,
                                    static_cast<double>(m_indicatorRadius),

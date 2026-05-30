@@ -5,6 +5,8 @@
 #include <QPainter>
 #include <QRectF>
 
+#include "include/core/units.h"
+
 class DiveData;
 
 /**
@@ -29,6 +31,33 @@ void drawBackground(QPainter& p, const QRectF& rect, const QColor& bg, double op
 // or a zero max depth.
 void drawDepthCurve(QPainter& p, const QRectF& rect, DiveData* dive,
                     const QColor& color, double lineWidth = 2.0);
+
+// Grid styling. `depthIntervalMeters` is in meters regardless of unitSystem;
+// the UI is responsible for converting the user-entered value (which may be in
+// feet) into meters before populating this struct. Labels are formatted using
+// `unitSystem`.
+struct GridOptions {
+    double depthIntervalMeters;
+    int timeIntervalSec;
+    QColor color;
+    double opacity;
+    double lineWidth;
+    bool showLabels;
+    Units::UnitSystem unitSystem;
+};
+
+// Draw a reference grid over `rect`: horizontal lines at multiples of
+// `depthIntervalMeters` (labeled in the user's unit) and vertical lines at
+// multiples of `timeIntervalSec` (labeled as mm:ss). No-op if intervals are
+// non-positive or the dive is empty.
+void drawGrid(QPainter& p, const QRectF& rect, DiveData* dive, const GridOptions& opts);
+
+// Fill the decompression-ceiling region: for each consecutive run of samples
+// where ceiling > 0, fill a polygon from the surface (y=0) down to the ceiling
+// depth at each timestamp. No-op when opacity is 0 or no samples have a
+// non-zero ceiling.
+void drawDecoZone(QPainter& p, const QRectF& rect, DiveData* dive,
+                  const QColor& color, double opacity);
 
 // Draw a filled indicator dot at the (time, depth) interpolated for currentTimeSec.
 // When `pulsing` is true, the dot's radius is modulated by `pulsePhase01` (0..1

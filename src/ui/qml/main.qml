@@ -609,6 +609,15 @@ ApplicationWindow {
                                         function onPulsePeriodMsChanged()     { profilePreviewImage.updatePreview() }
                                         function onOutputWidthChanged()       { profilePreviewImage.updatePreview() }
                                         function onOutputHeightChanged()      { profilePreviewImage.updatePreview() }
+                                        function onDecoZoneColorChanged()     { profilePreviewImage.updatePreview() }
+                                        function onDecoZoneOpacityChanged()   { profilePreviewImage.updatePreview() }
+                                        function onGridEnabledChanged()       { profilePreviewImage.updatePreview() }
+                                        function onGridDepthIntervalChanged() { profilePreviewImage.updatePreview() }
+                                        function onGridTimeIntervalChanged()  { profilePreviewImage.updatePreview() }
+                                        function onGridColorChanged()         { profilePreviewImage.updatePreview() }
+                                        function onGridOpacityChanged()       { profilePreviewImage.updatePreview() }
+                                        function onGridLineWidthChanged()     { profilePreviewImage.updatePreview() }
+                                        function onGridShowLabelsChanged()    { profilePreviewImage.updatePreview() }
                                     }
 
                                     Connections {

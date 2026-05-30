@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Unabara.Core 1.0
 import Unabara.Generators 1.0
 
 Item {
@@ -94,6 +95,53 @@ Item {
                         colorDialog.selectedColor = root.generator ? root.generator.curveColor : "purple"
                         colorDialog.open()
                     }
+                }
+            }
+        }
+
+        GroupBox {
+            title: qsTr("Deco Zone")
+            Layout.fillWidth: true
+
+            GridLayout {
+                anchors.fill: parent
+                columns: 3
+                rowSpacing: 8
+                columnSpacing: 8
+
+                Label { text: qsTr("Color:") }
+                Button {
+                    id: decoColorButton
+                    Layout.fillWidth: true
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: root.generator ? root.generator.decoZoneColor : "red"
+                        border.color: palette.mid
+                        border.width: 1
+                    }
+                    onClicked: {
+                        root.colorTarget = "deco"
+                        colorDialog.selectedColor = root.generator ? root.generator.decoZoneColor : "red"
+                        colorDialog.open()
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                Label { text: qsTr("Opacity:") }
+                Slider {
+                    id: decoOpacitySlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 1.0
+                    value: root.generator ? root.generator.decoZoneOpacity : 0.35
+                    onMoved: {
+                        if (root.generator) root.generator.decoZoneOpacity = value
+                    }
+                }
+                Label {
+                    text: decoOpacitySlider.value.toFixed(2)
+                    Layout.preferredWidth: 40
                 }
             }
         }
@@ -206,6 +254,143 @@ Item {
             }
         }
 
+        GroupBox {
+            title: qsTr("Grid")
+            Layout.fillWidth: true
+
+            GridLayout {
+                anchors.fill: parent
+                columns: 3
+                rowSpacing: 8
+                columnSpacing: 8
+
+                CheckBox {
+                    id: gridEnabledCheck
+                    text: qsTr("Enable grid")
+                    Layout.columnSpan: 3
+                    checked: root.generator ? root.generator.gridEnabled : false
+                    onToggled: {
+                        if (root.generator) root.generator.gridEnabled = checked
+                    }
+                }
+
+                Label {
+                    text: qsTr("Depth interval:")
+                    enabled: gridEnabledCheck.checked
+                }
+                SpinBox {
+                    id: gridDepthIntervalSpin
+                    Layout.fillWidth: true
+                    from: 1
+                    to: 200
+                    enabled: gridEnabledCheck.checked
+                    value: root.generator ? root.generator.gridDepthInterval : 10
+                    onValueModified: {
+                        if (root.generator) root.generator.gridDepthInterval = value
+                    }
+                }
+                Label {
+                    text: (config && config.unitSystem === Units.Metric) ? qsTr("m") : qsTr("ft")
+                    Layout.preferredWidth: 40
+                    enabled: gridEnabledCheck.checked
+                }
+
+                Label {
+                    text: qsTr("Time interval:")
+                    enabled: gridEnabledCheck.checked
+                }
+                SpinBox {
+                    id: gridTimeIntervalSpin
+                    Layout.fillWidth: true
+                    from: 30
+                    to: 7200
+                    stepSize: 60
+                    enabled: gridEnabledCheck.checked
+                    value: root.generator ? root.generator.gridTimeInterval : 600
+                    onValueModified: {
+                        if (root.generator) root.generator.gridTimeInterval = value
+                    }
+                }
+                Label {
+                    text: qsTr("sec")
+                    Layout.preferredWidth: 40
+                    enabled: gridEnabledCheck.checked
+                }
+
+                Label {
+                    text: qsTr("Color:")
+                    enabled: gridEnabledCheck.checked
+                }
+                Button {
+                    id: gridColorButton
+                    Layout.fillWidth: true
+                    enabled: gridEnabledCheck.checked
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: root.generator ? root.generator.gridColor : "#b4b4b4"
+                        border.color: palette.mid
+                        border.width: 1
+                    }
+                    onClicked: {
+                        root.colorTarget = "grid"
+                        colorDialog.selectedColor = root.generator ? root.generator.gridColor : "#b4b4b4"
+                        colorDialog.open()
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                Label {
+                    text: qsTr("Opacity:")
+                    enabled: gridEnabledCheck.checked
+                }
+                Slider {
+                    id: gridOpacitySlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 1.0
+                    enabled: gridEnabledCheck.checked
+                    value: root.generator ? root.generator.gridOpacity : 0.5
+                    onMoved: {
+                        if (root.generator) root.generator.gridOpacity = value
+                    }
+                }
+                Label {
+                    text: gridOpacitySlider.value.toFixed(2)
+                    Layout.preferredWidth: 40
+                    enabled: gridEnabledCheck.checked
+                }
+
+                Label {
+                    text: qsTr("Line width (px):")
+                    enabled: gridEnabledCheck.checked
+                }
+                SpinBox {
+                    id: gridLineWidthSpin
+                    Layout.fillWidth: true
+                    from: 1
+                    to: 8
+                    enabled: gridEnabledCheck.checked
+                    value: root.generator ? root.generator.gridLineWidth : 1
+                    onValueModified: {
+                        if (root.generator) root.generator.gridLineWidth = value
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                CheckBox {
+                    id: gridShowLabelsCheck
+                    text: qsTr("Show axis labels")
+                    Layout.columnSpan: 3
+                    enabled: gridEnabledCheck.checked
+                    checked: root.generator ? root.generator.gridShowLabels : true
+                    onToggled: {
+                        if (root.generator) root.generator.gridShowLabels = checked
+                    }
+                }
+            }
+        }
+
         Item { Layout.fillHeight: true }
     }
 
@@ -218,6 +403,8 @@ Item {
             case "background": root.generator.backgroundColor = selectedColor; break
             case "curve":      root.generator.curveColor = selectedColor; break
             case "indicator":  root.generator.indicatorColor = selectedColor; break
+            case "deco":       root.generator.decoZoneColor = selectedColor; break
+            case "grid":       root.generator.gridColor = selectedColor; break
             }
         }
     }

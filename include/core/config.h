@@ -55,6 +55,15 @@ class Config : public QObject
     Q_PROPERTY(int profilePulsePeriodMs READ profilePulsePeriodMs WRITE setProfilePulsePeriodMs NOTIFY profilePulsePeriodMsChanged)
     Q_PROPERTY(int profileOutputWidth READ profileOutputWidth WRITE setProfileOutputWidth NOTIFY profileOutputWidthChanged)
     Q_PROPERTY(int profileOutputHeight READ profileOutputHeight WRITE setProfileOutputHeight NOTIFY profileOutputHeightChanged)
+    Q_PROPERTY(QColor profileDecoZoneColor READ profileDecoZoneColor WRITE setProfileDecoZoneColor NOTIFY profileDecoZoneColorChanged)
+    Q_PROPERTY(double profileDecoZoneOpacity READ profileDecoZoneOpacity WRITE setProfileDecoZoneOpacity NOTIFY profileDecoZoneOpacityChanged)
+    Q_PROPERTY(bool profileGridEnabled READ profileGridEnabled WRITE setProfileGridEnabled NOTIFY profileGridEnabledChanged)
+    Q_PROPERTY(int profileGridDepthInterval READ profileGridDepthInterval WRITE setProfileGridDepthInterval NOTIFY profileGridDepthIntervalChanged)
+    Q_PROPERTY(int profileGridTimeInterval READ profileGridTimeInterval WRITE setProfileGridTimeInterval NOTIFY profileGridTimeIntervalChanged)
+    Q_PROPERTY(QColor profileGridColor READ profileGridColor WRITE setProfileGridColor NOTIFY profileGridColorChanged)
+    Q_PROPERTY(double profileGridOpacity READ profileGridOpacity WRITE setProfileGridOpacity NOTIFY profileGridOpacityChanged)
+    Q_PROPERTY(int profileGridLineWidth READ profileGridLineWidth WRITE setProfileGridLineWidth NOTIFY profileGridLineWidthChanged)
+    Q_PROPERTY(bool profileGridShowLabels READ profileGridShowLabels WRITE setProfileGridShowLabels NOTIFY profileGridShowLabelsChanged)
 
 public:
     static Config* instance();
@@ -150,6 +159,33 @@ public:
     int profileOutputHeight() const;
     void setProfileOutputHeight(int h);
 
+    QColor profileDecoZoneColor() const;
+    void setProfileDecoZoneColor(const QColor& color);
+
+    double profileDecoZoneOpacity() const;
+    void setProfileDecoZoneOpacity(double opacity);
+
+    bool profileGridEnabled() const;
+    void setProfileGridEnabled(bool enabled);
+
+    int profileGridDepthInterval() const;
+    void setProfileGridDepthInterval(int interval);
+
+    int profileGridTimeInterval() const;
+    void setProfileGridTimeInterval(int seconds);
+
+    QColor profileGridColor() const;
+    void setProfileGridColor(const QColor& color);
+
+    double profileGridOpacity() const;
+    void setProfileGridOpacity(double opacity);
+
+    int profileGridLineWidth() const;
+    void setProfileGridLineWidth(int width);
+
+    bool profileGridShowLabels() const;
+    void setProfileGridShowLabels(bool show);
+
     // Save configuration to disk
     void saveConfig();
 
@@ -194,6 +230,15 @@ signals:
     void profilePulsePeriodMsChanged();
     void profileOutputWidthChanged();
     void profileOutputHeightChanged();
+    void profileDecoZoneColorChanged();
+    void profileDecoZoneOpacityChanged();
+    void profileGridEnabledChanged();
+    void profileGridDepthIntervalChanged();
+    void profileGridTimeIntervalChanged();
+    void profileGridColorChanged();
+    void profileGridOpacityChanged();
+    void profileGridLineWidthChanged();
+    void profileGridShowLabelsChanged();
 
 private:
     explicit Config(QObject *parent = nullptr);
@@ -238,6 +283,15 @@ private:
     int m_profilePulsePeriodMs;
     int m_profileOutputWidth;
     int m_profileOutputHeight;
+    QColor m_profileDecoZoneColor;
+    double m_profileDecoZoneOpacity;
+    bool m_profileGridEnabled;
+    int m_profileGridDepthInterval;
+    int m_profileGridTimeInterval;
+    QColor m_profileGridColor;
+    double m_profileGridOpacity;
+    int m_profileGridLineWidth;
+    bool m_profileGridShowLabels;
 
     // Camera pairings: maps camera name -> calibration constant (seconds)
     QMap<QString, double> m_cameraPairings;

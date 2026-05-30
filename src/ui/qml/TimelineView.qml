@@ -233,15 +233,62 @@ Item {
                         ctx.fillText(d + "m", 2, y - 2);
                     }
                     
+                    // Draw deco zone: filled polygons from surface (y=0) down to
+                    // the ceiling at each timestamp, for each consecutive run of
+                    // samples where ceiling > 0. Reads color/opacity from the
+                    // shared profile config so the timeline and the profile
+                    // graphic visually match.
+                    if (typeof config !== "undefined" && config) {
+                        var decoOpacity = config.profileDecoZoneOpacity;
+                        if (decoOpacity > 0) {
+                            var decoColor = config.profileDecoZoneColor;
+                            ctx.fillStyle = "rgba(" + decoColor.r * 255 + "," +
+                                                       decoColor.g * 255 + "," +
+                                                       decoColor.b * 255 + "," +
+                                                       decoOpacity + ")";
+                            var inRun = false;
+                            var runStartX = 0;
+                            for (var j = 0; j < timelineData.length; j++) {
+                                var dp = timelineData[j];
+                                var dx = ((dp.timestamp - timeline.startTime) / timeRange) * width;
+                                if (dp.ceiling > 0) {
+                                    if (!inRun) {
+                                        ctx.beginPath();
+                                        ctx.moveTo(dx, 0);
+                                        runStartX = dx;
+                                        inRun = true;
+                                    }
+                                    var dy = (dp.ceiling / maxDepth) * height;
+                                    ctx.lineTo(dx, dy);
+                                } else if (inRun) {
+                                    // Close: walk back along y=0 to runStartX
+                                    var prevDp = timelineData[j - 1];
+                                    var prevX = ((prevDp.timestamp - timeline.startTime) / timeRange) * width;
+                                    ctx.lineTo(prevX, 0);
+                                    ctx.closePath();
+                                    ctx.fill();
+                                    inRun = false;
+                                }
+                            }
+                            if (inRun) {
+                                var lastDp = timelineData[timelineData.length - 1];
+                                var lastX = ((lastDp.timestamp - timeline.startTime) / timeRange) * width;
+                                ctx.lineTo(lastX, 0);
+                                ctx.closePath();
+                                ctx.fill();
+                            }
+                        }
+                    }
+
                     // Draw depth profile
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
-                    
+
                     for (var i = 0; i < timelineData.length; i++) {
                         var point = timelineData[i];
                         var x = ((point.timestamp - timeline.startTime) / timeRange) * width;
                         var y = (point.depth / maxDepth) * height;
-                        
+
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
@@ -361,6 +408,14 @@ Item {
                     function onCanvasBackgroundChanged() { depthCanvas.requestPaint() }
                     function onCanvasGridColorChanged() { depthCanvas.requestPaint() }
                     function onCanvasTextColorChanged() { depthCanvas.requestPaint() }
+                }
+
+                // Repaint when deco zone styling changes in the profile editor.
+                Connections {
+                    target: typeof config !== "undefined" ? config : null
+                    ignoreUnknownSignals: true
+                    function onProfileDecoZoneColorChanged() { depthCanvas.requestPaint() }
+                    function onProfileDecoZoneOpacityChanged() { depthCanvas.requestPaint() }
                 }
                 
                 function updateTimelineData() {

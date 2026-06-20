@@ -1,4 +1,5 @@
 #include "include/generators/overlay_image_provider.h"
+#include "include/generators/frame_cache.h"
 #include <QDebug>
 
 OverlayImageProvider::OverlayImageProvider(OverlayGenerator* generator)
@@ -31,7 +32,25 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
     bool prevShowCellBg = m_generator->showCellBackgrounds();
     m_generator->setShowCellBackgrounds(false);
 
-    if (id.startsWith("preview/")) {
+    if (id.startsWith("at/")) {
+        // "at/<seconds>/<tick>" — explicit dive-time request from the video
+        // preview compositor. Routed through the frame cache when one is
+        // attached so repeated bucket-equal requests collapse to one render.
+        const QString tail = id.mid(3);
+        const int slash = tail.indexOf('/');
+        const QString secsStr = slash >= 0 ? tail.left(slash) : tail;
+        bool ok = false;
+        const double timePoint = secsStr.toDouble(&ok);
+        if (ok) {
+            if (m_frameCache) {
+                result = m_frameCache->frameAt(m_currentDive, timePoint);
+            } else {
+                result = m_generator->generateOverlay(m_currentDive, timePoint);
+            }
+        } else {
+            result = m_generator->generateOverlay(m_currentDive, m_currentTime);
+        }
+    } else if (id.startsWith("preview/")) {
         // For preview images, use the current time
         qDebug() << "OverlayImageProvider: Generating preview at time:" << m_currentTime;
         result = m_generator->generateOverlay(m_currentDive, m_currentTime);

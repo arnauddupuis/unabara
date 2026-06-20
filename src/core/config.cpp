@@ -602,6 +602,32 @@ void Config::loadConfig()
     m_profileGridLineWidth = m_settings.value("profile/gridLineWidth", 1).toInt();
     m_profileGridShowLabels = m_settings.value("profile/gridShowLabels", true).toBool();
 
+    // Load per-video overlay layouts
+    {
+        m_videoOverlayLayouts.clear();
+        const QString json = m_settings.value("video/overlayLayouts", "{}").toString();
+        QJsonParseError err;
+        const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &err);
+        if (err.error == QJsonParseError::NoError && doc.isObject()) {
+            const QJsonObject root = doc.object();
+            for (auto it = root.constBegin(); it != root.constEnd(); ++it) {
+                const QString path = it.key();
+                if (it.value().isObject()) {
+                    QVariantMap m = it.value().toObject().toVariantMap();
+                    m_videoOverlayLayouts.insert(path, VideoOverlayLayout::fromVariantMap(m));
+                }
+            }
+        }
+        const QString lastJson = m_settings.value("video/lastOverlayLayout", "").toString();
+        if (!lastJson.isEmpty()) {
+            const QJsonDocument lastDoc = QJsonDocument::fromJson(lastJson.toUtf8());
+            if (lastDoc.isObject()) {
+                m_lastUsedVideoOverlayLayout = VideoOverlayLayout::fromVariantMap(
+                    lastDoc.object().toVariantMap());
+            }
+        }
+    }
+
     // Load camera pairings from JSON
     m_cameraPairings.clear();
     QString pairingsJson = m_settings.value("video/cameraPairings", "[]").toString();
@@ -699,6 +725,21 @@ void Config::saveConfig()
     m_settings.setValue("profile/gridLineWidth", m_profileGridLineWidth);
     m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
 
+    // Save per-video overlay layouts
+    {
+        QJsonObject root;
+        for (auto it = m_videoOverlayLayouts.constBegin();
+             it != m_videoOverlayLayouts.constEnd(); ++it) {
+            root.insert(it.key(), QJsonObject::fromVariantMap(it.value().toVariantMap()));
+        }
+        m_settings.setValue("video/overlayLayouts",
+                            QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)));
+        const QJsonObject lastObj =
+            QJsonObject::fromVariantMap(m_lastUsedVideoOverlayLayout.toVariantMap());
+        m_settings.setValue("video/lastOverlayLayout",
+                            QString::fromUtf8(QJsonDocument(lastObj).toJson(QJsonDocument::Compact)));
+    }
+
     // Save camera pairings as compact JSON
     QJsonArray pairingsArray;
     for (auto it = m_cameraPairings.constBegin(); it != m_cameraPairings.constEnd(); ++it) {
@@ -742,4 +783,25 @@ void Config::removeCameraPairing(const QString &name)
 double Config::cameraCalibrationConstant(const QString &name) const
 {
     return m_cameraPairings.value(name, qQNaN());
+}
+
+// ---- Per-video overlay layouts -------------------------------------------
+
+QVariantMap Config::videoOverlayLayout(const QString &videoPath) const
+{
+    auto it = m_videoOverlayLayouts.constFind(videoPath);
+    if (it != m_videoOverlayLayouts.constEnd())
+        return it.value().toVariantMap();
+    return m_lastUsedVideoOverlayLayout.toVariantMap();
+}
+
+void Config::setVideoOverlayLayout(const QString &videoPath, const QVariantMap &layout)
+{
+    if (videoPath.isEmpty())
+        return;
+    VideoOverlayLayout parsed = VideoOverlayLayout::fromVariantMap(layout);
+    m_videoOverlayLayouts.insert(videoPath, parsed);
+    m_lastUsedVideoOverlayLayout = parsed;
+    saveConfig();
+    emit videoOverlayLayoutChanged(videoPath);
 }

@@ -1,4 +1,5 @@
 #include "include/generators/profile_image_provider.h"
+#include "include/generators/frame_cache.h"
 
 #include <QDebug>
 
@@ -26,7 +27,25 @@ QImage ProfileImageProvider::requestImage(const QString& id, QSize* size, const 
     }
 
     QImage result;
-    if (id.startsWith("preview/")) {
+    if (id.startsWith("at/")) {
+        // "at/<seconds>/<tick>" — explicit dive-time request from the video
+        // preview compositor. Routed through the frame cache when one is
+        // attached; the indicator sits at the dive position with no pulse.
+        const QString tail = id.mid(3);
+        const int slash = tail.indexOf('/');
+        const QString secsStr = slash >= 0 ? tail.left(slash) : tail;
+        bool ok = false;
+        const double timePoint = secsStr.toDouble(&ok);
+        if (ok) {
+            if (m_frameCache) {
+                result = m_frameCache->frameAt(m_currentDive, timePoint);
+            } else {
+                result = m_generator->generate(m_currentDive, timePoint);
+            }
+        } else {
+            result = m_generator->generate(m_currentDive, m_currentTime);
+        }
+    } else if (id.startsWith("preview/")) {
         // Preview path. The URL may carry an explicit pulse phase so the live
         // preview can animate the indicator on wall-clock time while the dive
         // cursor is idle. URL form: preview/phase=<0..1>/<cachebust>

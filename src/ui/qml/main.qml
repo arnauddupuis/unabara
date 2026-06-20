@@ -635,7 +635,13 @@ ApplicationWindow {
                                     Timer {
                                         interval: 80
                                         repeat: true
-                                        running: profileGenerator && profileGenerator.indicatorMode === 1 && mainWindow.hasActiveDive
+                                        // Suppressed while the video preview is playing — the
+                                        // indicator's position is already moving with dive time
+                                        // there, and the wall-clock pulse adds visual noise.
+                                        running: profileGenerator
+                                                 && profileGenerator.indicatorMode === 1
+                                                 && mainWindow.hasActiveDive
+                                                 && !videoSyncPlayer.playing
                                         onTriggered: {
                                             var period = profileGenerator ? profileGenerator.pulsePeriodMs : 2000
                                             if (period < 100) period = 100
@@ -690,6 +696,7 @@ ApplicationWindow {
                         videoSource: window.currentVideoUrl
                         videoCreationTime: window.videoCreationTime
                         dive: mainWindow.currentDive
+                        videoOffset: timelineView.timeline ? timelineView.timeline.videoOffset : 0
 
                         onSyncOffsetComputed: function(offset) {
                             timelineView.timeline.videoOffset = offset

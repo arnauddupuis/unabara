@@ -12,6 +12,27 @@ Item {
     property double videoCreationTime: -1  // UTC seconds since epoch; -1 if unavailable
     property var dive: null                // DiveData object (exposes startTime QDateTime)
 
+    // Seconds to add to MediaPlayer.position to obtain dive-time. Owned by
+    // the Timeline; mirrored here so the in-video overlay items can compute
+    // their dive time without reaching up the tree.
+    property double videoOffset: 0
+
+    // Exposed so other UI (e.g. the Profile tab pulse timer) can gate work
+    // on whether the user is actively watching the video.
+    readonly property bool playing: syncPlayer.playbackState === MediaPlayer.PlayingState
+
+    // Quantized to the same bucket as FrameCache so the Image source URL
+    // doesn't change faster than the cache regenerates frames.
+    readonly property double bucketSeconds: 0.5
+    readonly property double currentDiveTime: {
+        const raw = (syncPlayer.position / 1000.0) + root.videoOffset
+        return Math.floor(raw / bucketSeconds) * bucketSeconds
+    }
+
+    // Bumped whenever a generator setting that affects rendered output
+    // changes, so the Image re-requests with a new URL token while paused.
+    property int refreshTick: 0
+
     property double capturedVideoPosition: -1
     property bool syncPointCaptured: capturedVideoPosition >= 0
     property double parsedDiveSeconds: -1
@@ -29,6 +50,7 @@ Item {
 
     Component.onCompleted: {
         root.profileNames = config.cameraPairingNames()
+        loadOverlayLayoutFromConfig()
     }
 
     onVideoSourceChanged: {
@@ -36,6 +58,83 @@ Item {
         root.capturedVideoPosition = -1
         diveTimeField.text = ""
         root.syncApplied = false
+        loadOverlayLayoutFromConfig()
+    }
+
+    function videoLocalPath() {
+        if (videoSource == "") return ""
+        return mainWindow.urlToLocalFile(videoSource.toString())
+    }
+
+    function loadOverlayLayoutFromConfig() {
+        const path = videoLocalPath()
+        // Even with an empty path, fetch the last-used layout as the default.
+        const layout = config.videoOverlayLayout(path)
+        if (layout.diveComputer) {
+            const dc = layout.diveComputer
+            diveComputerOverlay.normalizedRect = Qt.rect(dc.x, dc.y, dc.w, dc.h)
+            diveComputerOverlay.placementVisible = dc.visible
+        }
+        if (layout.diveProfile) {
+            const dp = layout.diveProfile
+            diveProfileOverlay.normalizedRect = Qt.rect(dp.x, dp.y, dp.w, dp.h)
+            diveProfileOverlay.placementVisible = dp.visible
+        }
+    }
+
+    function saveOverlayLayoutToConfig() {
+        const path = videoLocalPath()
+        if (path === "") return
+        const dc = diveComputerOverlay.normalizedRect
+        const dp = diveProfileOverlay.normalizedRect
+        config.setVideoOverlayLayout(path, {
+            "diveComputer": {
+                "visible": diveComputerOverlay.placementVisible,
+                "x": dc.x, "y": dc.y, "w": dc.width, "h": dc.height
+            },
+            "diveProfile": {
+                "visible": diveProfileOverlay.placementVisible,
+                "x": dp.x, "y": dp.y, "w": dp.width, "h": dp.height
+            }
+        })
+    }
+
+    // Force a re-fetch of both overlay images when any generator setting that
+    // affects rendered output changes — needed while paused, since otherwise
+    // diveTime is static and the Image source URL doesn't change.
+    Connections {
+        target: overlayGenerator
+        function onFontChanged()              { root.refreshTick++ }
+        function onTextColorChanged()         { root.refreshTick++ }
+        function onTemplateChanged()          { root.refreshTick++ }
+        function onShowDepthChanged()         { root.refreshTick++ }
+        function onShowTemperatureChanged()   { root.refreshTick++ }
+        function onShowNDLChanged()           { root.refreshTick++ }
+        function onShowPressureChanged()      { root.refreshTick++ }
+        function onShowTimeChanged()          { root.refreshTick++ }
+        function onBackgroundOpacityChanged() { root.refreshTick++ }
+        function onShowPO2Cell1Changed()      { root.refreshTick++ }
+        function onShowPO2Cell2Changed()      { root.refreshTick++ }
+        function onShowPO2Cell3Changed()      { root.refreshTick++ }
+        function onShowCompositePO2Changed()  { root.refreshTick++ }
+        function onCellsChanged()             { root.refreshTick++ }
+        function onCellLayoutChanged()        { root.refreshTick++ }
+    }
+    Connections {
+        target: profileGenerator
+        function onBackgroundColorChanged()   { root.refreshTick++ }
+        function onBackgroundOpacityChanged() { root.refreshTick++ }
+        function onCurveColorChanged()        { root.refreshTick++ }
+        function onIndicatorColorChanged()    { root.refreshTick++ }
+        function onIndicatorModeChanged()     { root.refreshTick++ }
+        function onIndicatorRadiusChanged()   { root.refreshTick++ }
+        function onOutputWidthChanged()       { root.refreshTick++ }
+        function onOutputHeightChanged()      { root.refreshTick++ }
+        function onDecoZoneColorChanged()     { root.refreshTick++ }
+        function onDecoZoneOpacityChanged()   { root.refreshTick++ }
+        function onGridEnabledChanged()       { root.refreshTick++ }
+        function onGridColorChanged()         { root.refreshTick++ }
+        function onGridOpacityChanged()       { root.refreshTick++ }
     }
 
     function parseDiveTime(text) {
@@ -91,6 +190,30 @@ Item {
                 anchors.fill: parent
             }
 
+            // Live preview overlays. Anchored to the video Rectangle so
+            // their normalized rects map onto the full video area.
+            VideoOverlayItem {
+                id: diveComputerOverlay
+                imageSourceBase: "image://overlay/at/"
+                diveTime: root.currentDiveTime
+                refreshTick: root.refreshTick
+                editable: true
+                visible: placementVisible && root.dive !== null && root.videoSource != ""
+                onLayoutCommitted: root.saveOverlayLayoutToConfig()
+                onPlacementVisibleChanged: root.saveOverlayLayoutToConfig()
+            }
+
+            VideoOverlayItem {
+                id: diveProfileOverlay
+                imageSourceBase: "image://profile/at/"
+                diveTime: root.currentDiveTime
+                refreshTick: root.refreshTick
+                editable: true
+                visible: placementVisible && root.dive !== null && root.videoSource != ""
+                onLayoutCommitted: root.saveOverlayLayoutToConfig()
+                onPlacementVisibleChanged: root.saveOverlayLayoutToConfig()
+            }
+
             Label {
                 anchors.centerIn: parent
                 visible: root.videoSource == ""
@@ -141,6 +264,18 @@ Item {
                           " / " + formatTime(syncPlayer.duration / 1000)
                     color: palette.windowText
                     font.family: "monospace"
+                }
+
+                CheckBox {
+                    text: qsTr("Dive Computer")
+                    checked: diveComputerOverlay.placementVisible
+                    onToggled: diveComputerOverlay.placementVisible = checked
+                }
+
+                CheckBox {
+                    text: qsTr("Profile")
+                    checked: diveProfileOverlay.placementVisible
+                    onToggled: diveProfileOverlay.placementVisible = checked
                 }
             }
         }

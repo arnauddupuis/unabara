@@ -51,6 +51,7 @@ set(PROJECT_SOURCES
     src/generators/profile_renderer.cpp
     src/generators/profile_gen.cpp
     src/generators/profile_image_provider.cpp
+    src/generators/frame_cache.cpp
     src/export/image_export.cpp
     src/core/update_checker.cpp
     src/export/video_export.cpp
@@ -68,6 +69,7 @@ set(PROJECT_HEADERS
     include/core/units.h
     include/core/cell_data.h
     include/core/overlay_template.h
+    include/core/video_overlay_layout.h
     include/ui/main_window.h
     include/ui/timeline.h
     include/ui/cell_model.h
@@ -77,6 +79,7 @@ set(PROJECT_HEADERS
     include/generators/profile_renderer.h
     include/generators/profile_gen.h
     include/generators/profile_image_provider.h
+    include/generators/frame_cache.h
     include/export/image_export.h
     include/core/update_checker.h
     include/export/video_export.h

@@ -7,8 +7,11 @@
 #include <QFont>
 #include <QColor>
 #include <QMap>
+#include <QHash>
 #include <QStringList>
+#include <QVariantMap>
 #include "include/core/units.h"
+#include "include/core/video_overlay_layout.h"
 
 class Config : public QObject
 {
@@ -195,6 +198,15 @@ public:
     Q_INVOKABLE void removeCameraPairing(const QString &name);
     Q_INVOKABLE double cameraCalibrationConstant(const QString &name) const;
 
+    // Per-video overlay layout persistence. Returns the saved layout for
+    // `videoPath`, falling back to the last-used layout if none is saved
+    // (so a fresh video inherits the user's most recent placement).
+    Q_INVOKABLE QVariantMap videoOverlayLayout(const QString &videoPath) const;
+    // Saves the layout for `videoPath` AND replaces the last-used layout
+    // so the next opened video without a saved layout inherits it.
+    Q_INVOKABLE void setVideoOverlayLayout(const QString &videoPath,
+                                           const QVariantMap &layout);
+
 signals:
     void lastImportPathChanged();
     void lastExportPathChanged();
@@ -219,6 +231,8 @@ signals:
     void showCompositePO2Changed();
 
     void cameraPairingsChanged();
+
+    void videoOverlayLayoutChanged(const QString &videoPath);
 
     // Profile signals
     void profileBackgroundColorChanged();
@@ -295,6 +309,11 @@ private:
 
     // Camera pairings: maps camera name -> calibration constant (seconds)
     QMap<QString, double> m_cameraPairings;
+
+    // Per-video overlay layouts, keyed by absolute video path.
+    QHash<QString, VideoOverlayLayout> m_videoOverlayLayouts;
+    // Layout to seed a new video that has no saved entry yet.
+    VideoOverlayLayout m_lastUsedVideoOverlayLayout;
 
     // Load configuration from disk
     void loadConfig();

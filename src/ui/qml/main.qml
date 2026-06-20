@@ -623,7 +623,11 @@ ApplicationWindow {
                                     Connections {
                                         target: timelineView.timeline
                                         function onCurrentTimeChanged() {
-                                            profilePreviewImage.updatePreview()
+                                            // currentTime now also moves while the video plays
+                                            // (Video Preview tab). Skip regenerating this hidden
+                                            // tab's preview unless it's the active tab.
+                                            if (contentTabs.currentIndex === 1)
+                                                profilePreviewImage.updatePreview()
                                         }
                                     }
 
@@ -697,9 +701,15 @@ ApplicationWindow {
                         videoCreationTime: window.videoCreationTime
                         dive: mainWindow.currentDive
                         videoOffset: timelineView.timeline ? timelineView.timeline.videoOffset : 0
+                        tabActive: contentTabs.currentIndex === 2
 
                         onSyncOffsetComputed: function(offset) {
                             timelineView.timeline.videoOffset = offset
+                        }
+                        // Inverse of videoOffset: the player drives the red cursor to the
+                        // dive-time of the current video frame while the tab is active.
+                        onCursorTimeRequested: function(t) {
+                            timelineView.timeline.currentTime = t
                         }
                     }
                 } // end StackLayout
@@ -717,9 +727,13 @@ ApplicationWindow {
                 id: timelineView
                 anchors.fill: parent
                 visible: mainWindow.hasActiveDive
-                
+                videoSyncMode: contentTabs.currentIndex === 2 && timeline.videoPath !== ""
+
                 onCurrentTimeChanged: {
-                    if (previewImage.status === Image.Ready) {
+                    // The overlay tab's preview is the only consumer here; skip the
+                    // work when it isn't the active tab (currentTime also moves
+                    // during video playback on the Video Preview tab).
+                    if (contentTabs.currentIndex === 0 && previewImage.status === Image.Ready) {
                         previewImage.updatePreview()
                     }
                 }

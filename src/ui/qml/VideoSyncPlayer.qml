@@ -9,6 +9,14 @@ Item {
     property url videoSource: ""
     signal syncOffsetComputed(double offset)
 
+    // Emitted to drive the timeline's red cursor to the dive-time of the current
+    // video frame while this tab is active. main.qml routes it to currentTime.
+    signal cursorTimeRequested(double diveTime)
+
+    // True while the Video Preview tab is the active tab. Gates cursor-driving so
+    // we don't move the shared timeline cursor while the user is on another tab.
+    property bool tabActive: false
+
     property double videoCreationTime: -1  // UTC seconds since epoch; -1 if unavailable
     property var dive: null                // DiveData object (exposes startTime QDateTime)
 
@@ -33,17 +41,26 @@ Item {
     // changes, so the Image re-requests with a new URL token while paused.
     property int refreshTick: 0
 
-    property double capturedVideoPosition: -1
-    property bool syncPointCaptured: capturedVideoPosition >= 0
-    property double parsedDiveSeconds: -1
-    property bool inputValid: parsedDiveSeconds >= 0
-    property double previewOffset: (syncPointCaptured && inputValid)
-                                   ? parsedDiveSeconds - capturedVideoPosition
-                                   : 0
-    property bool syncApplied: false
+    // Precise (un-bucketed) dive-time of the current video frame. Drives the red
+    // cursor and the editable "Dive time at this frame" field. The overlay images
+    // use the bucketed currentDiveTime instead so the cache isn't thrashed.
+    readonly property double exactDiveTime: (syncPlayer.position / 1000.0) + root.videoOffset
 
     readonly property bool metadataAvailable: root.videoCreationTime >= 0
     readonly property bool diveAvailable: root.dive !== null
+
+    // Push the red timeline cursor to the current frame's dive-time. No-op unless
+    // this tab is active and a video + dive are loaded.
+    function updateCursor() {
+        if (tabActive && videoSource != "" && root.dive !== null)
+            root.cursorTimeRequested(exactDiveTime)
+    }
+
+    // Re-drive the cursor whenever the frame's dive-time can change: the offset is
+    // adjusted, or the tab becomes active. (Playback position is handled in the
+    // syncPlayer Connections below.)
+    onVideoOffsetChanged: updateCursor()
+    onTabActiveChanged: updateCursor()
 
     // Reactive mirror of config.cameraPairingNames() — updated via onCameraPairingsChanged
     property var profileNames: []
@@ -55,9 +72,6 @@ Item {
 
     onVideoSourceChanged: {
         syncPlayer.source = videoSource
-        root.capturedVideoPosition = -1
-        diveTimeField.text = ""
-        root.syncApplied = false
         loadOverlayLayoutFromConfig()
     }
 
@@ -172,6 +186,7 @@ Item {
         function onPositionChanged() {
             if (!seekSlider.pressed)
                 seekSlider.value = syncPlayer.position
+            root.updateCursor()
         }
     }
 
@@ -317,7 +332,6 @@ Item {
                                 var diveStartSecs = root.dive.startTime.getTime() / 1000.0
                                 var suggested = (root.videoCreationTime - diveStartSecs) + constant
                                 root.syncOffsetComputed(suggested)
-                                root.syncApplied = true
                             }
                         }
                     }
@@ -356,67 +370,62 @@ Item {
                     text: qsTr("Video creation time not available — camera profiles cannot be used or saved for this file.")
                 }
 
-                // ── Manual sync workflow ──────────────────────────────────
+                // ── Graphical sync ────────────────────────────────────────
                 Label {
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
-                    text: {
-                        if (root.videoSource == "")
-                            return qsTr("No video loaded.")
-                        if (!root.syncPointCaptured)
-                            return qsTr("Play the video and pause when you can clearly see the dive computer display, then press 'Set Sync Point'.")
-                        if (!root.inputValid)
-                            return qsTr("Video captured at %1. Now enter the dive time shown on your dive computer display.").arg(formatTime(root.capturedVideoPosition))
-                        return qsTr("Ready to apply. The video will be aligned to start %1 seconds into the dive.").arg(root.previewOffset.toFixed(1))
-                    }
+                    text: root.videoSource == ""
+                          ? qsTr("No video loaded.")
+                          : qsTr("Pause when your dive computer is clearly visible, then drag the video band on the timeline (or nudge below) until the overlay's data matches the display on your computer. The red cursor follows the video.")
                 }
 
                 RowLayout {
+                    visible: root.videoSource != ""
                     spacing: 8
 
-                    Button {
-                        text: root.syncPointCaptured ? qsTr("Reset Sync Point") : qsTr("Set Sync Point")
-                        enabled: root.videoSource != ""
-                        onClicked: {
-                            syncPlayer.pause()
-                            root.capturedVideoPosition = syncPlayer.position / 1000.0
-                            diveTimeField.text = ""
-                            diveTimeField.forceActiveFocus()
-                        }
-                    }
-
-                    Label {
-                        visible: root.syncPointCaptured
-                        text: qsTr("Captured at %1").arg(formatTime(root.capturedVideoPosition))
-                    }
-                }
-
-                RowLayout {
-                    visible: root.syncPointCaptured
-                    spacing: 8
-
-                    Label { text: qsTr("Dive time shown on computer:") }
+                    Label { text: qsTr("Dive time at this frame:") }
 
                     TextField {
                         id: diveTimeField
                         placeholderText: qsTr("MM:SS  (e.g. 12:15)")
-                        implicitWidth: 160
-                        onTextChanged: root.parsedDiveSeconds = parseDiveTime(text)
+                        implicitWidth: 120
+                        // Live readout of the current frame's dive-time. Editing
+                        // breaks this binding (user value wins); committing restores
+                        // it. While paused exactDiveTime is static, so typing isn't
+                        // overwritten.
+                        text: formatTime(root.exactDiveTime)
+                        onEditingFinished: {
+                            // Only commit when the user actually changed the value —
+                            // a bare focus-loss must not re-apply the floored readout
+                            // (which would shave the sub-second fraction off the offset).
+                            if (text !== formatTime(root.exactDiveTime)) {
+                                var secs = parseDiveTime(text)
+                                if (secs >= 0)
+                                    root.syncOffsetComputed(secs - syncPlayer.position / 1000.0)
+                            }
+                            // Re-establish the live readout binding.
+                            text = Qt.binding(function() { return formatTime(root.exactDiveTime) })
+                        }
+                    }
+
+                    Label { text: qsTr("Nudge:") }
+
+                    Button {
+                        text: qsTr("-1s")
+                        enabled: root.videoSource != ""
+                        onClicked: root.syncOffsetComputed(root.videoOffset - 1)
                     }
 
                     Button {
-                        text: qsTr("Apply")
-                        enabled: root.syncPointCaptured && root.inputValid
-                        onClicked: {
-                            root.syncOffsetComputed(root.previewOffset)
-                            root.syncApplied = true
-                        }
+                        text: qsTr("+1s")
+                        enabled: root.videoSource != ""
+                        onClicked: root.syncOffsetComputed(root.videoOffset + 1)
                     }
                 }
 
                 // ── Section B: Save Profile ───────────────────────────────
                 ColumnLayout {
-                    visible: root.syncApplied && root.metadataAvailable && root.diveAvailable
+                    visible: root.metadataAvailable && root.diveAvailable && root.videoSource != ""
                     spacing: 4
 
                     Rectangle { Layout.fillWidth: true; height: 1; color: palette.mid }
@@ -446,7 +455,8 @@ Item {
                             onClicked: {
                                 var savedName = cameraNameField.text.trim()
                                 var diveStartSecs = root.dive.startTime.getTime() / 1000.0
-                                var constant = root.previewOffset
+                                // The current live offset is the sync result.
+                                var constant = root.videoOffset
                                                - (root.videoCreationTime - diveStartSecs)
                                 // addOrUpdateCameraPairing emits cameraPairingsChanged
                                 // synchronously, so root.profileNames and profileComboBox.model

@@ -20,6 +20,7 @@
 #include "include/generators/overlay_image_provider.h"
 #include "include/generators/profile_gen.h"
 #include "include/generators/profile_image_provider.h"
+#include "include/generators/frame_cache.h"
 #include "include/core/config.h"
 #include "include/core/units.h"
 #include "include/core/update_checker.h"
@@ -81,6 +82,57 @@ int main(int argc, char *argv[])
     engine.addImageProvider("profile", profileImageProvider);
     g_profileImageProvider = profileImageProvider;
 
+    // Frame caches for the video-preview compositor. Tighter bound on the
+    // profile cache since profile frames are larger (1920×400 by default).
+    FrameCache* overlayFrameCache = new FrameCache(overlayGenerator, 0.5, 64);
+    FrameCache* profileFrameCache = new FrameCache(profileGenerator, 0.5, 32);
+    imageProvider->setFrameCache(overlayFrameCache);
+    profileImageProvider->setFrameCache(profileFrameCache);
+
+    // Wire every generator and Config signal that could affect rendered output
+    // to cache invalidation. Conservative — invalidating on the wrong signal
+    // costs a single re-render; missing one would show stale frames.
+    auto invalidateOverlay = [overlayFrameCache]() { overlayFrameCache->invalidate(); };
+    auto invalidateProfile = [profileFrameCache]() { profileFrameCache->invalidate(); };
+
+    QObject::connect(overlayGenerator, &OverlayGenerator::fontChanged,              invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::textColorChanged,         invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::templateChanged,          invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showDepthChanged,         invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showTemperatureChanged,   invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showNDLChanged,           invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showPressureChanged,      invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showTimeChanged,          invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::backgroundOpacityChanged, invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showLabelChanged,         invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell1Changed,      invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell2Changed,      invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell3Changed,      invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showCompositePO2Changed,  invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::cellsChanged,             invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::cellLayoutChanged,        invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showCellBackgroundsChanged, invalidateOverlay);
+    QObject::connect(Config::instance(), &Config::unitSystemChanged,                invalidateOverlay);
+
+    QObject::connect(profileGenerator, &ProfileGenerator::backgroundColorChanged,    invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::backgroundOpacityChanged,  invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::curveColorChanged,         invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::indicatorColorChanged,     invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::indicatorModeChanged,      invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::indicatorRadiusChanged,    invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::pulsePeriodMsChanged,      invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::outputWidthChanged,        invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::outputHeightChanged,       invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::decoZoneColorChanged,      invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::decoZoneOpacityChanged,    invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridEnabledChanged,        invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridDepthIntervalChanged,  invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridTimeIntervalChanged,   invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridColorChanged,          invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridOpacityChanged,        invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridLineWidthChanged,      invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::gridShowLabelsChanged,     invalidateProfile);
+
     // Connect the LogParser signals to MainWindow slots
     QObject::connect(&logParser, &LogParser::diveImported,
                      &mainWindow, &MainWindow::onDiveImported);
@@ -89,10 +141,16 @@ int main(int argc, char *argv[])
 
     // Connect signals to update the image providers when the active dive changes
     QObject::connect(&mainWindow, &MainWindow::currentDiveChanged,
-                    [imageProvider, profileImageProvider, &mainWindow]() {
+                    [imageProvider, profileImageProvider, overlayFrameCache,
+                     profileFrameCache, &mainWindow]() {
                         DiveData* dive = mainWindow.currentDive();
                         imageProvider->setCurrentDive(dive);
                         profileImageProvider->setCurrentDive(dive);
+                        // Drop cached frames keyed on the previous dive pointer;
+                        // the pointer might be reused for a fresh DiveData and
+                        // would otherwise return stale images.
+                        overlayFrameCache->invalidate();
+                        profileFrameCache->invalidate();
                     });
     
     qDebug() << "Connected LogParser::diveImported to MainWindow::onDiveImported";

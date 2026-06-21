@@ -8,6 +8,7 @@
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>
         <file alias="VideoSyncPlayer.qml">src/ui/qml/VideoSyncPlayer.qml</file>
+        <file alias="VideoOverlayItem.qml">src/ui/qml/VideoOverlayItem.qml</file>
         <file>resources/styles/style.qss</file>
         <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
         <file alias="templates/OC_Rec_NoTanks_Titanium.utp">resources/templates/OC_Rec_NoTanks_Titanium.utp</file>

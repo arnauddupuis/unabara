@@ -21,6 +21,13 @@ Item {
     property color canvasBackground: palette.base
     property color canvasGridColor: palette.mid
     property color canvasTextColor: palette.windowText
+
+    // True while the Video Preview tab is active with a video loaded. In this
+    // mode the red cursor is driven by video playback (cursorTime = videoPos +
+    // videoOffset), so clicking the timeline must NOT seek the cursor — that
+    // would clobber the derived position. Dragging the zone/cursor still adjusts
+    // videoOffset (the sync gesture).
+    property bool videoSyncMode: false
     
     // Reference to C++ Timeline object
     Timeline {
@@ -440,6 +447,9 @@ Item {
                     property int dragThreshold: 3
                     
                     onClicked: function(mouseEvent) {
+                        // In video-sync mode the cursor mirrors the video position;
+                        // a click must not seek it independently.
+                        if (root.videoSyncMode) return;
                         if (!isDraggingVideo) {
                             var timeRange = timeline.endTime - timeline.startTime;
                             var clickTime = timeline.startTime + (mouseEvent.x / parent.width) * timeRange;
@@ -509,7 +519,10 @@ Item {
                                 var endX = ((videoEndTime - timeline.startTime) / timeRange) * width;
                                 
                                 if (mouseEvent.x >= startX && mouseEvent.x <= endX) {
-                                    cursorShape = Qt.PointingHandCursor;
+                                    // In sync mode dragging the zone/cursor adjusts the
+                                    // offset horizontally — signal that with a resize cursor.
+                                    cursorShape = root.videoSyncMode ? Qt.SizeHorCursor
+                                                                     : Qt.PointingHandCursor;
                                 } else {
                                     cursorShape = Qt.ArrowCursor;
                                 }

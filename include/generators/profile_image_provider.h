@@ -6,6 +6,7 @@
 #include "include/core/dive_data.h"
 #include "include/generators/profile_gen.h"
 
+class FrameCache;
 class ProfileImageProvider;
 
 // Global pointer mirroring g_imageProvider so Timeline (or anything else)
@@ -22,10 +23,15 @@ public:
     void setCurrentDive(DiveData* dive);
     void setCurrentTime(double time);
 
+    // Optional cache used for "at/<seconds>/<tick>" requests from the video
+    // preview compositor. Provider does not take ownership.
+    void setFrameCache(FrameCache* cache) { m_frameCache = cache; }
+
 private:
     ProfileGenerator* m_generator;
     DiveData* m_currentDive;
     double m_currentTime;
+    FrameCache* m_frameCache = nullptr;
 };
 
 #endif // PROFILE_IMAGE_PROVIDER_H

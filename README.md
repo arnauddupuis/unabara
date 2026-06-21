@@ -8,14 +8,17 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Features
 
-- **Import Dive Logs**: Import Subsurface (XML/SSRF) dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
+- **Import Dive Logs**: Import Subsurface (XML/SSRF) and UDDF dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
 - **Visual Timeline**: View and navigate your dive data on an interactive timeline.
-- **Video Import**: Import video footage and sync it with your dive data.
-- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time).
+- **Video Import**: Import your dive footage and position it against your dive data on the timeline.
+- **Video Preview & Sync**: Play your footage directly in Unabara and align it with your dive graphically — the timeline cursor follows the video, so you can match the overlay to your dive computer frame by frame. Save per-camera sync profiles for repeatable alignment.
+- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time, and CCR PO₂ cells), with optional per-cell or global labels.
+- **Dive Profile Graph**: Generate a customizable depth-over-time dive profile that can be composited as its own overlay.
 - **Template Selection**: Choose from built-in overlay templates or import your own designs.
+- **Undo/Redo**: Full edit history in the template editor — step back and forward through your changes (Ctrl+Z / Ctrl+Y).
 - **Export Options**:
   - Export as image sequence for video editing software
-  - Export directly as video file (requires FFmpeg)
+  - Export directly as video file in multiple codecs, including transparency-capable formats (ProRes 4444, VP9) for compositing (requires FFmpeg)
 
 ## Screenshots
 

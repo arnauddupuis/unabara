@@ -20,6 +20,17 @@ ApplicationWindow {
     // UTC seconds since epoch from video file metadata; -1 if unavailable
     property double videoCreationTime: -1
 
+    // Template-editor undo/redo.
+    // StandardKey resolves the platform-native binding.
+    Shortcut {
+        sequences: [StandardKey.Undo]
+        onActivated: undoManager.undo()
+    }
+    Shortcut {
+        sequences: [StandardKey.Redo]
+        onActivated: undoManager.redo()
+    }
+
     // Models and objects
     ImageExporter {
         id: imageExporter
@@ -303,7 +314,27 @@ ApplicationWindow {
                 onClicked: overlayEditorPanel.visible = !overlayEditorPanel.visible
             }
 
-            
+            ToolButton {
+                text: qsTr("Edit")
+                icon.name: "edit-undo"
+                onClicked: editMenu.open()
+
+                Menu {
+                    id: editMenu
+                    MenuItem {
+                        text: qsTr("Undo")
+                        enabled: undoManager.canUndo
+                        onTriggered: undoManager.undo()
+                    }
+                    MenuItem {
+                        text: qsTr("Redo")
+                        enabled: undoManager.canRedo
+                        onTriggered: undoManager.redo()
+                    }
+                }
+            }
+
+
             Item { Layout.fillWidth: true }
             
             Label {

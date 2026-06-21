@@ -20,6 +20,20 @@ ApplicationWindow {
     // UTC seconds since epoch from video file metadata; -1 if unavailable
     property double videoCreationTime: -1
 
+    // Template-editor undo/redo. Ctrl+Z / Ctrl+Y (plus Ctrl+Shift+Z for redo on
+    // platforms that prefer it). StandardKey resolves the platform-native binding.
+    Shortcut {
+        sequence: StandardKey.Undo
+        onActivated: undoManager.undo()
+    }
+    Shortcut {
+        // Explicit chords (not StandardKey.Redo) to honor the requested Ctrl+Y
+        // while avoiding a duplicate-binding warning, since StandardKey.Redo
+        // already resolves to Ctrl+Y / Ctrl+Shift+Z on Linux.
+        sequences: ["Ctrl+Y", "Ctrl+Shift+Z"]
+        onActivated: undoManager.redo()
+    }
+
     // Models and objects
     ImageExporter {
         id: imageExporter
@@ -303,7 +317,27 @@ ApplicationWindow {
                 onClicked: overlayEditorPanel.visible = !overlayEditorPanel.visible
             }
 
-            
+            ToolButton {
+                text: qsTr("Edit")
+                icon.name: "edit-undo"
+                onClicked: editMenu.open()
+
+                Menu {
+                    id: editMenu
+                    MenuItem {
+                        text: qsTr("Undo")
+                        enabled: undoManager.canUndo
+                        onTriggered: undoManager.undo()
+                    }
+                    MenuItem {
+                        text: qsTr("Redo")
+                        enabled: undoManager.canRedo
+                        onTriggered: undoManager.redo()
+                    }
+                }
+            }
+
+
             Item { Layout.fillWidth: true }
             
             Label {

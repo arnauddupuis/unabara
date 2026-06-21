@@ -15,6 +15,7 @@
 #include "include/ui/timeline.h"
 #include "include/ui/cell_model.h"
 #include "include/generators/overlay_gen.h"
+#include "include/generators/template_undo_stack.h"
 #include "include/export/image_export.h"
 #include "include/export/video_export.h"
 #include "include/generators/overlay_image_provider.h"
@@ -71,6 +72,11 @@ int main(int argc, char *argv[])
     OverlayGenerator* overlayGenerator = new OverlayGenerator();
     OverlayImageProvider* imageProvider = new OverlayImageProvider(overlayGenerator);
 
+    // Undo/redo for the template editor. Constructed after the generator (which
+    // loads its active template during construction) so it baselines a valid
+    // state; tracked signals are connected below.
+    TemplateUndoStack* undoManager = new TemplateUndoStack(overlayGenerator);
+
     // Register the image provider
     engine.addImageProvider("overlay", imageProvider);
 
@@ -113,6 +119,34 @@ int main(int argc, char *argv[])
     QObject::connect(overlayGenerator, &OverlayGenerator::cellLayoutChanged,        invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showCellBackgroundsChanged, invalidateOverlay);
     QObject::connect(Config::instance(), &Config::unitSystemChanged,                invalidateOverlay);
+
+    // Undo/redo: record a snapshot when template *content* changes. This tracks
+    // only the signals that map to what exportTemplate() serializes — not the
+    // full invalidate set above, which also fires on editor-only / display state
+    // (showCellBackgrounds, unit system, show* toggles whose real cell mutation
+    // already arrives via cellsChanged/cellLayoutChanged) and would otherwise
+    // produce no-op undo entries.
+    undoManager->trackSignal(SIGNAL(cellsChanged()));
+    undoManager->trackSignal(SIGNAL(cellLayoutChanged()));
+    undoManager->trackSignal(SIGNAL(fontChanged()));
+    undoManager->trackSignal(SIGNAL(textColorChanged()));
+    undoManager->trackSignal(SIGNAL(backgroundOpacityChanged()));
+    undoManager->trackSignal(SIGNAL(templateChanged()));
+    undoManager->trackSignal(SIGNAL(showLabelChanged()));
+
+    // History boundaries: a template file load (combobox / Load button) and a
+    // dive import both reset undo history so it never crosses them. templateLoaded
+    // fires from loadTemplateFromFile but NOT from loadTemplate(), so an undo
+    // restore never triggers this.
+    QObject::connect(overlayGenerator, &OverlayGenerator::templateLoaded,
+                     undoManager, &TemplateUndoStack::resetHistory);
+    // Queued: a dive change triggers synchronous QML cell-layout regeneration
+    // (adjustTankCellVisibility, etc.) that emits cellsChanged. Running the reset
+    // at the end of the event-loop turn lets it cancel the coalesce timer that
+    // regeneration started, so the import itself produces no undo entry.
+    QObject::connect(&mainWindow, &MainWindow::currentDiveChanged,
+                     undoManager, &TemplateUndoStack::resetHistory,
+                     Qt::QueuedConnection);
 
     QObject::connect(profileGenerator, &ProfileGenerator::backgroundColorChanged,    invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::backgroundOpacityChanged,  invalidateProfile);
@@ -159,6 +193,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mainWindow", &mainWindow);
     engine.rootContext()->setContextProperty("logParser", &logParser);
     engine.rootContext()->setContextProperty("overlayGenerator", overlayGenerator);
+    engine.rootContext()->setContextProperty("undoManager", undoManager);
     engine.rootContext()->setContextProperty("profileGenerator", profileGenerator);
     engine.rootContext()->setContextProperty("config", Config::instance());
 

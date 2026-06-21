@@ -418,7 +418,10 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
     // Start progress timer for animation
     m_progressTimer->start(500);
     qDebug() << "Started progress timer";
-    
+
+    // Reset the captured-output buffer for this encode run.
+    m_ffmpegOutputTail.clear();
+
     // Start the FFmpeg process
     m_ffmpegProcess->start(ffmpegPath, args);
     
@@ -505,7 +508,16 @@ void VideoExporter::processFFmpegOutput()
         }
         
         QString outputStr = QString::fromUtf8(output);
-        
+
+        // Retain a rolling tail of FFmpeg's output so the real error message
+        // survives until onFFmpegFinished() (it is otherwise only progress-parsed
+        // and discarded). Cap it so a long-running encode can't grow it unbounded.
+        m_ffmpegOutputTail += outputStr;
+        const int kMaxTail = 4000;
+        if (m_ffmpegOutputTail.size() > kMaxTail) {
+            m_ffmpegOutputTail = m_ffmpegOutputTail.right(kMaxTail);
+        }
+
         // Parse frame information (most reliable for progress)
         QRegularExpression frameRegex("frame=\\s*(\\d+)");
         QRegularExpressionMatch frameMatch = frameRegex.match(outputStr);
@@ -537,8 +549,13 @@ void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStat
     bool success = false;
     
     if (exitStatus == QProcess::CrashExit) {
+        qWarning().noquote() << "FFmpeg crashed. Captured output tail:\n" << m_ffmpegOutputTail;
         emit exportError(tr("FFmpeg process crashed"));
     } else if (exitCode != 0) {
+        // Surface FFmpeg's actual error (e.g. a codec/container mismatch) instead
+        // of just the numeric exit code, which is otherwise undiagnosable.
+        qWarning().noquote() << "FFmpeg exited with code" << exitCode
+                             << "- captured output tail:\n" << m_ffmpegOutputTail;
         emit exportError(tr("FFmpeg exited with error code: %1").arg(exitCode));
     } else {
         m_progress = 100; // Ensure we reach 100%

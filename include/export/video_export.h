@@ -103,6 +103,10 @@ private:
     QSize m_customResolution;
     QString m_lastOutputPath;
     QString m_pendingOutputPath;
+    // Rolling tail of FFmpeg's stdout+stderr, retained so the actual error can
+    // be logged if FFmpeg exits non-zero (the output is otherwise consumed only
+    // for progress parsing and discarded).
+    QString m_ffmpegOutputTail;
     double m_exportStartTime;
     double m_exportEndTime;
     

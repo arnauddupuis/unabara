@@ -946,13 +946,18 @@ ApplicationWindow {
                     }
                 } else {
                     // Video export mode
+                    // Apply codec/bitrate/framerate BEFORE generating the output
+                    // filename: createDefaultExportFile() derives the file
+                    // extension from the selected codec, so the codec must be set
+                    // first. Otherwise the extension lags behind the selection
+                    // (e.g. ProRes lands in a .webm container) and FFmpeg's muxer
+                    // rejects the codec/container mismatch.
+                    videoExporter.frameRate = videoFrameRateSpinBox.value;
+                    videoExporter.videoBitrate = bitrateSlider.value;
+                    videoExporter.videoCodec = codecComboBox.currentText;
+
                     let outputFile = videoExporter.createDefaultExportFile(mainWindow.currentDive, videoFile, contentType);
                     if (outputFile) {
-                        // Just pass the file path directly, don't manipulate it further
-                        videoExporter.frameRate = videoFrameRateSpinBox.value;
-                        videoExporter.videoBitrate = bitrateSlider.value;
-                        videoExporter.videoCodec = codecComboBox.currentText;
-                        
                         // Handle resolution matching
                         if (matchVideoResolutionCheckbox.checked && timelineView.videoPath !== "") {
                             // Detect and use the video's resolution

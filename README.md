@@ -8,29 +8,41 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Features
 
-- **Import Dive Logs**: Import Subsurface (XML/SSRF) dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
+- **Import Dive Logs**: Import Subsurface (XML/SSRF) and UDDF dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
 - **Visual Timeline**: View and navigate your dive data on an interactive timeline.
-- **Video Import**: Import video footage and sync it with your dive data.
-- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time).
+- **Video Import**: Import your dive footage and position it against your dive data on the timeline.
+- **Video Preview & Sync**: Play your footage directly in Unabara and align it with your dive graphically — the timeline cursor follows the video, so you can match the overlay to your dive computer frame by frame. Save per-camera sync profiles for repeatable alignment.
+- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time, and CCR PO₂ cells), with optional per-cell or global labels.
+- **Dive Profile Graph**: Generate a customizable depth-over-time dive profile that can be composited as its own overlay.
 - **Template Selection**: Choose from built-in overlay templates or import your own designs.
+- **Undo/Redo**: Full edit history in the template editor — step back and forward through your changes (Ctrl+Z / Ctrl+Y).
 - **Export Options**:
   - Export as image sequence for video editing software
-  - Export directly as video file (requires FFmpeg)
+  - Export directly as video file in multiple codecs, including transparency-capable formats (ProRes 4444, VP9) for compositing (requires FFmpeg)
 
 ## Screenshots
 
 ![Unabara main interface](https://github.com/arnauddupuis/unabara/wiki/medias/main-interface-screenshot.png)
 
 
+## Documentation
+
+The complete documentation is available on the [wiki](https://github.com/arnauddupuis/unabara/wiki).
+
+To quickly be up and running have a look at the quick [start guide](https://github.com/arnauddupuis/unabara/wiki/quick-start-guide).
+
+The complete changelog is available on the [release page](https://github.com/arnauddupuis/unabara/releases).
+
+
 ## Example
 
 Here is a (low resolution) example of what you can generate with Unabara (open circuit, 4 tanks technical dive).
 
-https://github.com/user-attachments/assets/79ebb199-646d-4c17-a3ff-946a2d380bce
+https://github.com/user-attachments/assets/ee493dfc-49ae-4302-8b2a-13acf3607847
 
 And a higher resolution one (CCR technical dive):
 
-https://github.com/user-attachments/assets/883adb29-4929-42e1-9437-0fd66c9d98e4
+https://github.com/user-attachments/assets/e921109f-2616-48b3-8ceb-769361843e74
 
 
 ## Requirements

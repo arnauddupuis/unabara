@@ -25,6 +25,15 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 ![Unabara main interface](https://github.com/arnauddupuis/unabara/wiki/medias/main-interface-screenshot.png)
 
 
+## Documentation
+
+The complete documentation is available on the [wiki](https://github.com/arnauddupuis/unabara/wiki).
+
+To quickly be up and running have a look at the quick [start guide](https://github.com/arnauddupuis/unabara/wiki/quick-start-guide).
+
+The complete changelog is available on the [release page](https://github.com/arnauddupuis/unabara/releases).
+
+
 ## Example
 
 Here is a (low resolution) example of what you can generate with Unabara (open circuit, 4 tanks technical dive).

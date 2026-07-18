@@ -38,6 +38,7 @@ Config::Config(QObject *parent)
     , m_profileBackgroundColor(Qt::black)
     , m_profileBackgroundOpacity(0.0)
     , m_profileCurveColor(QColor("#9C27B0"))
+    , m_profileCurveWidth(2)
     , m_profileIndicatorColor(QColor(0, 255, 0))
     , m_profileIndicatorMode(0)   // 0 = Static, 1 = Pulsing
     , m_profileIndicatorRadius(8)
@@ -351,6 +352,15 @@ void Config::setProfileCurveColor(const QColor& color)
     }
 }
 
+int Config::profileCurveWidth() const { return m_profileCurveWidth; }
+void Config::setProfileCurveWidth(int width)
+{
+    if (m_profileCurveWidth != width) {
+        m_profileCurveWidth = width;
+        emit profileCurveWidthChanged();
+    }
+}
+
 QColor Config::profileIndicatorColor() const { return m_profileIndicatorColor; }
 void Config::setProfileIndicatorColor(const QColor& color)
 {
@@ -571,6 +581,7 @@ void Config::loadConfig()
         const int cB = m_settings.value("profile/curveColorB", 0xB0).toInt();
         m_profileCurveColor = QColor(cR, cG, cB);
     }
+    m_profileCurveWidth = m_settings.value("profile/curveWidth", 2).toInt();
     {
         const int iR = m_settings.value("profile/indicatorColorR", 0).toInt();
         const int iG = m_settings.value("profile/indicatorColorG", 255).toInt();
@@ -703,6 +714,7 @@ void Config::saveConfig()
     m_settings.setValue("profile/curveColorR", m_profileCurveColor.red());
     m_settings.setValue("profile/curveColorG", m_profileCurveColor.green());
     m_settings.setValue("profile/curveColorB", m_profileCurveColor.blue());
+    m_settings.setValue("profile/curveWidth", m_profileCurveWidth);
     m_settings.setValue("profile/indicatorColorR", m_profileIndicatorColor.red());
     m_settings.setValue("profile/indicatorColorG", m_profileIndicatorColor.green());
     m_settings.setValue("profile/indicatorColorB", m_profileIndicatorColor.blue());

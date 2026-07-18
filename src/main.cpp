@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
     QObject::connect(profileGenerator, &ProfileGenerator::backgroundColorChanged,    invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::backgroundOpacityChanged,  invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::curveColorChanged,         invalidateProfile);
+    QObject::connect(profileGenerator, &ProfileGenerator::curveWidthChanged,         invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::indicatorColorChanged,     invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::indicatorModeChanged,      invalidateProfile);
     QObject::connect(profileGenerator, &ProfileGenerator::indicatorRadiusChanged,    invalidateProfile);

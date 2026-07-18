@@ -52,6 +52,7 @@ class Config : public QObject
     Q_PROPERTY(QColor profileBackgroundColor READ profileBackgroundColor WRITE setProfileBackgroundColor NOTIFY profileBackgroundColorChanged)
     Q_PROPERTY(double profileBackgroundOpacity READ profileBackgroundOpacity WRITE setProfileBackgroundOpacity NOTIFY profileBackgroundOpacityChanged)
     Q_PROPERTY(QColor profileCurveColor READ profileCurveColor WRITE setProfileCurveColor NOTIFY profileCurveColorChanged)
+    Q_PROPERTY(int profileCurveWidth READ profileCurveWidth WRITE setProfileCurveWidth NOTIFY profileCurveWidthChanged)
     Q_PROPERTY(QColor profileIndicatorColor READ profileIndicatorColor WRITE setProfileIndicatorColor NOTIFY profileIndicatorColorChanged)
     Q_PROPERTY(int profileIndicatorMode READ profileIndicatorMode WRITE setProfileIndicatorMode NOTIFY profileIndicatorModeChanged)
     Q_PROPERTY(int profileIndicatorRadius READ profileIndicatorRadius WRITE setProfileIndicatorRadius NOTIFY profileIndicatorRadiusChanged)
@@ -143,6 +144,9 @@ public:
 
     QColor profileCurveColor() const;
     void setProfileCurveColor(const QColor& color);
+
+    int profileCurveWidth() const;
+    void setProfileCurveWidth(int width);
 
     QColor profileIndicatorColor() const;
     void setProfileIndicatorColor(const QColor& color);
@@ -238,6 +242,7 @@ signals:
     void profileBackgroundColorChanged();
     void profileBackgroundOpacityChanged();
     void profileCurveColorChanged();
+    void profileCurveWidthChanged();
     void profileIndicatorColorChanged();
     void profileIndicatorModeChanged();
     void profileIndicatorRadiusChanged();
@@ -291,6 +296,7 @@ private:
     QColor m_profileBackgroundColor;
     double m_profileBackgroundOpacity;
     QColor m_profileCurveColor;
+    int m_profileCurveWidth;
     QColor m_profileIndicatorColor;
     int m_profileIndicatorMode;
     int m_profileIndicatorRadius;

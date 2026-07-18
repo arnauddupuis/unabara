@@ -22,6 +22,7 @@ class ProfileGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(QColor curveColor READ curveColor WRITE setCurveColor NOTIFY curveColorChanged)
+    Q_PROPERTY(int curveWidth READ curveWidth WRITE setCurveWidth NOTIFY curveWidthChanged)
     Q_PROPERTY(QColor indicatorColor READ indicatorColor WRITE setIndicatorColor NOTIFY indicatorColorChanged)
     Q_PROPERTY(IndicatorMode indicatorMode READ indicatorMode WRITE setIndicatorMode NOTIFY indicatorModeChanged)
     Q_PROPERTY(int indicatorRadius READ indicatorRadius WRITE setIndicatorRadius NOTIFY indicatorRadiusChanged)
@@ -50,6 +51,7 @@ public:
     QColor backgroundColor() const { return m_backgroundColor; }
     double backgroundOpacity() const { return m_backgroundOpacity; }
     QColor curveColor() const { return m_curveColor; }
+    int curveWidth() const { return m_curveWidth; }
     QColor indicatorColor() const { return m_indicatorColor; }
     IndicatorMode indicatorMode() const { return m_indicatorMode; }
     int indicatorRadius() const { return m_indicatorRadius; }
@@ -69,6 +71,7 @@ public:
     void setBackgroundColor(const QColor& c);
     void setBackgroundOpacity(double o);
     void setCurveColor(const QColor& c);
+    void setCurveWidth(int w);
     void setIndicatorColor(const QColor& c);
     void setIndicatorMode(IndicatorMode m);
     void setIndicatorRadius(int r);
@@ -97,6 +100,7 @@ signals:
     void backgroundColorChanged();
     void backgroundOpacityChanged();
     void curveColorChanged();
+    void curveWidthChanged();
     void indicatorColorChanged();
     void indicatorModeChanged();
     void indicatorRadiusChanged();
@@ -117,6 +121,7 @@ private:
     QColor m_backgroundColor;
     double m_backgroundOpacity;
     QColor m_curveColor;
+    int m_curveWidth;
     QColor m_indicatorColor;
     IndicatorMode m_indicatorMode;
     int m_indicatorRadius;

@@ -96,6 +96,18 @@ Item {
                         colorDialog.open()
                     }
                 }
+
+                Label { text: qsTr("Thickness (px):") }
+                SpinBox {
+                    id: curveWidthSpin
+                    Layout.fillWidth: true
+                    from: 1
+                    to: 32
+                    value: root.generator ? root.generator.curveWidth : 2
+                    onValueModified: {
+                        if (root.generator) root.generator.curveWidth = value
+                    }
+                }
             }
         }
 

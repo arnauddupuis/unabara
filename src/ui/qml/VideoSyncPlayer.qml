@@ -139,6 +139,7 @@ Item {
         function onBackgroundColorChanged()   { root.refreshTick++ }
         function onBackgroundOpacityChanged() { root.refreshTick++ }
         function onCurveColorChanged()        { root.refreshTick++ }
+        function onCurveWidthChanged()        { root.refreshTick++ }
         function onIndicatorColorChanged()    { root.refreshTick++ }
         function onIndicatorModeChanged()     { root.refreshTick++ }
         function onIndicatorRadiusChanged()   { root.refreshTick++ }

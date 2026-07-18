@@ -634,6 +634,7 @@ ApplicationWindow {
                                         function onBackgroundColorChanged()   { profilePreviewImage.updatePreview() }
                                         function onBackgroundOpacityChanged() { profilePreviewImage.updatePreview() }
                                         function onCurveColorChanged()        { profilePreviewImage.updatePreview() }
+                                        function onCurveWidthChanged()        { profilePreviewImage.updatePreview() }
                                         function onIndicatorColorChanged()    { profilePreviewImage.updatePreview() }
                                         function onIndicatorModeChanged()     { profilePreviewImage.updatePreview() }
                                         function onIndicatorRadiusChanged()   { profilePreviewImage.updatePreview() }

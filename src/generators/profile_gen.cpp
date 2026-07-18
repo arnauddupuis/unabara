@@ -16,6 +16,7 @@ ProfileGenerator::ProfileGenerator(QObject* parent)
     m_backgroundColor   = cfg->profileBackgroundColor();
     m_backgroundOpacity = cfg->profileBackgroundOpacity();
     m_curveColor        = cfg->profileCurveColor();
+    m_curveWidth        = cfg->profileCurveWidth();
     m_indicatorColor    = cfg->profileIndicatorColor();
     m_indicatorMode     = static_cast<IndicatorMode>(cfg->profileIndicatorMode());
     m_indicatorRadius   = cfg->profileIndicatorRadius();
@@ -45,6 +46,10 @@ ProfileGenerator::ProfileGenerator(QObject* parent)
     connect(cfg, &Config::profileCurveColorChanged, this, [this]() {
         m_curveColor = Config::instance()->profileCurveColor();
         emit curveColorChanged();
+    });
+    connect(cfg, &Config::profileCurveWidthChanged, this, [this]() {
+        m_curveWidth = Config::instance()->profileCurveWidth();
+        emit curveWidthChanged();
     });
     connect(cfg, &Config::profileIndicatorColorChanged, this, [this]() {
         m_indicatorColor = Config::instance()->profileIndicatorColor();
@@ -139,6 +144,16 @@ void ProfileGenerator::setCurveColor(const QColor& c)
         m_curveColor = c;
         Config::instance()->setProfileCurveColor(c);
         emit curveColorChanged();
+    }
+}
+
+void ProfileGenerator::setCurveWidth(int w)
+{
+    w = qMax(1, w);
+    if (m_curveWidth != w) {
+        m_curveWidth = w;
+        Config::instance()->setProfileCurveWidth(w);
+        emit curveWidthChanged();
     }
 }
 
@@ -325,7 +340,8 @@ QImage ProfileGenerator::renderFrame(DiveData* dive, double timePoint, double pu
         ProfileRenderer::drawGrid(painter, rect, dive, g);
     }
     ProfileRenderer::drawDecoZone(painter, rect, dive, m_decoZoneColor, m_decoZoneOpacity);
-    ProfileRenderer::drawDepthCurve(painter, rect, dive, m_curveColor);
+    ProfileRenderer::drawDepthCurve(painter, rect, dive, m_curveColor,
+                                    static_cast<double>(m_curveWidth));
     ProfileRenderer::drawIndicator(painter, rect, dive, timePoint, m_indicatorColor,
                                    static_cast<double>(m_indicatorRadius),
                                    m_indicatorMode == Pulsing, pulsePhase01);

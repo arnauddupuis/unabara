@@ -500,12 +500,13 @@ void UDDFParser::parseSamples(QXmlStreamReader &xml, DiveData *dive)
 {
     // UDDF waypoints record changes only — values not present in a waypoint
     // should be inherited from the previous one. We carry forward temperature,
-    // NDL, TTS, ceiling, per-tank pressure, and per-sensor PO2 across
+    // NDL, TTS, ceiling, CNS, per-tank pressure, and per-sensor PO2 across
     // waypoints, mirroring the SSRF parser's logic.
     double lastTemperature = 0.0;
     double lastNDL = 0.0;
     double lastTTS = 0.0;
     double lastCeiling = 0.0;
+    double lastCNS = -1.0;
     QMap<int, double> lastPressures;
     QMap<int, double> lastPO2Sensors;
     // Maps a <measuredpo2 ref="..."> identifier to its stable sensor index.
@@ -540,7 +541,7 @@ void UDDFParser::parseSamples(QXmlStreamReader &xml, DiveData *dive)
         if (xml.tokenType() == QXmlStreamReader::StartElement
             && xml.name() == QStringLiteral("waypoint")) {
             parseWaypoint(xml, dive, lastTemperature, lastNDL, lastTTS, lastCeiling,
-                          lastPressures, lastPO2Sensors, po2SensorRefToIndex);
+                          lastCNS, lastPressures, lastPO2Sensors, po2SensorRefToIndex);
         }
     }
 }
@@ -551,6 +552,7 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
                                double &lastNDL,
                                double &lastTTS,
                                double &lastCeiling,
+                               double &lastCNS,
                                QMap<int, double> &lastPressures,
                                QMap<int, double> &lastPO2Sensors,
                                QMap<QString, int> &po2SensorRefToIndex)
@@ -652,6 +654,13 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
                 sensorsSetThisWaypoint.insert(sensorIndex);
                 m_currentDiveCcrSeen = true;
             }
+        } else if (name == QStringLiteral("cns")) {
+            // <cns> is the CNS toxicity as a percent value (e.g. 65.0 = 65 %).
+            const double cns = parse_utils::parseLocaleDouble(xml.readElementText());
+            if (!std::isnan(cns) && cns >= 0.0) {
+                point.cns = cns;
+                lastCNS = cns;
+            }
         } else if (name == QStringLiteral("nodecotime")) {
             // <nodecotime> is in seconds; DiveDataPoint::ndl is in minutes.
             const double seconds = parse_utils::parseLocaleDouble(xml.readElementText());
@@ -738,6 +747,11 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
             point.tts = lastTTS;
         }
         point.ceiling = lastCeiling;
+    }
+
+    // Carry CNS forward when this waypoint did not report it.
+    if (point.cns < 0.0 && lastCNS >= 0.0) {
+        point.cns = lastCNS;
     }
 
     // Apply pending gas switches now that the timestamp is final.

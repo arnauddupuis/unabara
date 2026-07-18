@@ -10,7 +10,7 @@ Run this before merging any change to the dive log parser. Each row below is a s
 
 | File | Expected |
 |---|---|
-| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. |
+| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. CNS ramps to ~55% by the end of the dive (`---` before the first `cns=` sample). |
 | `CCR_Halcyon_Benoit_cleaned.ssrf` | CCR dive — sensor1/2/3 still populate. |
 | `test_multidive.ssrf` | Multiple dives — picker shows them all; opening any one renders correctly. |
 | `OC_ScubaproG2_Benoit.ssrf` | Open-circuit, multi-tank pressures present. `diveMode` resolves to `OpenCircuit`. |
@@ -20,7 +20,7 @@ Run this before merging any change to the dive log parser. Each row below is a s
 | File | Expected |
 |---|---|
 | `2026-02-28-Monastery_Beach.uddf` | Same dive as the SSRF version above (CCR, dive #143). ~40.5 m max depth; 3 cylinders with begin/end pressure (Pa→bar conversion correct). Per-sample tank pressure / `<measuredpo2>` absent — Subsurface UDDF export limitation; cells just stay blank. Comma-decimal `<depth>` values (e.g. `2,1`) parse as 2.1. |
-| `Shearwater.uddf` | Loads; depth/temperature populated; comma decimals parsed. |
+| `Shearwater.uddf` | Loads; depth/temperature populated; comma decimals parsed. CNS appears late in the dive (`<cns>` elements near the end): 65% → 70% at the last sample, `---` before the first report. |
 | `Garmin.uddf` | Loads from a different exporter; verifies UDDF dialect handling. |
 
 ## Format detection
@@ -42,5 +42,6 @@ Run this before merging any change to the dive log parser. Each row below is a s
 | Per-sample temperature | Celsius | Kelvin → Celsius |
 | Per-sample tank pressure | bar | Pa → bar (via `<tankpressure>` when exporter provides it) |
 | Per-sample PO2 (CCR) | `sensor1/2/3` | `<measuredpo2>` (when exporter provides it) |
+| Per-sample CNS | `cns='NN%'` attribute | `<cns>` percent element (65.0 = 65 %) |
 | Gas switches | `<event name="gaschange">` | `<switchmix ref>` resolved via mix → first tank index |
 | Dive mode | inferred from CCR cues | `<divemode kind>` or inferred |

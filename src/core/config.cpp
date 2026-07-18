@@ -29,6 +29,7 @@ Config::Config(QObject *parent)
     , m_showNDL(true)
     , m_showPressure(true)
     , m_showTime(true)
+    , m_showCNS(false)
     , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
     , m_showPO2Cell1(false)
@@ -206,6 +207,19 @@ void Config::setShowTime(bool show)
     if (m_showTime != show) {
         m_showTime = show;
         emit showTimeChanged();
+    }
+}
+
+bool Config::showCNS() const
+{
+    return m_showCNS;
+}
+
+void Config::setShowCNS(bool show)
+{
+    if (m_showCNS != show) {
+        m_showCNS = show;
+        emit showCNSChanged();
     }
 }
 
@@ -541,7 +555,8 @@ void Config::loadConfig()
     m_showNDL = m_settings.value("overlay/showNDL", true).toBool();
     m_showPressure = m_settings.value("overlay/showPressure", true).toBool();
     m_showTime = m_settings.value("overlay/showTime", true).toBool();
-    
+    m_showCNS = m_settings.value("overlay/showCNS", false).toBool();
+
     // Load CCR settings
     m_showPO2Cell1 = m_settings.value("overlay/showPO2Cell1", false).toBool();
     m_showPO2Cell2 = m_settings.value("overlay/showPO2Cell2", false).toBool();
@@ -687,7 +702,8 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showNDL", m_showNDL);
     m_settings.setValue("overlay/showPressure", m_showPressure);
     m_settings.setValue("overlay/showTime", m_showTime);
-    
+    m_settings.setValue("overlay/showCNS", m_showCNS);
+
     // Save CCR settings
     m_settings.setValue("overlay/showPO2Cell1", m_showPO2Cell1);
     m_settings.setValue("overlay/showPO2Cell2", m_showPO2Cell2);

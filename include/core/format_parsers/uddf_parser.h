@@ -50,6 +50,7 @@ private:
                        double &lastNDL,
                        double &lastTTS,
                        double &lastCeiling,
+                       double &lastCNS,
                        QMap<int, double> &lastPressures,
                        QMap<int, double> &lastPO2Sensors,
                        QMap<QString, int> &po2SensorRefToIndex);

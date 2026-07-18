@@ -349,6 +349,7 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
     double lastTemperature = 0.0;
     double lastNDL = 0.0;
     double lastTTS = 0.0;
+    double lastCNS = -1.0;
 
     QMap<int, double> lastPressures;
     QMap<int, double> lastPO2Sensors;
@@ -370,7 +371,7 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
             QString elementName = xml.name().toString();
 
             if (elementName == "sample") {
-                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS, lastPressures, lastPO2Sensors);
+                parseSampleElement(xml, dive, lastTemperature, lastNDL, lastTTS, lastCNS, lastPressures, lastPO2Sensors);
                 sampleCount++;
 
                 if (sampleCount % 10 == 0) {
@@ -442,6 +443,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
                                           double &lastTemperature,
                                           double &lastNDL,
                                           double &lastTTS,
+                                          double &lastCNS,
                                           QMap<int, double> &lastPressures,
                                           QMap<int, double> &lastPO2Sensors)
 {
@@ -662,6 +664,30 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
     } else {
         if (lastNDL >= 0.0) {
             point.ndl = lastNDL;
+        }
+    }
+
+    if (attrs.hasAttribute("cns")) {
+        QString cnsStr = attrs.value("cns").toString();
+        QRegularExpression cnsRe("(\\d+\\.?\\d*)\\s*%");
+        QRegularExpressionMatch match = cnsRe.match(cnsStr);
+
+        if (match.hasMatch()) {
+            point.cns = match.captured(1).toDouble();
+            lastCNS = point.cns;
+            hasData = true;
+        } else {
+            bool ok;
+            double cns = cnsStr.toDouble(&ok);
+            if (ok) {
+                point.cns = cns;
+                lastCNS = cns;
+                hasData = true;
+            }
+        }
+    } else {
+        if (lastCNS >= 0.0) {
+            point.cns = lastCNS;
         }
     }
 

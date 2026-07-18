@@ -293,17 +293,19 @@ Item {
                     previewContainer.updateCellModel()
                 }
 
-                // Toggle cell visibility without destroying the layout
+                // Toggle cell visibility without destroying the layout.
+                // setCellTypeVisible creates a default cell when the current
+                // template has none for that data type.
                 function onShowDepthChanged() {
-                    root.generator.setCellVisible("depth", root.generator.showDepth)
+                    root.generator.setCellTypeVisible("depth", root.generator.showDepth)
                     previewContainer.updateCellModel()
                 }
                 function onShowTemperatureChanged() {
-                    root.generator.setCellVisible("temperature", root.generator.showTemperature)
+                    root.generator.setCellTypeVisible("temperature", root.generator.showTemperature)
                     previewContainer.updateCellModel()
                 }
                 function onShowNDLChanged() {
-                    root.generator.setCellVisible("ndl", root.generator.showNDL)
+                    root.generator.setCellTypeVisible("ndl", root.generator.showNDL)
                     previewContainer.updateCellModel()
                 }
                 function onShowPressureChanged() {
@@ -311,23 +313,27 @@ Item {
                     previewContainer.updateCellModel()
                 }
                 function onShowTimeChanged() {
-                    root.generator.setCellVisible("time", root.generator.showTime)
+                    root.generator.setCellTypeVisible("time", root.generator.showTime)
+                    previewContainer.updateCellModel()
+                }
+                function onShowCNSChanged() {
+                    root.generator.setCellTypeVisible("cns", root.generator.showCNS)
                     previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell1Changed() {
-                    root.generator.setCellVisible("po2_cell1", root.generator.showPO2Cell1)
+                    root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
                     previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell2Changed() {
-                    root.generator.setCellVisible("po2_cell2", root.generator.showPO2Cell2)
+                    root.generator.setCellTypeVisible("po2_cell2", root.generator.showPO2Cell2)
                     previewContainer.updateCellModel()
                 }
                 function onShowPO2Cell3Changed() {
-                    root.generator.setCellVisible("po2_cell3", root.generator.showPO2Cell3)
+                    root.generator.setCellTypeVisible("po2_cell3", root.generator.showPO2Cell3)
                     previewContainer.updateCellModel()
                 }
                 function onShowCompositePO2Changed() {
-                    root.generator.setCellVisible("composite_po2", root.generator.showCompositePO2)
+                    root.generator.setCellTypeVisible("composite_po2", root.generator.showCompositePO2)
                     previewContainer.updateCellModel()
                 }
             }
@@ -788,6 +794,17 @@ Item {
                     onCheckedChanged: {
                         if (generator && generator.showPressure !== checked) {
                             generator.showPressure = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showCNSCheckbox
+                    text: qsTr("Show CNS")
+                    checked: generator ? generator.showCNS : false
+                    onCheckedChanged: {
+                        if (generator && generator.showCNS !== checked) {
+                            generator.showCNS = checked
                         }
                     }
                 }

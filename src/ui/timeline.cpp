@@ -292,7 +292,8 @@ QVariantMap Timeline::getCurrentDataPoint() const
         result["ceiling"] = point.ceiling;
         result["o2percent"] = point.o2percent;
         result["tts"] = point.tts;
-        
+        result["cns"] = point.cns;
+
         // Add tank count
         result["tankCount"] = point.tankCount();
         

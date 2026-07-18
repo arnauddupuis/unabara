@@ -23,6 +23,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showNDL(true)
     , m_showPressure(true)
     , m_showTime(true)
+    , m_showCNS(false)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -45,6 +46,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showNDL = config->showNDL();
     m_showPressure = config->showPressure();
     m_showTime = config->showTime();
+    m_showCNS = config->showCNS();
     m_showPO2Cell1 = config->showPO2Cell1();
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
@@ -219,6 +221,15 @@ void OverlayGenerator::setShowNDL(bool show)
         m_showNDL = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showNDLChanged();
+    }
+}
+
+void OverlayGenerator::setShowCNS(bool show)
+{
+    if (m_showCNS != show) {
+        m_showCNS = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showCNSChanged();
     }
 }
 
@@ -564,6 +575,57 @@ void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
     }
 }
 
+void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setVisible(visible);
+        emit cellLayoutChanged();
+        return;
+    }
+
+    if (!visible) {
+        // Nothing to hide
+        return;
+    }
+
+    // The template has no cell for this data type — create a default one
+    // (mirrors setPressureCellsVisible). Pressure cells have their own method
+    // because they depend on the dive's tank count.
+    static const QMap<QString, Unabara::CellType> idToType = {
+        {"depth", Unabara::CellType::Depth},
+        {"temperature", Unabara::CellType::Temperature},
+        {"time", Unabara::CellType::Time},
+        {"ndl", Unabara::CellType::NDL},
+        {"tts", Unabara::CellType::TTS},
+        {"cns", Unabara::CellType::CNS},
+        {"po2_cell1", Unabara::CellType::PO2Cell1},
+        {"po2_cell2", Unabara::CellType::PO2Cell2},
+        {"po2_cell3", Unabara::CellType::PO2Cell3},
+        {"composite_po2", Unabara::CellType::CompositePO2},
+    };
+    if (!idToType.contains(cellId)) {
+        qWarning() << "setCellTypeVisible: Unknown cell id:" << cellId;
+        return;
+    }
+
+    QImage templateImage(m_templatePath);
+    QSizeF templateSize = templateImage.isNull()
+        ? QSizeF(640, 120)
+        : QSizeF(templateImage.width(), templateImage.height());
+
+    Unabara::CellData newCell(cellId, idToType.value(cellId));
+    newCell.setPosition(QPointF(0.5, 0.5));
+    newCell.setFont(m_font, false);
+    newCell.setTextColor(m_textColor, false);
+    newCell.setCalculatedSize(calculateCellSize(newCell.cellType(), m_font, templateSize));
+    newCell.setVisible(true);
+    m_cells.append(newCell);
+
+    emit cellsChanged();
+    emit cellLayoutChanged();
+}
+
 void OverlayGenerator::adjustTankCellVisibility(DiveData* dive)
 {
     if (!dive || dive->cylinderCount() == 0) {
@@ -681,6 +743,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showTime = false;
     m_showNDL = false;
     m_showPressure = false;
+    m_showCNS = false;
     m_showPO2Cell1 = false;
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
@@ -698,6 +761,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showNDL = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::Pressure) {
             m_showPressure = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::CNS) {
+            m_showCNS = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
             m_showPO2Cell1 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
@@ -717,6 +782,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showTimeChanged();
     emit showNDLChanged();
     emit showPressureChanged();
+    emit showCNSChanged();
     emit showPO2Cell1Changed();
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
@@ -815,6 +881,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showTemperature) numSections++;
     if (m_showNDL) numSections++;  // NDL/TTS share the same section
     if (m_showTime) numSections++;
+    if (m_showCNS) numSections++;
 
     // Tank sections (multi-tank uses grid, gets multiple sections)
     if (m_showPressure) {
@@ -949,6 +1016,17 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Time, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showCNS) {
+        Unabara::CellData cell("cns", Unabara::CellType::CNS);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CNS, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -1221,6 +1299,13 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             ? QString("%1").arg(compositePO2, 0, 'f', 2)
             : "---";
         return format("PO2", value);
+    }
+
+    case Unabara::CellType::CNS: {
+        QString value = (dataPoint.cns >= 0)
+            ? QString("%1%").arg(qRound(dataPoint.cns))
+            : "---";
+        return format("CNS", value);
     }
 
     default:
@@ -1565,6 +1650,10 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::CompositePO2:
                 header = tr("PPO2");
                 value = "1.29 bar";      // Typical composite PO2
+                break;
+            case Unabara::CellType::CNS:
+                header = tr("CNS");
+                value = "99%";           // Typical CNS toxicity percentage
                 break;
             default:
                 header = "UNKNOWN";

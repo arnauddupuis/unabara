@@ -209,6 +209,13 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     result.o2percent = prev.o2percent + factor * (next.o2percent - prev.o2percent);
     result.tts = prev.tts + factor * (next.tts - prev.tts);
 
+    // CNS: only interpolate between two valid values (-1 means no data).
+    // Across a no-data boundary, keep the surrounding sample's state instead
+    // of blending with the -1 sentinel.
+    result.cns = (prev.cns < 0.0 || next.cns < 0.0)
+        ? (factor >= 1.0 ? next.cns : prev.cns)
+        : prev.cns + factor * (next.cns - prev.cns);
+
     // Do NOT interpolate ceiling - use the value from the previous point
     // Ceiling is a state that persists until changed
     result.ceiling = prev.ceiling;

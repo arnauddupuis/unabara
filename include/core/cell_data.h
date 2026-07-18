@@ -24,6 +24,7 @@ enum class CellType {
     PO2Cell2,         // CCR oxygen sensor 2
     PO2Cell3,         // CCR oxygen sensor 3
     CompositePO2,     // CCR composite PO2
+    CNS,              // CNS oxygen toxicity (percent)
     Unknown
 };
 

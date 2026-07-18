@@ -18,14 +18,15 @@ struct DiveDataPoint {
     double ceiling;             // Decompression ceiling in meters
     double o2percent;           // O2 percentage
     double tts;                 // Time To Surface in minutes
+    double cns;                 // CNS oxygen toxicity in percent (-1 = no data)
     QVector<double> po2Sensors; // PO2 sensor values in bar (for CCR dives)
-    
+
     // Constructor with default values
-    DiveDataPoint(double time = 0.0, double d = 0.0, double temp = 0.0, 
-                  double n = 0.0, double ceil = 0.0, 
+    DiveDataPoint(double time = 0.0, double d = 0.0, double temp = 0.0,
+                  double n = 0.0, double ceil = 0.0,
                   double o2 = 21.0, double t = 0.0)
         : timestamp(time), depth(d), temperature(temp),
-          ndl(n), ceiling(ceil), o2percent(o2), tts(t) {}
+          ndl(n), ceiling(ceil), o2percent(o2), tts(t), cns(-1.0) {}
           
     // Get the pressure for a specific tank (returns 0 if tank doesn't exist)
     Q_INVOKABLE double getPressure(int tankIndex = 0) const {

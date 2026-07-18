@@ -37,6 +37,7 @@ private:
                             double &lastTemperature,
                             double &lastNDL,
                             double &lastTTS,
+                            double &lastCNS,
                             QMap<int, double> &lastPressures,
                             QMap<int, double> &lastPO2Sensors);
     void parseCylinderElement(QXmlStreamReader &xml, DiveData *dive);

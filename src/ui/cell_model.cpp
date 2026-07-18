@@ -380,6 +380,16 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         return format("PO2", value);
     }
 
+    case Unabara::CellType::CNS: {
+        QString value;
+        if (dataPoint.cns >= 0) {
+            value = QString("%1%").arg(qRound(dataPoint.cns));
+        } else {
+            value = "---";
+        }
+        return format("CNS", value);
+    }
+
     default:
         return "Unknown";
     }

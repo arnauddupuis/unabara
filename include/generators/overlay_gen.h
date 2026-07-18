@@ -30,6 +30,7 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(bool showNDL READ showNDL WRITE setShowNDL NOTIFY showNDLChanged)
     Q_PROPERTY(bool showPressure READ showPressure WRITE setShowPressure NOTIFY showPressureChanged)
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
+    Q_PROPERTY(bool showCNS READ showCNS WRITE setShowCNS NOTIFY showCNSChanged)
     
     // CCR properties
     Q_PROPERTY(bool showPO2Cell1 READ showPO2Cell1 WRITE setShowPO2Cell1 NOTIFY showPO2Cell1Changed)
@@ -64,7 +65,8 @@ public:
     bool showNDL() const { return m_showNDL; }
     bool showPressure() const { return m_showPressure; }
     bool showTime() const { return m_showTime; }
-    
+    bool showCNS() const { return m_showCNS; }
+
     // CCR getters
     bool showPO2Cell1() const { return m_showPO2Cell1; }
     bool showPO2Cell2() const { return m_showPO2Cell2; }
@@ -93,7 +95,8 @@ public:
     void setShowNDL(bool show);
     void setShowPressure(bool show);
     void setShowTime(bool show);
-    
+    void setShowCNS(bool show);
+
     // CCR setters
     void setShowPO2Cell1(bool show);
     void setShowPO2Cell2(bool show);
@@ -124,6 +127,7 @@ public:
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
+    Q_INVOKABLE void setCellTypeVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void resetCellFont(const QString& cellId);
     Q_INVOKABLE void resetCellColor(const QString& cellId);
     Q_INVOKABLE void resetCellShowLabel(const QString& cellId);
@@ -168,7 +172,8 @@ signals:
     void showNDLChanged();
     void showPressureChanged();
     void showTimeChanged();
-    
+    void showCNSChanged();
+
     // CCR signals
     void showPO2Cell1Changed();
     void showPO2Cell2Changed();
@@ -207,7 +212,8 @@ private:
     bool m_showNDL;
     bool m_showPressure;
     bool m_showTime;
-    
+    bool m_showCNS;
+
     // CCR settings
     bool m_showPO2Cell1;
     bool m_showPO2Cell2;

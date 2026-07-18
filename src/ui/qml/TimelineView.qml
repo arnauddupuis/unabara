@@ -586,6 +586,11 @@ Item {
                         } else {
                             infoText += "NDL: " + Math.round(dataPoint.ndl) + "min  ";
                         }
+
+                        // Add CNS if the dive computer reported it
+                        if (dataPoint.cns >= 0) {
+                            infoText += "CNS: " + Math.round(dataPoint.cns) + "%  ";
+                        }
                         
                         // Add tank pressures
                         var tankCount = dataPoint.tankCount;

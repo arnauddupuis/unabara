@@ -25,6 +25,7 @@ enum class CellType {
     PO2Cell3,         // CCR oxygen sensor 3
     CompositePO2,     // CCR composite PO2
     CNS,              // CNS oxygen toxicity (percent)
+    MeanDepth,        // Average depth of the dive (static, reported by the dive computer)
     Unknown
 };
 

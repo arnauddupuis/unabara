@@ -90,6 +90,44 @@ double DiveData::maxDepth() const
     return max;
 }
 
+double DiveData::meanDepth() const
+{
+    // Prefer the value reported by the dive computer / log file
+    if (m_meanDepth >= 0.0) {
+        return m_meanDepth;
+    }
+
+    if (m_dataPoints.isEmpty()) {
+        return 0.0;
+    }
+
+    // Fall back to a time-weighted average of the depth samples (trapezoidal)
+    double weightedSum = 0.0;
+    double totalTime = 0.0;
+    for (int i = 1; i < m_dataPoints.size(); ++i) {
+        double dt = m_dataPoints[i].timestamp - m_dataPoints[i - 1].timestamp;
+        if (dt <= 0.0) {
+            continue;
+        }
+        weightedSum += dt * (m_dataPoints[i].depth + m_dataPoints[i - 1].depth) / 2.0;
+        totalTime += dt;
+    }
+
+    if (totalTime <= 0.0) {
+        return m_dataPoints.first().depth;
+    }
+
+    return weightedSum / totalTime;
+}
+
+void DiveData::setMeanDepth(double depth)
+{
+    if (m_meanDepth != depth) {
+        m_meanDepth = depth;
+        emit dataChanged();
+    }
+}
+
 double DiveData::minTemperature() const
 {
     if (m_dataPoints.isEmpty()) {

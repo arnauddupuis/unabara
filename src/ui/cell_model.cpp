@@ -390,6 +390,14 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         return format("CNS", value);
     }
 
+    case Unabara::CellType::MeanDepth: {
+        // Static per-dive value (reported by the dive computer or computed from samples)
+        QString value = m_dive
+            ? Units::formatDepthValue(m_dive->meanDepth(), unitSystem)
+            : "---";
+        return format("AVG", value);
+    }
+
     default:
         return "Unknown";
     }

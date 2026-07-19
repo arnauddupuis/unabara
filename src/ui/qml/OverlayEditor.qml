@@ -320,6 +320,10 @@ Item {
                     root.generator.setCellTypeVisible("cns", root.generator.showCNS)
                     previewContainer.updateCellModel()
                 }
+                function onShowMeanDepthChanged() {
+                    root.generator.setCellTypeVisible("mean_depth", root.generator.showMeanDepth)
+                    previewContainer.updateCellModel()
+                }
                 function onShowPO2Cell1Changed() {
                     root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
                     previewContainer.updateCellModel()
@@ -805,6 +809,17 @@ Item {
                     onCheckedChanged: {
                         if (generator && generator.showCNS !== checked) {
                             generator.showCNS = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showMeanDepthCheckbox
+                    text: qsTr("Show Mean Depth")
+                    checked: generator ? generator.showMeanDepth : false
+                    onCheckedChanged: {
+                        if (generator && generator.showMeanDepth !== checked) {
+                            generator.showMeanDepth = checked
                         }
                     }
                 }

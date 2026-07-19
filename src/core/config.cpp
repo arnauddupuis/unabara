@@ -31,6 +31,7 @@ Config::Config(QObject *parent)
     , m_showTime(true)
     , m_showCNS(false)
     , m_showMeanDepth(false)
+    , m_showMaxDepth(false)
     , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
     , m_showPO2Cell1(false)
@@ -234,6 +235,19 @@ void Config::setShowMeanDepth(bool show)
     if (m_showMeanDepth != show) {
         m_showMeanDepth = show;
         emit showMeanDepthChanged();
+    }
+}
+
+bool Config::showMaxDepth() const
+{
+    return m_showMaxDepth;
+}
+
+void Config::setShowMaxDepth(bool show)
+{
+    if (m_showMaxDepth != show) {
+        m_showMaxDepth = show;
+        emit showMaxDepthChanged();
     }
 }
 
@@ -571,6 +585,7 @@ void Config::loadConfig()
     m_showTime = m_settings.value("overlay/showTime", true).toBool();
     m_showCNS = m_settings.value("overlay/showCNS", false).toBool();
     m_showMeanDepth = m_settings.value("overlay/showMeanDepth", false).toBool();
+    m_showMaxDepth = m_settings.value("overlay/showMaxDepth", false).toBool();
 
     // Load CCR settings
     m_showPO2Cell1 = m_settings.value("overlay/showPO2Cell1", false).toBool();
@@ -719,6 +734,7 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showTime", m_showTime);
     m_settings.setValue("overlay/showCNS", m_showCNS);
     m_settings.setValue("overlay/showMeanDepth", m_showMeanDepth);
+    m_settings.setValue("overlay/showMaxDepth", m_showMaxDepth);
 
     // Save CCR settings
     m_settings.setValue("overlay/showPO2Cell1", m_showPO2Cell1);

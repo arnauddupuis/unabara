@@ -324,6 +324,10 @@ Item {
                     root.generator.setCellTypeVisible("mean_depth", root.generator.showMeanDepth)
                     previewContainer.updateCellModel()
                 }
+                function onShowMaxDepthChanged() {
+                    root.generator.setCellTypeVisible("max_depth", root.generator.showMaxDepth)
+                    previewContainer.updateCellModel()
+                }
                 function onShowPO2Cell1Changed() {
                     root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
                     previewContainer.updateCellModel()
@@ -820,6 +824,17 @@ Item {
                     onCheckedChanged: {
                         if (generator && generator.showMeanDepth !== checked) {
                             generator.showMeanDepth = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showMaxDepthCheckbox
+                    text: qsTr("Show Max Depth")
+                    checked: generator ? generator.showMaxDepth : false
+                    onCheckedChanged: {
+                        if (generator && generator.showMaxDepth !== checked) {
+                            generator.showMaxDepth = checked
                         }
                     }
                 }

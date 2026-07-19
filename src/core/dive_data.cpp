@@ -90,6 +90,37 @@ double DiveData::maxDepth() const
     return max;
 }
 
+double DiveData::maxDepthUntil(double time) const
+{
+    // Running maximum: the deepest point reached up to 'time', like the MAX
+    // field on a dive computer display during the dive.
+    double max = 0.0;
+    for (int i = 0; i < m_dataPoints.size(); ++i) {
+        const DiveDataPoint &point = m_dataPoints[i];
+        if (point.timestamp > time) {
+            // 'time' falls inside the previous segment — include the
+            // interpolated depth so a descent between samples still registers
+            if (i > 0) {
+                const DiveDataPoint &prev = m_dataPoints[i - 1];
+                double dt = point.timestamp - prev.timestamp;
+                if (dt > 0.0 && time > prev.timestamp) {
+                    double factor = (time - prev.timestamp) / dt;
+                    double depth = prev.depth + factor * (point.depth - prev.depth);
+                    if (depth > max) {
+                        max = depth;
+                    }
+                }
+            }
+            break;
+        }
+        if (point.depth > max) {
+            max = point.depth;
+        }
+    }
+
+    return max;
+}
+
 double DiveData::meanDepth() const
 {
     // Prefer the value reported by the dive computer / log file

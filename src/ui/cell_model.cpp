@@ -398,6 +398,14 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         return format("AVG", value);
     }
 
+    case Unabara::CellType::MaxDepth: {
+        // Running max: deepest point reached up to the current time
+        QString value = m_dive
+            ? Units::formatDepthValue(m_dive->maxDepthUntil(dataPoint.timestamp), unitSystem)
+            : "---";
+        return format("MAX", value);
+    }
+
     default:
         return "Unknown";
     }

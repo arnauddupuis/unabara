@@ -10,7 +10,7 @@ Run this before merging any change to the dive log parser. Each row below is a s
 
 | File | Expected |
 |---|---|
-| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. CNS ramps to ~55% by the end of the dive (`---` before the first `cns=` sample). Mean depth (AVG cell) shows 19.9 m (from `<depth mean='19.877 m'>`). |
+| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. CNS ramps to ~55% by the end of the dive (`---` before the first `cns=` sample). Mean depth (AVG cell) shows 19.9 m (from `<depth mean='19.877 m'>`). Max depth (MAX cell) is a running max: 9.6 m at 12:35 (current depth 8.7 m), pinned at 40.6 m from the deepest point to the end. |
 | `CCR_Halcyon_Benoit_cleaned.ssrf` | CCR dive — sensor1/2/3 still populate. |
 | `test_multidive.ssrf` | Multiple dives — picker shows them all; opening any one renders correctly. |
 | `OC_ScubaproG2_Benoit.ssrf` | Open-circuit, multi-tank pressures present. `diveMode` resolves to `OpenCircuit`. |
@@ -44,5 +44,6 @@ Run this before merging any change to the dive log parser. Each row below is a s
 | Per-sample PO2 (CCR) | `sensor1/2/3` | `<measuredpo2>` (when exporter provides it) |
 | Per-sample CNS | `cns='NN%'` attribute | `<cns>` percent element (65.0 = 65 %) |
 | Mean depth (static, AVG cell) | `<depth mean>` in `<divecomputer>` | `<averagedepth>` in `<informationafterdive>` (fallback: time-weighted average of samples) |
+| Max depth (running, MAX cell) | computed from samples (no parsing) — deepest point reached up to the current time | same |
 | Gas switches | `<event name="gaschange">` | `<switchmix ref>` resolved via mix → first tank index |
 | Dive mode | inferred from CCR cues | `<divemode kind>` or inferred |

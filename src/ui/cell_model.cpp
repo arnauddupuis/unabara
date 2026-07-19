@@ -406,6 +406,19 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         return format("MAX", value);
     }
 
+    case Unabara::CellType::Gas: {
+        // Gas mix currently breathed: active cylinder per gas-switch events
+        QString value = "---";
+        if (m_dive && m_dive->cylinderCount() > 0) {
+            int idx = m_dive->activeCylinderAtTime(dataPoint.timestamp);
+            if (idx >= 0 && idx < m_dive->cylinderCount()) {
+                const CylinderInfo& cyl = m_dive->cylinderInfo(idx);
+                value = Units::formatGasMix(cyl.o2Percent, cyl.hePercent);
+            }
+        }
+        return format("GAS", value);
+    }
+
     default:
         return "Unknown";
     }

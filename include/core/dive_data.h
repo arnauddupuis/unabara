@@ -88,7 +88,7 @@ struct CylinderInfo {
 };
 
 struct GasSwitch {
-    double timestamp;  // Time in minutes when switch occurred
+    double timestamp;  // Time in seconds when switch occurred
     int cylinderIndex; // Which cylinder was switched to
 };
 
@@ -149,6 +149,7 @@ public:
     const CylinderInfo& cylinderInfo(int index) const;
     QVector<CylinderInfo> cylinders() const { return m_cylinders; }
     bool isCylinderActiveAtTime(int cylinderIndex, double timestamp) const;
+    Q_INVOKABLE int activeCylinderAtTime(double timestamp) const;
     double interpolateCylinderPressure(int cylinderIndex, double timestamp) const;
     double getLastInterpolatedPressure(int cylinderIndex) const;
 

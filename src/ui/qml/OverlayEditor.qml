@@ -328,6 +328,10 @@ Item {
                     root.generator.setCellTypeVisible("max_depth", root.generator.showMaxDepth)
                     previewContainer.updateCellModel()
                 }
+                function onShowGasChanged() {
+                    root.generator.setCellTypeVisible("gas", root.generator.showGas)
+                    previewContainer.updateCellModel()
+                }
                 function onShowPO2Cell1Changed() {
                     root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
                     previewContainer.updateCellModel()
@@ -835,6 +839,17 @@ Item {
                     onCheckedChanged: {
                         if (generator && generator.showMaxDepth !== checked) {
                             generator.showMaxDepth = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showGasCheckbox
+                    text: qsTr("Show Gas Mix")
+                    checked: generator ? generator.showGas : false
+                    onCheckedChanged: {
+                        if (generator && generator.showGas !== checked) {
+                            generator.showGas = checked
                         }
                     }
                 }

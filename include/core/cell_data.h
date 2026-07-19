@@ -27,6 +27,7 @@ enum class CellType {
     CNS,              // CNS oxygen toxicity (percent)
     MeanDepth,        // Average depth of the dive (static, reported by the dive computer)
     MaxDepth,         // Maximum depth reached so far (running max, like the DC's MAX field)
+    Gas,              // Currently breathed gas mix (from gas switches)
     Unknown
 };
 

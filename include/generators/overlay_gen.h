@@ -32,7 +32,8 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
     Q_PROPERTY(bool showCNS READ showCNS WRITE setShowCNS NOTIFY showCNSChanged)
     Q_PROPERTY(bool showMeanDepth READ showMeanDepth WRITE setShowMeanDepth NOTIFY showMeanDepthChanged)
-    
+    Q_PROPERTY(bool showMaxDepth READ showMaxDepth WRITE setShowMaxDepth NOTIFY showMaxDepthChanged)
+
     // CCR properties
     Q_PROPERTY(bool showPO2Cell1 READ showPO2Cell1 WRITE setShowPO2Cell1 NOTIFY showPO2Cell1Changed)
     Q_PROPERTY(bool showPO2Cell2 READ showPO2Cell2 WRITE setShowPO2Cell2 NOTIFY showPO2Cell2Changed)
@@ -68,6 +69,7 @@ public:
     bool showTime() const { return m_showTime; }
     bool showCNS() const { return m_showCNS; }
     bool showMeanDepth() const { return m_showMeanDepth; }
+    bool showMaxDepth() const { return m_showMaxDepth; }
 
     // CCR getters
     bool showPO2Cell1() const { return m_showPO2Cell1; }
@@ -99,6 +101,7 @@ public:
     void setShowTime(bool show);
     void setShowCNS(bool show);
     void setShowMeanDepth(bool show);
+    void setShowMaxDepth(bool show);
 
     // CCR setters
     void setShowPO2Cell1(bool show);
@@ -177,6 +180,7 @@ signals:
     void showTimeChanged();
     void showCNSChanged();
     void showMeanDepthChanged();
+    void showMaxDepthChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -218,6 +222,7 @@ private:
     bool m_showTime;
     bool m_showCNS;
     bool m_showMeanDepth;
+    bool m_showMaxDepth;
 
     // CCR settings
     bool m_showPO2Cell1;

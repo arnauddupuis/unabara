@@ -26,6 +26,7 @@ enum class CellType {
     CompositePO2,     // CCR composite PO2
     CNS,              // CNS oxygen toxicity (percent)
     MeanDepth,        // Average depth of the dive (static, reported by the dive computer)
+    MaxDepth,         // Maximum depth reached so far (running max, like the DC's MAX field)
     Unknown
 };
 

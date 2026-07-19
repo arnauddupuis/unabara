@@ -124,6 +124,7 @@ public:
     QDateTime startTime() const { return m_startTime; }
     int durationSeconds() const;
     double maxDepth() const;
+    Q_INVOKABLE double maxDepthUntil(double time) const;
     double meanDepth() const;
     double minTemperature() const;
     QString location() const { return m_location; }

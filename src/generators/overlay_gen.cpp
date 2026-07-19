@@ -25,6 +25,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showTime(true)
     , m_showCNS(false)
     , m_showMeanDepth(false)
+    , m_showMaxDepth(false)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -49,6 +50,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showTime = config->showTime();
     m_showCNS = config->showCNS();
     m_showMeanDepth = config->showMeanDepth();
+    m_showMaxDepth = config->showMaxDepth();
     m_showPO2Cell1 = config->showPO2Cell1();
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
@@ -241,6 +243,15 @@ void OverlayGenerator::setShowMeanDepth(bool show)
         m_showMeanDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showMeanDepthChanged();
+    }
+}
+
+void OverlayGenerator::setShowMaxDepth(bool show)
+{
+    if (m_showMaxDepth != show) {
+        m_showMaxDepth = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showMaxDepthChanged();
     }
 }
 
@@ -611,6 +622,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         {"tts", Unabara::CellType::TTS},
         {"cns", Unabara::CellType::CNS},
         {"mean_depth", Unabara::CellType::MeanDepth},
+        {"max_depth", Unabara::CellType::MaxDepth},
         {"po2_cell1", Unabara::CellType::PO2Cell1},
         {"po2_cell2", Unabara::CellType::PO2Cell2},
         {"po2_cell3", Unabara::CellType::PO2Cell3},
@@ -757,6 +769,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showPressure = false;
     m_showCNS = false;
     m_showMeanDepth = false;
+    m_showMaxDepth = false;
     m_showPO2Cell1 = false;
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
@@ -778,6 +791,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showCNS = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::MeanDepth) {
             m_showMeanDepth = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::MaxDepth) {
+            m_showMaxDepth = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
             m_showPO2Cell1 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
@@ -799,6 +814,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showPressureChanged();
     emit showCNSChanged();
     emit showMeanDepthChanged();
+    emit showMaxDepthChanged();
     emit showPO2Cell1Changed();
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
@@ -899,6 +915,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showTime) numSections++;
     if (m_showCNS) numSections++;
     if (m_showMeanDepth) numSections++;
+    if (m_showMaxDepth) numSections++;
 
     // Tank sections (multi-tank uses grid, gets multiple sections)
     if (m_showPressure) {
@@ -1055,6 +1072,17 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MeanDepth, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showMaxDepth) {
+        Unabara::CellData cell("max_depth", Unabara::CellType::MaxDepth);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MaxDepth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -1342,6 +1370,14 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             ? Units::formatDepthValue(dive->meanDepth(), unitSystem)
             : "---";
         return format("AVG", value);
+    }
+
+    case Unabara::CellType::MaxDepth: {
+        // Running max: deepest point reached up to the current time
+        QString value = dive
+            ? Units::formatDepthValue(dive->maxDepthUntil(dataPoint.timestamp), unitSystem)
+            : "---";
+        return format("MAX", value);
     }
 
     default:
@@ -1694,6 +1730,10 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::MeanDepth:
                 header = tr("AVG");
                 value = "99.9 m";        // Typical mean depth
+                break;
+            case Unabara::CellType::MaxDepth:
+                header = tr("MAX");
+                value = "99.9 m";        // Typical max depth
                 break;
             default:
                 header = "UNKNOWN";

@@ -100,6 +100,7 @@ class DiveData : public QObject
     Q_PROPERTY(QDateTime startTime READ startTime WRITE setStartTime NOTIFY startTimeChanged)
     Q_PROPERTY(int durationSeconds READ durationSeconds NOTIFY durationChanged)
     Q_PROPERTY(double maxDepth READ maxDepth NOTIFY dataChanged)
+    Q_PROPERTY(double meanDepth READ meanDepth NOTIFY dataChanged)
     Q_PROPERTY(double minTemperature READ minTemperature NOTIFY dataChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(int cylinderCount READ cylinderCount NOTIFY dataChanged)
@@ -123,6 +124,7 @@ public:
     QDateTime startTime() const { return m_startTime; }
     int durationSeconds() const;
     double maxDepth() const;
+    double meanDepth() const;
     double minTemperature() const;
     QString location() const { return m_location; }
     int diveNumber() const { return m_diveNumber; }
@@ -135,6 +137,7 @@ public:
     void setStartTime(const QDateTime &time);
     void setLocation(const QString &location);
     void setDiveNumber(int number);
+    void setMeanDepth(double depth);
     void setDiveSiteName(const QString &siteName);
     void setDiveSiteId(const QString &siteId);
     void setDiveMode(DiveMode mode);
@@ -183,6 +186,7 @@ private:
     QDateTime m_startTime;
     QString m_location;
     int m_diveNumber;
+    double m_meanDepth = -1.0; // parsed from the log; < 0 means "not provided", fall back to computing from samples
     QString m_diveSiteName;
     QString m_diveSiteId;
     DiveMode m_diveMode = UnknownMode;

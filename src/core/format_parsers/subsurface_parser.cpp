@@ -377,6 +377,21 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
                 if (sampleCount % 10 == 0) {
                     qDebug() << "Parsed" << sampleCount << "samples";
                 }
+            } else if (elementName == "depth") {
+                QXmlStreamAttributes attrs = xml.attributes();
+                if (attrs.hasAttribute("mean")) {
+                    QString meanStr = attrs.value("mean").toString();
+                    QRegularExpression depthRe("(\\d+\\.?\\d*)\\s+m");
+                    QRegularExpressionMatch match = depthRe.match(meanStr);
+
+                    if (match.hasMatch()) {
+                        dive->setMeanDepth(match.captured(1).toDouble());
+                    }
+                }
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == QStringLiteral("depth"))) {
+                    xml.readNext();
+                    if (xml.atEnd()) break;
+                }
             } else if (elementName == "temperature") {
                 QXmlStreamAttributes attrs = xml.attributes();
                 if (attrs.hasAttribute("water")) {

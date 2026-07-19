@@ -167,6 +167,7 @@ QString CellData::cellTypeToString(CellType type)
         case CellType::PO2Cell3: return "PO2Cell3";
         case CellType::CompositePO2: return "CompositePO2";
         case CellType::CNS: return "CNS";
+        case CellType::MeanDepth: return "MeanDepth";
         default: return "Unknown";
     }
 }
@@ -184,6 +185,7 @@ CellType CellData::cellTypeFromString(const QString& str)
     if (str == "PO2Cell3") return CellType::PO2Cell3;
     if (str == "CompositePO2") return CellType::CompositePO2;
     if (str == "CNS") return CellType::CNS;
+    if (str == "MeanDepth") return CellType::MeanDepth;
     return CellType::Unknown;
 }
 

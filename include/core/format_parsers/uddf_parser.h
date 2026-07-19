@@ -42,6 +42,7 @@ private:
 
     DiveData *parseDiveElement(QXmlStreamReader &xml);
     void parseInformationBeforeDive(QXmlStreamReader &xml, DiveData *dive);
+    void parseInformationAfterDive(QXmlStreamReader &xml, DiveData *dive);
     void parseTankData(QXmlStreamReader &xml, DiveData *dive);
     void parseSamples(QXmlStreamReader &xml, DiveData *dive);
     void parseWaypoint(QXmlStreamReader &xml,

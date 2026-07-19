@@ -32,6 +32,7 @@ class Config : public QObject
     Q_PROPERTY(bool showPressure READ showPressure WRITE setShowPressure NOTIFY showPressureChanged)
     Q_PROPERTY(bool showTime READ showTime WRITE setShowTime NOTIFY showTimeChanged)
     Q_PROPERTY(bool showCNS READ showCNS WRITE setShowCNS NOTIFY showCNSChanged)
+    Q_PROPERTY(bool showMeanDepth READ showMeanDepth WRITE setShowMeanDepth NOTIFY showMeanDepthChanged)
     Q_PROPERTY(Units::UnitSystem unitSystem READ unitSystem WRITE setUnitSystem NOTIFY unitSystemChanged)
     
     // CCR settings
@@ -110,6 +111,8 @@ public:
 
     bool showCNS() const;
     void setShowCNS(bool show);
+    bool showMeanDepth() const;
+    void setShowMeanDepth(bool show);
 
     Units::UnitSystem unitSystem() const;
     void setUnitSystem(Units::UnitSystem system);
@@ -228,6 +231,7 @@ signals:
     void showPressureChanged();
     void showTimeChanged();
     void showCNSChanged();
+    void showMeanDepthChanged();
     void unitSystemChanged();
     void frameRateChanged();
     void templateDirectoryChanged();
@@ -287,6 +291,7 @@ private:
     bool m_showPressure;
     bool m_showTime;
     bool m_showCNS;
+    bool m_showMeanDepth;
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
     QString m_templateDirectory;

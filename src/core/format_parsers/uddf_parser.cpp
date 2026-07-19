@@ -339,8 +339,10 @@ DiveData *UDDFParser::parseDiveElement(QXmlStreamReader &xml)
             parseTankData(xml, dive);
         } else if (name == QStringLiteral("samples")) {
             parseSamples(xml, dive);
+        } else if (name == QStringLiteral("informationafterdive")) {
+            parseInformationAfterDive(xml, dive);
         } else {
-            // Skip everything else — informationafterdive, applieddivedurationformula, etc.
+            // Skip everything else — applieddivedurationformula, etc.
             xml.skipCurrentElement();
         }
     }
@@ -388,6 +390,30 @@ DiveData *UDDFParser::parseDiveElement(QXmlStreamReader &xml)
              << "cylinders:" << dive->cylinderCount()
              << "diveMode:" << dive->diveMode();
     return dive;
+}
+
+void UDDFParser::parseInformationAfterDive(QXmlStreamReader &xml, DiveData *dive)
+{
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (xml.tokenType() == QXmlStreamReader::EndElement
+            && xml.name() == QStringLiteral("informationafterdive")) {
+            break;
+        }
+        if (xml.tokenType() != QXmlStreamReader::StartElement) {
+            continue;
+        }
+
+        const auto name = xml.name();
+        if (name == QStringLiteral("averagedepth")) {
+            const double avg = parse_utils::parseLocaleDouble(xml.readElementText());
+            if (!std::isnan(avg) && avg >= 0.0) {
+                dive->setMeanDepth(avg);
+            }
+        } else {
+            xml.skipCurrentElement();
+        }
+    }
 }
 
 void UDDFParser::parseInformationBeforeDive(QXmlStreamReader &xml, DiveData *dive)

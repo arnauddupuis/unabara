@@ -24,6 +24,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPressure(true)
     , m_showTime(true)
     , m_showCNS(false)
+    , m_showMeanDepth(false)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -47,6 +48,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showPressure = config->showPressure();
     m_showTime = config->showTime();
     m_showCNS = config->showCNS();
+    m_showMeanDepth = config->showMeanDepth();
     m_showPO2Cell1 = config->showPO2Cell1();
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
@@ -230,6 +232,15 @@ void OverlayGenerator::setShowCNS(bool show)
         m_showCNS = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showCNSChanged();
+    }
+}
+
+void OverlayGenerator::setShowMeanDepth(bool show)
+{
+    if (m_showMeanDepth != show) {
+        m_showMeanDepth = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showMeanDepthChanged();
     }
 }
 
@@ -599,6 +610,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         {"ndl", Unabara::CellType::NDL},
         {"tts", Unabara::CellType::TTS},
         {"cns", Unabara::CellType::CNS},
+        {"mean_depth", Unabara::CellType::MeanDepth},
         {"po2_cell1", Unabara::CellType::PO2Cell1},
         {"po2_cell2", Unabara::CellType::PO2Cell2},
         {"po2_cell3", Unabara::CellType::PO2Cell3},
@@ -744,6 +756,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showNDL = false;
     m_showPressure = false;
     m_showCNS = false;
+    m_showMeanDepth = false;
     m_showPO2Cell1 = false;
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
@@ -763,6 +776,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showPressure = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::CNS) {
             m_showCNS = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::MeanDepth) {
+            m_showMeanDepth = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
             m_showPO2Cell1 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
@@ -783,6 +798,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showNDLChanged();
     emit showPressureChanged();
     emit showCNSChanged();
+    emit showMeanDepthChanged();
     emit showPO2Cell1Changed();
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
@@ -882,6 +898,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showNDL) numSections++;  // NDL/TTS share the same section
     if (m_showTime) numSections++;
     if (m_showCNS) numSections++;
+    if (m_showMeanDepth) numSections++;
 
     // Tank sections (multi-tank uses grid, gets multiple sections)
     if (m_showPressure) {
@@ -1027,6 +1044,17 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CNS, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showMeanDepth) {
+        Unabara::CellData cell("mean_depth", Unabara::CellType::MeanDepth);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MeanDepth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -1306,6 +1334,14 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             ? QString("%1%").arg(qRound(dataPoint.cns))
             : "---";
         return format("CNS", value);
+    }
+
+    case Unabara::CellType::MeanDepth: {
+        // Static per-dive value (reported by the dive computer or computed from samples)
+        QString value = dive
+            ? Units::formatDepthValue(dive->meanDepth(), unitSystem)
+            : "---";
+        return format("AVG", value);
     }
 
     default:
@@ -1654,6 +1690,10 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::CNS:
                 header = tr("CNS");
                 value = "99%";           // Typical CNS toxicity percentage
+                break;
+            case Unabara::CellType::MeanDepth:
+                header = tr("AVG");
+                value = "99.9 m";        // Typical mean depth
                 break;
             default:
                 header = "UNKNOWN";

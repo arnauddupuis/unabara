@@ -43,6 +43,9 @@ public:
     static QString formatDepthValue(double depthMeters, UnitSystem system);
     static QString formatTemperatureValue(double tempCelsius, UnitSystem system);
     static QString formatPressureValue(double pressureBar, UnitSystem system);
+
+    // Gas mix name (unit-agnostic): "Air", "EAN32", "21/35", "O2"
+    static QString formatGasMix(double o2Percent, double hePercent);
 };
 
 #endif // UNITS_H

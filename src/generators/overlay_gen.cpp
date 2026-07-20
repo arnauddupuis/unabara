@@ -26,6 +26,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showCNS(false)
     , m_showMeanDepth(false)
     , m_showMaxDepth(false)
+    , m_showGas(false)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -51,6 +52,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showCNS = config->showCNS();
     m_showMeanDepth = config->showMeanDepth();
     m_showMaxDepth = config->showMaxDepth();
+    m_showGas = config->showGas();
     m_showPO2Cell1 = config->showPO2Cell1();
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
@@ -252,6 +254,15 @@ void OverlayGenerator::setShowMaxDepth(bool show)
         m_showMaxDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showMaxDepthChanged();
+    }
+}
+
+void OverlayGenerator::setShowGas(bool show)
+{
+    if (m_showGas != show) {
+        m_showGas = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showGasChanged();
     }
 }
 
@@ -623,6 +634,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         {"cns", Unabara::CellType::CNS},
         {"mean_depth", Unabara::CellType::MeanDepth},
         {"max_depth", Unabara::CellType::MaxDepth},
+        {"gas", Unabara::CellType::Gas},
         {"po2_cell1", Unabara::CellType::PO2Cell1},
         {"po2_cell2", Unabara::CellType::PO2Cell2},
         {"po2_cell3", Unabara::CellType::PO2Cell3},
@@ -770,6 +782,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showCNS = false;
     m_showMeanDepth = false;
     m_showMaxDepth = false;
+    m_showGas = false;
     m_showPO2Cell1 = false;
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
@@ -793,6 +806,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showMeanDepth = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::MaxDepth) {
             m_showMaxDepth = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::Gas) {
+            m_showGas = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
             m_showPO2Cell1 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
@@ -815,6 +830,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showCNSChanged();
     emit showMeanDepthChanged();
     emit showMaxDepthChanged();
+    emit showGasChanged();
     emit showPO2Cell1Changed();
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
@@ -916,6 +932,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showCNS) numSections++;
     if (m_showMeanDepth) numSections++;
     if (m_showMaxDepth) numSections++;
+    if (m_showGas) numSections++;
 
     // Tank sections (multi-tank uses grid, gets multiple sections)
     if (m_showPressure) {
@@ -1083,6 +1100,17 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MaxDepth, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showGas) {
+        Unabara::CellData cell("gas", Unabara::CellType::Gas);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Gas, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -1378,6 +1406,19 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             ? Units::formatDepthValue(dive->maxDepthUntil(dataPoint.timestamp), unitSystem)
             : "---";
         return format("MAX", value);
+    }
+
+    case Unabara::CellType::Gas: {
+        // Gas mix currently breathed: active cylinder per gas-switch events
+        QString value = "---";
+        if (dive && dive->cylinderCount() > 0) {
+            int idx = dive->activeCylinderAtTime(dataPoint.timestamp);
+            if (idx >= 0 && idx < dive->cylinderCount()) {
+                const CylinderInfo& cyl = dive->cylinderInfo(idx);
+                value = Units::formatGasMix(cyl.o2Percent, cyl.hePercent);
+            }
+        }
+        return format("GAS", value);
     }
 
     default:
@@ -1734,6 +1775,10 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::MaxDepth:
                 header = tr("MAX");
                 value = "99.9 m";        // Typical max depth
+                break;
+            case Unabara::CellType::Gas:
+                header = tr("GAS");
+                value = "EAN32";         // Widest plausible mix string
                 break;
             default:
                 header = "UNKNOWN";

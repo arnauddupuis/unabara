@@ -436,19 +436,11 @@ void DiveData::addGasSwitch(double timestamp, int cylinderIndex) {
               });
 }
 
-bool DiveData::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const {
-    if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
-        return false;  // Invalid cylinder index
-    }
-    
-    // If we have no gas switches, assume first cylinder is always active
-    if (m_gasSwitches.isEmpty()) {
-        return cylinderIndex == 0;
-    }
-    
-    // Find the active cylinder at this timestamp
+int DiveData::activeCylinderAtTime(double timestamp) const {
+    // First cylinder is breathed from the start; each gas switch at or
+    // before 'timestamp' updates the active cylinder
     int activeCylinder = 0; // Default to first cylinder
-    
+
     for (const GasSwitch &gasSwitch : m_gasSwitches) {
         if (gasSwitch.timestamp <= timestamp) {
             activeCylinder = gasSwitch.cylinderIndex;
@@ -458,8 +450,16 @@ bool DiveData::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const
             break;
         }
     }
-    
-    return (cylinderIndex == activeCylinder);
+
+    return activeCylinder;
+}
+
+bool DiveData::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const {
+    if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
+        return false;  // Invalid cylinder index
+    }
+
+    return cylinderIndex == activeCylinderAtTime(timestamp);
 }
 
 double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp) const

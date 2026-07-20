@@ -32,6 +32,7 @@ Config::Config(QObject *parent)
     , m_showCNS(false)
     , m_showMeanDepth(false)
     , m_showMaxDepth(false)
+    , m_showGas(false)
     , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
     , m_showPO2Cell1(false)
@@ -248,6 +249,19 @@ void Config::setShowMaxDepth(bool show)
     if (m_showMaxDepth != show) {
         m_showMaxDepth = show;
         emit showMaxDepthChanged();
+    }
+}
+
+bool Config::showGas() const
+{
+    return m_showGas;
+}
+
+void Config::setShowGas(bool show)
+{
+    if (m_showGas != show) {
+        m_showGas = show;
+        emit showGasChanged();
     }
 }
 
@@ -586,6 +600,7 @@ void Config::loadConfig()
     m_showCNS = m_settings.value("overlay/showCNS", false).toBool();
     m_showMeanDepth = m_settings.value("overlay/showMeanDepth", false).toBool();
     m_showMaxDepth = m_settings.value("overlay/showMaxDepth", false).toBool();
+    m_showGas = m_settings.value("overlay/showGas", false).toBool();
 
     // Load CCR settings
     m_showPO2Cell1 = m_settings.value("overlay/showPO2Cell1", false).toBool();
@@ -735,6 +750,7 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showCNS", m_showCNS);
     m_settings.setValue("overlay/showMeanDepth", m_showMeanDepth);
     m_settings.setValue("overlay/showMaxDepth", m_showMaxDepth);
+    m_settings.setValue("overlay/showGas", m_showGas);
 
     // Save CCR settings
     m_settings.setValue("overlay/showPO2Cell1", m_showPO2Cell1);

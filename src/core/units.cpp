@@ -95,3 +95,21 @@ QString Units::formatPressureValue(double pressureBar, UnitSystem system)
 {
     return formatPressure(pressureBar, system) + " " + pressureUnit(system);
 }
+
+QString Units::formatGasMix(double o2Percent, double hePercent)
+{
+    // Round before comparing so 20.9/21.0 float noise still reads as Air
+    int o2 = qRound(o2Percent);
+    int he = qRound(hePercent);
+
+    if (he > 0) {
+        return QString("%1/%2").arg(o2).arg(he); // Trimix, Subsurface style
+    }
+    if (o2 == 100) {
+        return QStringLiteral("O2");
+    }
+    if (o2 == 21) {
+        return QStringLiteral("Air");
+    }
+    return QString("EAN%1").arg(o2);
+}

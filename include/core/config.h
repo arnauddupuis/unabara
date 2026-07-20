@@ -34,6 +34,7 @@ class Config : public QObject
     Q_PROPERTY(bool showCNS READ showCNS WRITE setShowCNS NOTIFY showCNSChanged)
     Q_PROPERTY(bool showMeanDepth READ showMeanDepth WRITE setShowMeanDepth NOTIFY showMeanDepthChanged)
     Q_PROPERTY(bool showMaxDepth READ showMaxDepth WRITE setShowMaxDepth NOTIFY showMaxDepthChanged)
+    Q_PROPERTY(bool showGas READ showGas WRITE setShowGas NOTIFY showGasChanged)
     Q_PROPERTY(Units::UnitSystem unitSystem READ unitSystem WRITE setUnitSystem NOTIFY unitSystemChanged)
     
     // CCR settings
@@ -116,6 +117,8 @@ public:
     void setShowMeanDepth(bool show);
     bool showMaxDepth() const;
     void setShowMaxDepth(bool show);
+    bool showGas() const;
+    void setShowGas(bool show);
 
     Units::UnitSystem unitSystem() const;
     void setUnitSystem(Units::UnitSystem system);
@@ -236,6 +239,7 @@ signals:
     void showCNSChanged();
     void showMeanDepthChanged();
     void showMaxDepthChanged();
+    void showGasChanged();
     void unitSystemChanged();
     void frameRateChanged();
     void templateDirectoryChanged();
@@ -297,6 +301,7 @@ private:
     bool m_showCNS;
     bool m_showMeanDepth;
     bool m_showMaxDepth;
+    bool m_showGas;
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
     QString m_templateDirectory;

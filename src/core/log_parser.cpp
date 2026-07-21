@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 
+#include "include/core/format_parsers/fit_parser.h"
 #include "include/core/format_parsers/subsurface_parser.h"
 #include "include/core/format_parsers/uddf_parser.h"
 
@@ -13,6 +14,7 @@ LogParser::LogParser(QObject *parent)
 {
     m_parsers.push_back(std::make_unique<SubsurfaceParser>());
     m_parsers.push_back(std::make_unique<UDDFParser>());
+    m_parsers.push_back(std::make_unique<FitParser>());
 }
 
 LogParser::~LogParser() = default;
@@ -41,7 +43,7 @@ bool LogParser::importFile(const QString &filePath)
     emit busyChanged();
 
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         m_lastError = tr("Could not open file: %1 - Error: %2").arg(filePath).arg(file.errorString());
         qDebug() << "File open error:" << m_lastError;
         emit errorOccurred(m_lastError);
@@ -103,7 +105,7 @@ bool LogParser::importDive(const QString &filePath, int diveNumber)
     emit busyChanged();
 
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         m_lastError = tr("Could not open file: %1").arg(file.errorString());
         emit errorOccurred(m_lastError);
         m_busy = false;
@@ -159,7 +161,7 @@ QList<QString> LogParser::getDiveList(const QString &filePath)
     emit busyChanged();
 
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         m_lastError = tr("Could not open file: %1").arg(file.errorString());
         emit errorOccurred(m_lastError);
         m_busy = false;

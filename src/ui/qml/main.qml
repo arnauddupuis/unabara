@@ -791,7 +791,7 @@ ApplicationWindow {
     FileDialog {
         id: importDiveLogFileDialog
         title: qsTr("Import Dive Log")
-        nameFilters: ["Dive log files (*.xml *.ssrf *.uddf)", "All files (*)"]
+        nameFilters: ["Dive log files (*.xml *.ssrf *.uddf *.fit)", "All files (*)"]
         onAccepted: {
             console.log("Selected file path:", selectedFile.toString());
             // Use our C++ helper to convert the URL to a local file path

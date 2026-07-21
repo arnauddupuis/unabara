@@ -39,6 +39,8 @@ set(PROJECT_SOURCES
     src/core/format_parsers/parse_utils.cpp
     src/core/format_parsers/subsurface_parser.cpp
     src/core/format_parsers/uddf_parser.cpp
+    src/core/format_parsers/fit_decoder.cpp
+    src/core/format_parsers/fit_parser.cpp
     src/core/config.cpp
     src/core/units.cpp
     src/core/cell_data.cpp
@@ -66,6 +68,8 @@ set(PROJECT_HEADERS
     include/core/format_parsers/parse_utils.h
     include/core/format_parsers/subsurface_parser.h
     include/core/format_parsers/uddf_parser.h
+    include/core/format_parsers/fit_decoder.h
+    include/core/format_parsers/fit_parser.h
     include/core/config.h
     include/core/units.h
     include/core/cell_data.h

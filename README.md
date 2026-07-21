@@ -8,7 +8,7 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Features
 
-- **Import Dive Logs**: Import Subsurface (XML/SSRF) and UDDF dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
+- **Import Dive Logs**: Import Subsurface (XML/SSRF), UDDF and .FIT (Garmin) dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
 - **Visual Timeline**: View and navigate your dive data on an interactive timeline.
 - **Video Import**: Import your dive footage and position it against your dive data on the timeline.
 - **Video Preview & Sync**: Play your footage directly in Unabara and align it with your dive graphically — the timeline cursor follows the video, so you can match the overlay to your dive computer frame by frame. Save per-camera sync profiles for repeatable alignment.
@@ -85,7 +85,7 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 ### Dependencies
 
-- Qt 6.8.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets, Network, Multimedia)
+- Qt 6.9.3 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets, Network, Multimedia)
 - CMake 3.16 or newer
 - C++17 compatible compiler (GCC 9+, Clang 10+, MSVC 2019+)
 
@@ -139,7 +139,7 @@ cmake --build .
 
 ### Windows
 
-1. Install [Qt 6.8.0](https://www.qt.io/download) or newer
+1. Install [Qt 6.9.3+](https://www.qt.io/download) or newer
 2. Install [CMake](https://cmake.org/download/)
 3. Install [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) or newer with C++ desktop development workload
 
@@ -153,7 +153,7 @@ mkdir build
 cd build
 
 # Configure and build
-cmake .. -DCMAKE_PREFIX_PATH=C:\path\to\Qt\6.8.0\msvc2019_64
+cmake .. -DCMAKE_PREFIX_PATH=C:\path\to\Qt\6.9.3\msvc2019_64
 cmake --build . --config Release
 
 # Run the application

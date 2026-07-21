@@ -24,28 +24,41 @@ Run this before merging any change to the dive log parser. Each row below is a s
 | `Shearwater.uddf` | Loads; depth/temperature populated; comma decimals parsed. CNS appears late in the dive (`<cns>` elements near the end): 65% → 70% at the last sample, `---` before the first report. Mean depth (AVG cell) shows 22.5 m (from `<averagedepth>22.465`). |
 | `Garmin.uddf` | Loads from a different exporter; verifies UDDF dialect handling. |
 
+## Garmin FIT format
+
+| File | Expected |
+|---|---|
+| `2025-12-14-14-17-24.fit` | Dive #98, 2025-12-14 14:17 local, OC deco dive on Lake Geneva (location `46.480629, 6.461355`). ~24.1 m max depth, ~77 min, min temp 10 °C. 2 cylinders (Air + EAN80); GAS cell switches to `EAN80` during the final deco stop. CNS ramps to ~15%, `--` at the very start. AVG cell 14.8 m (from the FIT dive summary). Deco phase: NDL 0 with TTS/ceiling populated (ceiling 3 m). |
+| `2026-01-12-10-40-25.fit` | Dive #104, shallow long dive (~9.6 m max, ~114 min), no GPS → location empty. |
+| Any CCR file from `divelogs_medico_fits.zip` (e.g. `2026-01-25-10-41-00.fit`, dive #114) | `diveMode` resolves to `ClosedCircuit`; 3 cylinders incl. `Air (diluent)` and `EAN50` bailout; PO2 cell shows the active setpoint (0.70 bar). |
+| Non-dive FIT from the zip (e.g. `2026-01-28-05-58-39.fit`) | Clean error: "FIT file does not contain a dive activity", no crash. |
+
+Tank-pod pressures (`TANK_UPDATE`/`SENSOR_PROFILE`) have no coverage in the real samples — they are exercised by a synthesized FIT file (big-endian records, developer fields, compressed timestamps, 2 pods with pressures and volumes, mid-dive gas switch) during development; re-verify with a real Descent T1/T2 log when one becomes available.
+
 ## Format detection
 
 - Rename a UDDF file to `.xml` and import — the file should still load (sniff-based detection, not extension).
 - Rename an SSRF file to `.uddf` — same.
+- Rename a `.fit` file to `.xml` — same (binary sniff on the `.FIT` header signature).
 
 ## Error handling
 
 - Try to import a non-XML file (e.g. an image): expect `errorOccurred` with a useful message, no crash.
+- Truncate a `.fit` file (`head -c 50000 x.fit > cut.fit`) and import: the partial dive loads (salvage) with a warning in the log; a file cut before any samples reports a clean error instead.
 
 ## What gets verified
 
-| Behaviour | SSRF | UDDF |
-|---|---|---|
-| Dive metadata (number, datetime, site name) | ✓ | ✓ |
-| Cylinders with start/end pressure | ✓ | ✓ |
-| Per-sample depth | ✓ | ✓ |
-| Per-sample temperature | Celsius | Kelvin → Celsius |
-| Per-sample tank pressure | bar | Pa → bar (via `<tankpressure>` when exporter provides it) |
-| Per-sample PO2 (CCR) | `sensor1/2/3` | `<measuredpo2>` (when exporter provides it) |
-| Per-sample CNS | `cns='NN%'` attribute | `<cns>` percent element (65.0 = 65 %) |
-| Mean depth (static, AVG cell) | `<depth mean>` in `<divecomputer>` | `<averagedepth>` in `<informationafterdive>` (fallback: time-weighted average of samples) |
-| Max depth (running, MAX cell) | computed from samples (no parsing) — deepest point reached up to the current time | same |
-| Gas switches | `<event name="gaschange">` | `<switchmix ref>` resolved via mix → first tank index |
-| Gas mix (GAS cell) | computed from gas switches + cylinder O2/He (`Air`/`EANxx`/`O2`/`21/35`) | same |
-| Dive mode | inferred from CCR cues | `<divemode kind>` or inferred |
+| Behaviour | SSRF | UDDF | FIT |
+|---|---|---|---|
+| Dive metadata (number, datetime, site name) | ✓ | ✓ | number + local datetime; location = GPS coordinates |
+| Cylinders with start/end pressure | ✓ | ✓ | gases from `dive_gas`, pressures from `tank_summary` (pod) |
+| Per-sample depth | ✓ | ✓ | mm → m |
+| Per-sample temperature | Celsius | Kelvin → Celsius | Celsius |
+| Per-sample tank pressure | bar | Pa → bar (via `<tankpressure>` when exporter provides it) | `tank_update` bar×100 → bar (T1/T2 pods only) |
+| Per-sample PO2 (CCR) | `sensor1/2/3` | `<measuredpo2>` (when exporter provides it) | active setpoint (Descent records no sensor values) |
+| Per-sample CNS | `cns='NN%'` attribute | `<cns>` percent element (65.0 = 65 %) | `record` field 97, percent |
+| Mean depth (static, AVG cell) | `<depth mean>` in `<divecomputer>` | `<averagedepth>` in `<informationafterdive>` (fallback: time-weighted average of samples) | `dive_summary` avg_depth mm → m |
+| Max depth (running, MAX cell) | computed from samples (no parsing) — deepest point reached up to the current time | same | same |
+| Gas switches | `<event name="gaschange">` | `<switchmix ref>` resolved via mix → first tank index | event 57, data = gas slot index |
+| Gas mix (GAS cell) | computed from gas switches + cylinder O2/He (`Air`/`EANxx`/`O2`/`21/35`) | same | same |
+| Dive mode | inferred from CCR cues | `<divemode kind>` or inferred | sub-sport (63 = CCR, 53-57 = OC/gauge/apnea) |

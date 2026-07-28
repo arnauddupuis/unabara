@@ -19,8 +19,18 @@ struct FitMessage {
     bool has(quint8 fieldNum) const { return fields.contains(fieldNum); }
     double value(quint8 fieldNum, double fallback = 0.0) const
     {
+        // Return the first *valid* element: array fields keep invalid
+        // elements as NaN placeholders, and NaN must never escape (callers
+        // cast to integer types, which is undefined behavior on NaN)
         auto it = fields.constFind(fieldNum);
-        return (it != fields.constEnd() && !it->isEmpty()) ? it->first() : fallback;
+        if (it != fields.constEnd()) {
+            for (double element : *it) {
+                if (!qIsNaN(element)) {
+                    return element;
+                }
+            }
+        }
+        return fallback;
     }
 };
 

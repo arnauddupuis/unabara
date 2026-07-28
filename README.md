@@ -63,6 +63,8 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 ### macOS
 
+Requires macOS 12 (Monterey) or newer.
+
 1. Download `unabara-macos-universal-x.x.x.dmg`
 2. Open the DMG file
 3. Drag the Unabara app to your Applications folder
@@ -85,7 +87,7 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 ### Dependencies
 
-- Qt 6.9.3 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets, Network, Multimedia)
+- Qt 6.8.0 or newer (Core, Gui, Quick, Qml, Xml, Concurrent, Widgets, Network, Multimedia) — macOS builds require Qt 6.9.3+
 - CMake 3.16 or newer
 - C++17 compatible compiler (GCC 9+, Clang 10+, MSVC 2019+)
 
@@ -139,7 +141,7 @@ cmake --build .
 
 ### Windows
 
-1. Install [Qt 6.9.3+](https://www.qt.io/download) or newer
+1. Install [Qt 6.8+](https://www.qt.io/download) or newer
 2. Install [CMake](https://cmake.org/download/)
 3. Install [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) or newer with C++ desktop development workload
 

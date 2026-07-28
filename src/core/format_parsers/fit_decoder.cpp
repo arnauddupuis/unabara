@@ -196,12 +196,19 @@ bool FitDecoder::decode(QIODevice *device, QString &errorOut)
     }
 
     const quint8 headerSize = base[0];
-    const quint32 dataSize = static_cast<quint32>(readUInt(base + 4, 4, false));
+    quint32 dataSize = static_cast<quint32>(readUInt(base + 4, 4, false));
     if (headerSize < 12 || headerSize > fileLen || std::memcmp(base + 8, ".FIT", 4) != 0) {
         errorOut = QStringLiteral("Invalid FIT file header");
         return false;
     }
-    if (static_cast<qint64>(headerSize) + dataSize + 2 > fileLen) {
+    if (dataSize == 0) {
+        // Crash-recovered files: the header is written before the data and
+        // dataSize is only backfilled when the file is finalized. Decode to
+        // the end of the file instead (the trailing CRC bytes, if any, will
+        // fail as a record and be salvaged around).
+        qWarning() << "FIT header declares zero data size, decoding to end of file";
+        dataSize = static_cast<quint32>(fileLen - headerSize);
+    } else if (static_cast<qint64>(headerSize) + dataSize + 2 > fileLen) {
         // Truncated file: decode what is there, the record loop will stop at
         // the actual end of data. Warn but keep going (salvage).
         qWarning() << "FIT file shorter than header declares:" << fileLen << "bytes,"

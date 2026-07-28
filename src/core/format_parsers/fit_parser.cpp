@@ -49,6 +49,29 @@ double semicirclesToDegrees(double semicircles)
 
 FitParser::FitParser() = default;
 
+QDateTime FitParser::startDateTime(const Metadata &meta)
+{
+    // FIT timestamps are UTC; timeOffset is the device's local wall-clock
+    // offset. Encode it as a UTC offset so the displayed time matches what
+    // the watch showed while toSecsSinceEpoch() stays the true instant —
+    // video sync compares it against the camera's UTC creation time.
+    int offsetSeconds = static_cast<int>(meta.timeOffset);
+    if (offsetSeconds < -14 * 3600 || offsetSeconds > 14 * 3600) {
+        offsetSeconds = 0; // implausible offset (corrupt correlation message)
+    }
+    return QDateTime::fromSecsSinceEpoch(FIT_EPOCH_OFFSET + meta.startFit,
+                                         QTimeZone(offsetSeconds));
+}
+
+QString FitParser::formatPosition(const Metadata &meta)
+{
+    if (!meta.hasPosition || (meta.latitude == 0.0 && meta.longitude == 0.0)) {
+        return QString();
+    }
+    return QStringLiteral("%1, %2").arg(QString::number(meta.latitude, 'f', 6),
+                                        QString::number(meta.longitude, 'f', 6));
+}
+
 bool FitParser::canParse(QFile &file) const
 {
     return FitDecoder::sniff(&file);
@@ -83,6 +106,7 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
     QMap<int, bool> gasIsDiluent;
     QMap<quint32, QPair<double, double>> tankPressures; // sensor -> start/end bar
     QVector<double> tankVolumes;                        // liters, parallel to tankSensors
+    QVector<quint32> updateSensors;                     // pods seen in tank_update messages
     bool sawFirstRecord = false;
     quint32 firstRecordTime = 0;
 
@@ -134,7 +158,11 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
 
             case MsgDiveGas: {
                 meta.sawDiveData = true;
-                const int gasIndex = static_cast<int>(message.value(FieldMessageIndex, 0));
+                // Fall back to sequential slots when the writer omits the
+                // message index — defaulting all to 0 would collapse the gases
+                const int gasIndex = message.has(FieldMessageIndex)
+                                         ? static_cast<int>(message.value(FieldMessageIndex))
+                                         : gasesByIndex.size();
                 const int status = static_cast<int>(message.value(2, 1)); // 0 disabled, 1 enabled, 2 backup
                 if (status == 0) {
                     break;
@@ -149,11 +177,13 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
             }
 
             case MsgSensorProfile: {
-                // Sensor type 28 is a tank pressure pod
-                if (static_cast<int>(message.value(52, -1)) != 28) {
+                // Sensor type 28 is a tank pressure pod; a pod without a
+                // readable serial can never match a tank_update, so skip it
+                // rather than creating a phantom channel
+                if (static_cast<int>(message.value(52, -1)) != 28 || !message.has(0)) {
                     break;
                 }
-                meta.tankSensors.append(static_cast<quint32>(message.value(0, 0)));
+                meta.tankSensors.append(static_cast<quint32>(message.value(0)));
                 double volumeLiters = 0.0;
                 if (message.has(77)) {
                     const double rawVolume = message.value(77) / 10.0;
@@ -164,6 +194,15 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
                 tankVolumes.append(volumeLiters);
                 break;
             }
+
+            case MsgTankUpdate:
+                if (message.has(0)) {
+                    const quint32 sensor = static_cast<quint32>(message.value(0));
+                    if (!updateSensors.contains(sensor)) {
+                        updateSensors.append(sensor);
+                    }
+                }
+                break;
 
             case MsgTankSummary:
                 if (message.has(0)) {
@@ -201,6 +240,17 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
     if (!meta.hasStart && sawFirstRecord) {
         meta.hasStart = true;
         meta.startFit = firstRecordTime;
+    }
+
+    // Pods seen only in tank_update messages (paired mid-dive, or the
+    // sensor_profile messages are absent) still get a channel here so the
+    // padding loop below gives them a cylinder — otherwise their pressures
+    // would land on channels no overlay cell can display
+    for (quint32 sensor : updateSensors) {
+        if (!meta.tankSensors.contains(sensor)) {
+            meta.tankSensors.append(sensor);
+            tankVolumes.append(0.0);
+        }
     }
 
     // Cylinders in gas-slot order; the FIT gas index maps onto the cylinder index
@@ -259,18 +309,16 @@ DiveData *FitParser::buildDive(const QList<FitMessage> &messages, const Metadata
 
     const bool isCcr = (meta.subSport == 63);
     dive->setDiveMode(isCcr ? DiveData::ClosedCircuit : DiveData::OpenCircuit);
-    dive->setStartTime(QDateTime::fromSecsSinceEpoch(
-        FIT_EPOCH_OFFSET + meta.startFit + meta.timeOffset, QTimeZone::utc()));
+    dive->setStartTime(startDateTime(meta));
     dive->setDiveNumber(meta.diveNumber);
     dive->setDiveName(meta.diveNumber > 0 ? QStringLiteral("Dive #%1").arg(meta.diveNumber)
                                           : QStringLiteral("Garmin Dive"));
     if (meta.meanDepth >= 0.0) {
         dive->setMeanDepth(meta.meanDepth);
     }
-    if (meta.hasPosition && (meta.latitude != 0.0 || meta.longitude != 0.0)) {
-        dive->setLocation(QStringLiteral("%1, %2")
-                              .arg(QString::number(meta.latitude, 'f', 6),
-                                   QString::number(meta.longitude, 'f', 6)));
+    const QString position = formatPosition(meta);
+    if (!position.isEmpty()) {
+        dive->setLocation(position);
     }
     for (const CylinderInfo &cylinder : meta.cylinders) {
         dive->addCylinder(cylinder);
@@ -331,9 +379,15 @@ DiveData *FitParser::buildDive(const QList<FitMessage> &messages, const Metadata
                         currentO2 = meta.cylinders.at(cylinderIndex).o2Percent;
                     }
                 } else if (event == 56 && data >= 24 && data <= 27) {
-                    // Automatic/manual switch to low (24/26) or high (25/27) setpoint
-                    currentSetpoint =
+                    // Automatic/manual switch to low (24/26) or high (25/27)
+                    // setpoint. Hold the previous value when the target is
+                    // unknown (dive_settings missing or partial) rather than
+                    // blanking the PO2 cells for the rest of the dive.
+                    const double target =
                         (data == 24 || data == 26) ? meta.setpointLowBar : meta.setpointHighBar;
+                    if (target > 0.0) {
+                        currentSetpoint = target;
+                    }
                 }
                 break;
             }
@@ -458,15 +512,13 @@ QList<QString> FitParser::listDives(QFile &file, QString &errorOut)
         return result;
     }
 
-    const QDateTime start = QDateTime::fromSecsSinceEpoch(
-        FIT_EPOCH_OFFSET + meta.startFit + meta.timeOffset, QTimeZone::utc());
-    QString entry = QStringLiteral("Dive #%1 - %2")
-                        .arg(meta.diveNumber)
-                        .arg(start.toString(QStringLiteral("yyyy-MM-dd hh:mm")));
-    if (meta.hasPosition && (meta.latitude != 0.0 || meta.longitude != 0.0)) {
-        entry += QStringLiteral(" at %1, %2")
-                     .arg(QString::number(meta.latitude, 'f', 4),
-                          QString::number(meta.longitude, 'f', 4));
+    QString entry =
+        QStringLiteral("Dive #%1 - %2")
+            .arg(meta.diveNumber)
+            .arg(startDateTime(meta).toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")));
+    const QString position = formatPosition(meta);
+    if (!position.isEmpty()) {
+        entry += QStringLiteral(" at ") + position;
     }
     result.append(entry);
     return result;

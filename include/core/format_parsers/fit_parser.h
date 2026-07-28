@@ -1,6 +1,7 @@
 #ifndef FIT_PARSER_H
 #define FIT_PARSER_H
 
+#include <QDateTime>
 #include <QMap>
 #include <QString>
 #include <QVector>
@@ -49,6 +50,9 @@ private:
     Metadata collectMetadata(const QList<FitMessage> &messages) const;
     bool isDive(const Metadata &meta, QString &errorOut) const;
     DiveData *buildDive(const QList<FitMessage> &messages, const Metadata &meta) const;
+
+    static QDateTime startDateTime(const Metadata &meta);
+    static QString formatPosition(const Metadata &meta);
 };
 
 #endif // FIT_PARSER_H

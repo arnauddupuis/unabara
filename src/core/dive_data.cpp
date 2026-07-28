@@ -300,10 +300,18 @@ DiveDataPoint DiveData::dataAtTime(double time) const
         // Check if we have cylinder information
         if (i < cylinderCount()) {
             const CylinderInfo &cylinder = cylinderInfo(i);
+            double prevPressure = prev.getPressure(i);
+            double nextPressure = next.getPressure(i);
 
-            // If cylinder has valid start/end pressure, use cylinder-based interpolation
-            // This is the primary method as it respects gas switches and handles missing samples
-            if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
+            // Recorded samples take precedence: they carry the actual
+            // consumption curve (fast at depth, slow at the stop), which the
+            // synthetic start/end ramp cannot reproduce
+            if (prevPressure > 0.0 && nextPressure > 0.0) {
+                pressure = prevPressure + factor * (nextPressure - prevPressure);
+            }
+            // Without samples, fall back to the cylinder start/end ramp,
+            // which respects gas switches and handles missing data
+            else if (cylinder.startPressure > 0.0 && cylinder.endPressure > 0.0) {
                 if (isCylinderActiveAtTime(i, time)) {
                     // Active cylinder: use cylinder-based interpolation
                     pressure = interpolateCylinderPressure(i, time);
@@ -316,14 +324,6 @@ DiveDataPoint DiveData::dataAtTime(double time) const
                         // Fallback: use start pressure if cylinder was never used
                         pressure = cylinder.startPressure;
                     }
-                }
-            }
-            // If no cylinder data available, fall back to sample-based interpolation
-            else {
-                double prevPressure = prev.getPressure(i);
-                double nextPressure = next.getPressure(i);
-                if (prevPressure > 0.0 && nextPressure > 0.0) {
-                    pressure = prevPressure + factor * (nextPressure - prevPressure);
                 }
             }
         }
@@ -429,11 +429,13 @@ void DiveData::addGasSwitch(double timestamp, int cylinderIndex) {
     gasSwitch.cylinderIndex = cylinderIndex;
     m_gasSwitches.append(gasSwitch);
     
-    // Keep gas switches sorted by timestamp
-    std::sort(m_gasSwitches.begin(), m_gasSwitches.end(), 
-              [](const GasSwitch &a, const GasSwitch &b) {
-                  return a.timestamp < b.timestamp;
-              });
+    // Keep gas switches sorted by timestamp. Stable so that switches sharing
+    // a timestamp (e.g. pre-dive switches clamped to t=0) keep their insertion
+    // order — activeCylinderAtTime picks the last one at or before t.
+    std::stable_sort(m_gasSwitches.begin(), m_gasSwitches.end(),
+                     [](const GasSwitch &a, const GasSwitch &b) {
+                         return a.timestamp < b.timestamp;
+                     });
 }
 
 int DiveData::activeCylinderAtTime(double timestamp) const {

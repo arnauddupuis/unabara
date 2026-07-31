@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Synthesize a FIT dive file exercising decoder paths absent from the real
 samples: tank pods, big-endian definitions, compressed timestamps, developer
-fields, and a gas switch."""
+fields, and a gas switch.
+
+Usage: make_synth_fit.py [output-path]   (default: ./synth_dive.fit)"""
 import struct
+import sys
 
 CRC_TABLE = [0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
              0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400]
@@ -131,6 +134,7 @@ header += struct.pack('<H', crc16(header))
 payload = header + records
 payload += struct.pack('<H', crc16(payload))
 
-with open('synth_dive.fit', 'wb') as f:
+out_path = sys.argv[1] if len(sys.argv) > 1 else 'synth_dive.fit'
+with open(out_path, 'wb') as f:
     f.write(payload)
-print(f"wrote synth_dive.fit ({len(payload)} bytes)")
+print(f"wrote {out_path} ({len(payload)} bytes)")

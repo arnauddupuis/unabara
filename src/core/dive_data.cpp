@@ -291,9 +291,10 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     
     // For in_deco state, we also shouldn't interpolate (though it's not part of DiveDataPoint directly)
     
-    // Interpolate all tank pressures
-    // Get the maximum number of tanks between both points
-    int maxTanks = qMax(prev.tankCount(), next.tankCount());
+    // Interpolate all tank pressures. Cover every known cylinder, not just
+    // the channels present in the samples — a dive with no per-sample
+    // pressures (manually entered log) still displays the start/end ramp.
+    int maxTanks = qMax(qMax(prev.tankCount(), next.tankCount()), cylinderCount());
     for (int i = 0; i < maxTanks; i++) {
         double pressure = 0.0;
 

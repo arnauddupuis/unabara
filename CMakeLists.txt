@@ -145,3 +145,9 @@ if(UNIX AND NOT APPLE)
         DESTINATION share/icons/hicolor/scalable/apps
         RENAME org.unabara.unabara.svg)
 endif()
+
+option(UNABARA_BUILD_TESTS "Build the unit tests" OFF)
+if(UNABARA_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

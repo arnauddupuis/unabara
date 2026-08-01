@@ -162,6 +162,19 @@ cmake --build . --config Release
 .\bin\Release\unabara.exe
 ```
 
+### Running the tests
+
+The unit tests (dive log parsers) require Python 3 for fixture generation:
+
+```bash
+cmake .. -DUNABARA_BUILD_TESTS=ON
+cmake --build .
+ctest --output-on-failure
+```
+
+Tests that rely on real dive computer logs are skipped automatically when no
+sample files are present in `tests/data/`.
+
 ## Video Export
 
 For direct video export functionality, FFmpeg needs to be installed on your system:

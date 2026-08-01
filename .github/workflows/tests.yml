@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Project minimum (macOS release builds need 6.9.3, see build_releases.yml).
+  # Building CI against the floor enforces the README's "Qt 6.8.0 or newer".
+  QT_VERSION: '6.8.3'
+
+jobs:
+  build-and-test:
+    name: Build & unit tests (Linux, Qt 6.8)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libfontconfig1
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4.1.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        modules: 'qtmultimedia'
+        cache: true
+
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DUNABARA_BUILD_TESTS=ON
+
+    - name: Build (app + tests)
+      run: cmake --build build -j"$(nproc)"
+
+    - name: Run unit tests
+      working-directory: build
+      run: ctest --output-on-failure

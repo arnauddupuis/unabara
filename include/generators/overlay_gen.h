@@ -24,6 +24,11 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
     Q_PROPERTY(bool showLabel READ showLabel WRITE setShowLabel NOTIFY showLabelChanged)
+    Q_PROPERTY(bool shadowEnabled READ shadowEnabled WRITE setShadowEnabled NOTIFY shadowChanged)
+    Q_PROPERTY(int shadowType READ shadowType WRITE setShadowType NOTIFY shadowChanged)
+    Q_PROPERTY(QColor shadowColor READ shadowColor WRITE setShadowColor NOTIFY shadowChanged)
+    Q_PROPERTY(int shadowSize READ shadowSize WRITE setShadowSize NOTIFY shadowChanged)
+    Q_PROPERTY(double shadowOpacity READ shadowOpacity WRITE setShadowOpacity NOTIFY shadowChanged)
     Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(bool showDepth READ showDepth WRITE setShowDepth NOTIFY showDepthChanged)
     Q_PROPERTY(bool showTemperature READ showTemperature WRITE setShowTemperature NOTIFY showTemperatureChanged)
@@ -62,6 +67,11 @@ public:
     QFont font() const { return m_font; }
     QColor textColor() const { return m_textColor; }
     bool showLabel() const { return m_showLabel; }
+    bool shadowEnabled() const { return m_shadowEnabled; }
+    int shadowType() const { return static_cast<int>(m_shadowType); }
+    QColor shadowColor() const { return m_shadowColor; }
+    int shadowSize() const { return m_shadowSize; }
+    double shadowOpacity() const { return m_shadowOpacity; }
     double backgroundOpacity() const { return m_backgroundOpacity; }
     bool showDepth() const { return m_showDepth; }
     bool showTemperature() const { return m_showTemperature; }
@@ -95,6 +105,11 @@ public:
     void setFont(const QFont &font);
     void setTextColor(const QColor &color);
     void setShowLabel(bool show);
+    void setShadowEnabled(bool enabled);
+    void setShadowType(int type);
+    void setShadowColor(const QColor& color);
+    void setShadowSize(int size);
+    void setShadowOpacity(double opacity);
     void setBackgroundOpacity(double opacity);
     void setShowDepth(bool show);
     void setShowTemperature(bool show);
@@ -135,11 +150,17 @@ public:
     Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
+    Q_INVOKABLE bool getCellShadowEnabled(const QString& cellId) const;
+    Q_INVOKABLE int getCellShadowType(const QString& cellId) const;
+    Q_INVOKABLE QColor getCellShadowColor(const QString& cellId) const;
+    Q_INVOKABLE int getCellShadowSize(const QString& cellId) const;
+    Q_INVOKABLE double getCellShadowOpacity(const QString& cellId) const;
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void setCellTypeVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void resetCellFont(const QString& cellId);
     Q_INVOKABLE void resetCellColor(const QString& cellId);
     Q_INVOKABLE void resetCellShowLabel(const QString& cellId);
+    Q_INVOKABLE void resetCellShadow(const QString& cellId);
     bool useCellBasedLayout() const { return m_useCellBasedLayout; }
     void setUseCellBasedLayout(bool use);
 
@@ -175,6 +196,7 @@ signals:
     void fontChanged();
     void textColorChanged();
     void showLabelChanged();
+    void shadowChanged();
     void backgroundOpacityChanged();
     void showDepthChanged();
     void showTemperatureChanged();
@@ -218,6 +240,11 @@ private:
     QFont m_font;
     QColor m_textColor;
     bool m_showLabel;
+    bool m_shadowEnabled;
+    Unabara::ShadowType m_shadowType;
+    QColor m_shadowColor;
+    int m_shadowSize;
+    double m_shadowOpacity;
     double m_backgroundOpacity;
     bool m_showDepth;
     bool m_showTemperature;

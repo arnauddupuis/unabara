@@ -16,6 +16,11 @@ OverlayTemplate::OverlayTemplate()
     , m_backgroundOpacity(1.0)
     , m_defaultFont(QFont("Sans Serif", 12))
     , m_defaultTextColor(Qt::white)
+    , m_defaultShadowEnabled(ShadowDefaults::enabled)
+    , m_defaultShadowType(ShadowDefaults::type)
+    , m_defaultShadowColor(ShadowDefaults::color())
+    , m_defaultShadowSize(ShadowDefaults::size)
+    , m_defaultShadowOpacity(ShadowDefaults::opacity)
 {
 }
 
@@ -133,6 +138,13 @@ QJsonObject OverlayTemplate::toJson() const
     // Default text color
     json["defaultTextColor"] = m_defaultTextColor.name(QColor::HexArgb);
 
+    // Default shadow settings
+    json["defaultShadowEnabled"] = m_defaultShadowEnabled;
+    json["defaultShadowType"] = CellData::shadowTypeToString(m_defaultShadowType);
+    json["defaultShadowColor"] = m_defaultShadowColor.name(QColor::HexArgb);
+    json["defaultShadowSize"] = m_defaultShadowSize;
+    json["defaultShadowOpacity"] = m_defaultShadowOpacity;
+
     // Cells
     QJsonArray cellsArray;
     for (const auto& cell : m_cells) {
@@ -174,6 +186,14 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
     if (json.contains("defaultTextColor")) {
         templ.m_defaultTextColor = QColor(json["defaultTextColor"].toString());
     }
+
+    // Default shadow settings (absent in templates predating shadows → ShadowDefaults)
+    templ.m_defaultShadowEnabled = json["defaultShadowEnabled"].toBool(ShadowDefaults::enabled);
+    templ.m_defaultShadowType = CellData::shadowTypeFromString(json["defaultShadowType"].toString());
+    templ.m_defaultShadowColor = QColor(json["defaultShadowColor"].toString(
+        ShadowDefaults::color().name(QColor::HexArgb)));
+    templ.m_defaultShadowSize = json["defaultShadowSize"].toInt(ShadowDefaults::size);
+    templ.m_defaultShadowOpacity = json["defaultShadowOpacity"].toDouble(ShadowDefaults::opacity);
 
     // Cells
     if (json.contains("cells")) {

@@ -51,6 +51,18 @@ QVariant CellModel::data(const QModelIndex &index, int role) const
         return cell.showLabel();
     case HasCustomShowLabelRole:
         return cell.hasCustomShowLabel();
+    case ShadowEnabledRole:
+        return cell.shadowEnabled();
+    case ShadowTypeRole:
+        return static_cast<int>(cell.shadowType());
+    case ShadowColorRole:
+        return cell.shadowColor();
+    case ShadowSizeRole:
+        return cell.shadowSize();
+    case ShadowOpacityRole:
+        return cell.shadowOpacity();
+    case HasCustomShadowRole:
+        return cell.hasCustomShadow();
     default:
         return QVariant();
     }
@@ -72,6 +84,12 @@ QHash<int, QByteArray> CellModel::roleNames() const
     roles[TankIndexRole] = "tankIndex";
     roles[ShowLabelRole] = "showLabel";
     roles[HasCustomShowLabelRole] = "hasCustomShowLabel";
+    roles[ShadowEnabledRole] = "shadowEnabled";
+    roles[ShadowTypeRole] = "shadowType";
+    roles[ShadowColorRole] = "shadowColor";
+    roles[ShadowSizeRole] = "shadowSize";
+    roles[ShadowOpacityRole] = "shadowOpacity";
+    roles[HasCustomShadowRole] = "hasCustomShadow";
     return roles;
 }
 

@@ -14,6 +14,12 @@ CellData::CellData()
     , m_hasCustomColor(false)
     , m_showLabel(true)
     , m_hasCustomShowLabel(false)
+    , m_shadowEnabled(ShadowDefaults::enabled)
+    , m_shadowType(ShadowDefaults::type)
+    , m_shadowColor(ShadowDefaults::color())
+    , m_shadowSize(ShadowDefaults::size)
+    , m_shadowOpacity(ShadowDefaults::opacity)
+    , m_hasCustomShadow(false)
     , m_tankIndex(-1)
 {
 }
@@ -30,6 +36,12 @@ CellData::CellData(const QString& cellId, CellType cellType)
     , m_hasCustomColor(false)
     , m_showLabel(true)
     , m_hasCustomShowLabel(false)
+    , m_shadowEnabled(ShadowDefaults::enabled)
+    , m_shadowType(ShadowDefaults::type)
+    , m_shadowColor(ShadowDefaults::color())
+    , m_shadowSize(ShadowDefaults::size)
+    , m_shadowOpacity(ShadowDefaults::opacity)
+    , m_hasCustomShadow(false)
     , m_tankIndex(-1)
 {
 }
@@ -50,6 +62,36 @@ void CellData::setShowLabel(bool show, bool isCustom)
 {
     m_showLabel = show;
     m_hasCustomShowLabel = isCustom;
+}
+
+void CellData::setShadowEnabled(bool enabled, bool isCustom)
+{
+    m_shadowEnabled = enabled;
+    m_hasCustomShadow = isCustom;
+}
+
+void CellData::setShadowType(ShadowType type, bool isCustom)
+{
+    m_shadowType = type;
+    m_hasCustomShadow = isCustom;
+}
+
+void CellData::setShadowColor(const QColor& color, bool isCustom)
+{
+    m_shadowColor = color;
+    m_hasCustomShadow = isCustom;
+}
+
+void CellData::setShadowSize(int size, bool isCustom)
+{
+    m_shadowSize = size;
+    m_hasCustomShadow = isCustom;
+}
+
+void CellData::setShadowOpacity(double opacity, bool isCustom)
+{
+    m_shadowOpacity = opacity;
+    m_hasCustomShadow = isCustom;
 }
 
 QJsonObject CellData::toJson() const
@@ -99,6 +141,13 @@ QJsonObject CellData::toJson() const
 
     json["showLabel"] = m_showLabel;
     json["hasCustomShowLabel"] = m_hasCustomShowLabel;
+
+    json["shadowEnabled"] = m_shadowEnabled;
+    json["shadowType"] = shadowTypeToString(m_shadowType);
+    json["shadowColor"] = m_shadowColor.name(QColor::HexArgb);
+    json["shadowSize"] = m_shadowSize;
+    json["shadowOpacity"] = m_shadowOpacity;
+    json["hasCustomShadow"] = m_hasCustomShadow;
 
     return json;
 }
@@ -150,6 +199,16 @@ CellData CellData::fromJson(const QJsonObject& json)
     cell.m_showLabel = json["showLabel"].toBool(true);
     cell.m_hasCustomShowLabel = json["hasCustomShowLabel"].toBool(false);
 
+    // Shadow settings (defaults match ShadowDefaults — old .utp files
+    // predating these fields load with shadows disabled).
+    cell.m_shadowEnabled = json["shadowEnabled"].toBool(ShadowDefaults::enabled);
+    cell.m_shadowType = shadowTypeFromString(json["shadowType"].toString());
+    cell.m_shadowColor = QColor(json["shadowColor"].toString(
+        ShadowDefaults::color().name(QColor::HexArgb)));
+    cell.m_shadowSize = json["shadowSize"].toInt(ShadowDefaults::size);
+    cell.m_shadowOpacity = json["shadowOpacity"].toDouble(ShadowDefaults::opacity);
+    cell.m_hasCustomShadow = json["hasCustomShadow"].toBool(false);
+
     return cell;
 }
 
@@ -191,6 +250,22 @@ CellType CellData::cellTypeFromString(const QString& str)
     if (str == "MaxDepth") return CellType::MaxDepth;
     if (str == "Gas") return CellType::Gas;
     return CellType::Unknown;
+}
+
+QString CellData::shadowTypeToString(ShadowType type)
+{
+    switch (type) {
+        case ShadowType::Blurred: return "blurred";
+        case ShadowType::Outline: return "outline";
+        default: return "offset";
+    }
+}
+
+ShadowType CellData::shadowTypeFromString(const QString& str)
+{
+    if (str == "blurred") return ShadowType::Blurred;
+    if (str == "outline") return ShadowType::Outline;
+    return ShadowType::Offset;
 }
 
 } // namespace Unabara

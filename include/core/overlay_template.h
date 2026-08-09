@@ -31,6 +31,11 @@ public:
     QVector<CellData> cells() const { return m_cells; }
     QFont defaultFont() const { return m_defaultFont; }
     QColor defaultTextColor() const { return m_defaultTextColor; }
+    bool defaultShadowEnabled() const { return m_defaultShadowEnabled; }
+    ShadowType defaultShadowType() const { return m_defaultShadowType; }
+    QColor defaultShadowColor() const { return m_defaultShadowColor; }
+    int defaultShadowSize() const { return m_defaultShadowSize; }
+    double defaultShadowOpacity() const { return m_defaultShadowOpacity; }
 
     // Setters
     void setTemplateName(const QString& name) { m_templateName = name; }
@@ -39,6 +44,11 @@ public:
     void setCells(const QVector<CellData>& cells) { m_cells = cells; }
     void setDefaultFont(const QFont& font) { m_defaultFont = font; }
     void setDefaultTextColor(const QColor& color) { m_defaultTextColor = color; }
+    void setDefaultShadowEnabled(bool enabled) { m_defaultShadowEnabled = enabled; }
+    void setDefaultShadowType(ShadowType type) { m_defaultShadowType = type; }
+    void setDefaultShadowColor(const QColor& color) { m_defaultShadowColor = color; }
+    void setDefaultShadowSize(int size) { m_defaultShadowSize = size; }
+    void setDefaultShadowOpacity(double opacity) { m_defaultShadowOpacity = opacity; }
 
     // Cell management
     void addCell(const CellData& cell);
@@ -71,6 +81,11 @@ private:
     QVector<CellData> m_cells;
     QFont m_defaultFont;
     QColor m_defaultTextColor;
+    bool m_defaultShadowEnabled;
+    ShadowType m_defaultShadowType;
+    QColor m_defaultShadowColor;
+    int m_defaultShadowSize;
+    double m_defaultShadowOpacity;
 
     static const QString TEMPLATE_VERSION;  // Current template format version
 };

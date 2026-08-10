@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     QObject::connect(overlayGenerator, &OverlayGenerator::showTimeChanged,          invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::backgroundOpacityChanged, invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showLabelChanged,         invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::shadowChanged,            invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell1Changed,      invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell2Changed,      invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell3Changed,      invalidateOverlay);
@@ -133,6 +134,7 @@ int main(int argc, char *argv[])
     undoManager->trackSignal(SIGNAL(backgroundOpacityChanged()));
     undoManager->trackSignal(SIGNAL(templateChanged()));
     undoManager->trackSignal(SIGNAL(showLabelChanged()));
+    undoManager->trackSignal(SIGNAL(shadowChanged()));
 
     // History boundaries: a template file load (combobox / Load button) and a
     // dive import both reset undo history so it never crosses them. templateLoaded

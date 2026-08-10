@@ -17,6 +17,11 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_font(QFont("Sans Serif", 12))
     , m_textColor(Qt::white)
     , m_showLabel(true)
+    , m_shadowEnabled(Unabara::ShadowDefaults::enabled)
+    , m_shadowType(Unabara::ShadowDefaults::type)
+    , m_shadowColor(Unabara::ShadowDefaults::color())
+    , m_shadowSize(Unabara::ShadowDefaults::size)
+    , m_shadowOpacity(Unabara::ShadowDefaults::opacity)
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
     , m_showTemperature(true)
@@ -188,6 +193,148 @@ void OverlayGenerator::setShowLabel(bool show)
         Unabara::CellData* cell = getCellData(m_selectedCellId);
         if (cell && cell->showLabel() != show) {
             cell->setShowLabel(show, true); // true = custom override
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShadowEnabled(bool enabled)
+{
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_shadowEnabled != enabled) {
+            m_shadowEnabled = enabled;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShadow()) {
+                    cell.setShadowEnabled(enabled, false); // false = inherited from global
+                }
+            }
+
+            emit shadowChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->shadowEnabled() != enabled) {
+            cell->setShadowEnabled(enabled, true); // true = custom override
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShadowType(int type)
+{
+    auto shadowType = static_cast<Unabara::ShadowType>(
+        qBound(0, type, static_cast<int>(Unabara::ShadowType::Outline)));
+
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_shadowType != shadowType) {
+            m_shadowType = shadowType;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShadow()) {
+                    cell.setShadowType(shadowType, false); // false = inherited from global
+                }
+            }
+
+            emit shadowChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->shadowType() != shadowType) {
+            cell->setShadowType(shadowType, true); // true = custom override
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShadowColor(const QColor& color)
+{
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_shadowColor != color) {
+            m_shadowColor = color;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShadow()) {
+                    cell.setShadowColor(color, false); // false = inherited from global
+                }
+            }
+
+            emit shadowChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->shadowColor() != color) {
+            cell->setShadowColor(color, true); // true = custom override
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShadowSize(int size)
+{
+    size = qBound(1, size, 10);
+
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_shadowSize != size) {
+            m_shadowSize = size;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShadow()) {
+                    cell.setShadowSize(size, false); // false = inherited from global
+                }
+            }
+
+            emit shadowChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->shadowSize() != size) {
+            cell->setShadowSize(size, true); // true = custom override
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setShadowOpacity(double opacity)
+{
+    opacity = qBound(0.0, opacity, 1.0);
+
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_shadowOpacity != opacity) {
+            m_shadowOpacity = opacity;
+
+            // Apply to all cells that don't have a per-cell override
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomShadow()) {
+                    cell.setShadowOpacity(opacity, false); // false = inherited from global
+                }
+            }
+
+            emit shadowChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell as a per-cell override
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->shadowOpacity() != opacity) {
+            cell->setShadowOpacity(opacity, true); // true = custom override
             emit cellsChanged();
         }
     }
@@ -504,6 +651,20 @@ void OverlayGenerator::resetCellShowLabel(const QString& cellId)
     }
 }
 
+void OverlayGenerator::resetCellShadow(const QString& cellId)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        // Reset the whole shadow group to the global defaults
+        cell->setShadowEnabled(m_shadowEnabled, false);  // false = inherited from global
+        cell->setShadowType(m_shadowType, false);
+        cell->setShadowColor(m_shadowColor, false);
+        cell->setShadowSize(m_shadowSize, false);
+        cell->setShadowOpacity(m_shadowOpacity, false);
+        emit cellsChanged();
+    }
+}
+
 // Cell-based layout management methods
 
 Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId)
@@ -595,6 +756,51 @@ bool OverlayGenerator::getCellShowLabel(const QString& cellId) const
         return cell->showLabel();
     }
     return m_showLabel;
+}
+
+bool OverlayGenerator::getCellShadowEnabled(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        return cell->shadowEnabled();
+    }
+    return m_shadowEnabled;
+}
+
+int OverlayGenerator::getCellShadowType(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        return static_cast<int>(cell->shadowType());
+    }
+    return static_cast<int>(m_shadowType);
+}
+
+QColor OverlayGenerator::getCellShadowColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        return cell->shadowColor();
+    }
+    return m_shadowColor;
+}
+
+int OverlayGenerator::getCellShadowSize(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        return cell->shadowSize();
+    }
+    return m_shadowSize;
+}
+
+double OverlayGenerator::getCellShadowOpacity(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomShadow()) {
+        return cell->shadowOpacity();
+    }
+    return m_shadowOpacity;
 }
 
 void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
@@ -770,8 +976,25 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_backgroundOpacity = templ.backgroundOpacity();
     m_font = templ.defaultFont();
     m_textColor = templ.defaultTextColor();
+    m_shadowEnabled = templ.defaultShadowEnabled();
+    m_shadowType = templ.defaultShadowType();
+    m_shadowColor = templ.defaultShadowColor();
+    m_shadowSize = templ.defaultShadowSize();
+    m_shadowOpacity = templ.defaultShadowOpacity();
     m_cells = templ.cells();
     m_useCellBasedLayout = true;
+
+    // Re-propagate global shadow settings into cells without a per-cell
+    // override, in case a hand-edited template disagrees with its defaults
+    for (auto& cell : m_cells) {
+        if (!cell.hasCustomShadow()) {
+            cell.setShadowEnabled(m_shadowEnabled, false);
+            cell.setShadowType(m_shadowType, false);
+            cell.setShadowColor(m_shadowColor, false);
+            cell.setShadowSize(m_shadowSize, false);
+            cell.setShadowOpacity(m_shadowOpacity, false);
+        }
+    }
 
     // Reset all visibility flags before scanning cells
     m_showDepth = false;
@@ -820,6 +1043,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     }
 
     emit templateChanged();
+    emit shadowChanged();
     emit cellsChanged();
     emit cellLayoutChanged();
     emit showDepthChanged();
@@ -845,6 +1069,11 @@ Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
     templ.setBackgroundOpacity(m_backgroundOpacity);
     templ.setDefaultFont(m_font);
     templ.setDefaultTextColor(m_textColor);
+    templ.setDefaultShadowEnabled(m_shadowEnabled);
+    templ.setDefaultShadowType(m_shadowType);
+    templ.setDefaultShadowColor(m_shadowColor);
+    templ.setDefaultShadowSize(m_shadowSize);
+    templ.setDefaultShadowOpacity(m_shadowOpacity);
     templ.setCells(m_cells);
     return templ;
 }
@@ -1426,6 +1655,72 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
     }
 }
 
+namespace {
+
+// One separable sliding-window box blur pass over a premultiplied ARGB32 image.
+// Blurring all 4 channels of premultiplied data is alpha-correct.
+void boxBlurPass(QImage& img, int radius)
+{
+    const int w = img.width();
+    const int h = img.height();
+    const int window = 2 * radius + 1;
+    QVector<QRgb> line(qMax(w, h));
+
+    // Horizontal pass
+    for (int y = 0; y < h; ++y) {
+        QRgb* row = reinterpret_cast<QRgb*>(img.scanLine(y));
+        int sumA = 0, sumR = 0, sumG = 0, sumB = 0;
+        for (int x = -radius; x <= radius; ++x) {
+            QRgb p = row[qBound(0, x, w - 1)];
+            sumA += qAlpha(p); sumR += qRed(p); sumG += qGreen(p); sumB += qBlue(p);
+        }
+        for (int x = 0; x < w; ++x) {
+            line[x] = qRgba(sumR / window, sumG / window, sumB / window, sumA / window);
+            QRgb pOut = row[qBound(0, x - radius, w - 1)];
+            QRgb pIn = row[qBound(0, x + radius + 1, w - 1)];
+            sumA += qAlpha(pIn) - qAlpha(pOut);
+            sumR += qRed(pIn) - qRed(pOut);
+            sumG += qGreen(pIn) - qGreen(pOut);
+            sumB += qBlue(pIn) - qBlue(pOut);
+        }
+        memcpy(row, line.constData(), w * sizeof(QRgb));
+    }
+
+    // Vertical pass
+    const qsizetype stride = img.bytesPerLine() / sizeof(QRgb);
+    QRgb* bits = reinterpret_cast<QRgb*>(img.bits());
+    for (int x = 0; x < w; ++x) {
+        int sumA = 0, sumR = 0, sumG = 0, sumB = 0;
+        for (int y = -radius; y <= radius; ++y) {
+            QRgb p = bits[qBound(0, y, h - 1) * stride + x];
+            sumA += qAlpha(p); sumR += qRed(p); sumG += qGreen(p); sumB += qBlue(p);
+        }
+        for (int y = 0; y < h; ++y) {
+            line[y] = qRgba(sumR / window, sumG / window, sumB / window, sumA / window);
+            QRgb pOut = bits[qBound(0, y - radius, h - 1) * stride + x];
+            QRgb pIn = bits[qBound(0, y + radius + 1, h - 1) * stride + x];
+            sumA += qAlpha(pIn) - qAlpha(pOut);
+            sumR += qRed(pIn) - qRed(pOut);
+            sumG += qGreen(pIn) - qGreen(pOut);
+            sumB += qBlue(pIn) - qBlue(pOut);
+        }
+        for (int y = 0; y < h; ++y) {
+            bits[y * stride + x] = line[y];
+        }
+    }
+}
+
+// Three box blur passes approximate a gaussian blur.
+void boxBlur(QImage& img, int radius)
+{
+    if (radius < 1) return;
+    for (int i = 0; i < 3; ++i) {
+        boxBlurPass(img, radius);
+    }
+}
+
+} // anonymous namespace
+
 void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& imageSize,
                                               const DiveDataPoint& dataPoint, DiveData* dive)
 {
@@ -1440,6 +1735,14 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         // Get effective font and color (same as before)
         QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
         QColor effectiveColor = cell.hasCustomColor() ? cell.textColor() : m_textColor;
+
+        // Effective shadow settings (single hasCustomShadow flag covers the group)
+        const bool customShadow = cell.hasCustomShadow();
+        const bool shadowEnabled = customShadow ? cell.shadowEnabled() : m_shadowEnabled;
+        const Unabara::ShadowType shadowType = customShadow ? cell.shadowType() : m_shadowType;
+        QColor shadowColor = customShadow ? cell.shadowColor() : m_shadowColor;
+        const int shadowSize = customShadow ? cell.shadowSize() : m_shadowSize;
+        const double shadowOpacity = customShadow ? cell.shadowOpacity() : m_shadowOpacity;
 
         // Generate displayText (same format as QML CellModel)
         QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
@@ -1474,6 +1777,46 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         if (m_showCellBackgrounds) {
             QRect bgRect(pixelX, pixelY, cellWidth, cellHeight);
             painter.fillRect(bgRect, QColor(0, 0, 0, 128));
+        }
+
+        // Draw the shadow first, if enabled (same 1.8 scale factor as fonts)
+        if (shadowEnabled && !displayText.isEmpty()) {
+            shadowColor.setAlphaF(shadowColor.alphaF() * shadowOpacity);
+            const int spx = qMax(1, qRound(shadowSize * 1.8));
+
+            switch (shadowType) {
+            case Unabara::ShadowType::Offset:
+                painter.setPen(shadowColor);
+                painter.drawText(cellRect.translated(spx, spx),
+                                 Qt::AlignHCenter | Qt::TextDontClip, displayText);
+                break;
+            case Unabara::ShadowType::Outline: {
+                static const QPoint dirs[8] = {{-1,-1},{0,-1},{1,-1},{-1,0},{1,0},{-1,1},{0,1},{1,1}};
+                painter.setPen(shadowColor);
+                for (const QPoint& d : dirs) {
+                    painter.drawText(cellRect.translated(d.x() * spx, d.y() * spx),
+                                     Qt::AlignHCenter | Qt::TextDontClip, displayText);
+                }
+                break;
+            }
+            case Unabara::ShadowType::Blurred: {
+                // Render the text into its own image, blur it, composite offset
+                const int margin = spx * 3;  // room for the blur to spread
+                QImage shadowImg(cellWidth + 2 * margin, cellHeight + 2 * margin,
+                                 QImage::Format_ARGB32_Premultiplied);
+                shadowImg.fill(Qt::transparent);
+                {
+                    QPainter sp(&shadowImg);
+                    sp.setFont(renderFont);
+                    sp.setPen(shadowColor);
+                    sp.drawText(QRect(margin + 4, margin + 4, cellWidth - 8, cellHeight - 8),
+                                Qt::AlignHCenter | Qt::TextDontClip, displayText);
+                }
+                boxBlur(shadowImg, spx);
+                painter.drawImage(QPoint(pixelX - margin + spx, pixelY - margin + spx), shadowImg);
+                break;
+            }
+            }
         }
 
         // Draw the text (center-aligned to match QML's Text.AlignHCenter)

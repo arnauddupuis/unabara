@@ -447,6 +447,11 @@ ApplicationWindow {
                         function onFontChanged() { previewImage.updatePreview() }
                         function onTextColorChanged() { previewImage.updatePreview() }
                         function onBackgroundOpacityChanged() { previewImage.updatePreview() }
+                        function onShadowChanged() { previewImage.updatePreview() }
+                        function onShowLabelChanged() { previewImage.updatePreview() }
+                        // Per-cell edits (font, color, showLabel, shadow on a selected
+                        // cell) only emit cellsChanged — refresh the preview for those too
+                        function onCellsChanged() { previewImage.updatePreview() }
                     }
                     
                     // Monitor changes to config properties (unit system only)

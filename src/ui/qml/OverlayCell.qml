@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 
 /**
  * Individual overlay cell component
@@ -26,6 +27,12 @@ Rectangle {
     property bool overlapping: false
     property bool hasCustomFont: false
     property bool hasCustomColor: false
+    property bool shadowEnabled: false
+    property int shadowType: 0            // 0 = offset, 1 = blurred, 2 = outline
+    property color shadowColor: "black"
+    property real shadowPx: 2             // pre-scaled by the delegate (size * 1.8 * scaleX)
+    property real shadowOpacity: 0.7
+    property bool hasCustomShadow: false
     property bool dragging: mouseArea.drag.active  // Expose drag state
     property var generator: null  // Reference to overlay generator for snap settings
     property bool showBackground: true  // Show cell background (editor only, not for export)
@@ -43,6 +50,35 @@ Rectangle {
     border.color: selected ? "lime" : "transparent"
     border.width: selected ? 3 : 0
 
+    // Slight background for better visibility (editor only).
+    // Kept as first sibling so shadows and text paint above it.
+    Rectangle {
+        anchors.fill: cellText
+        anchors.margins: -4
+        color: "#80000000"  // Semi-transparent black background
+        radius: 4
+        visible: cellRoot.showBackground
+    }
+
+    // Crisp offset (1 copy) / outline (8 copies) shadow — drawn beneath the text
+    Repeater {
+        model: (!cellRoot.shadowEnabled || cellRoot.shadowType === 1) ? []
+             : cellRoot.shadowType === 0 ? [Qt.point(1, 1)]
+             : [Qt.point(-1, -1), Qt.point(0, -1), Qt.point(1, -1), Qt.point(-1, 0),
+                Qt.point(1, 0), Qt.point(-1, 1), Qt.point(0, 1), Qt.point(1, 1)]
+        delegate: Text {
+            x: 4 + modelData.x * cellRoot.shadowPx
+            y: 4 + modelData.y * cellRoot.shadowPx
+            text: cellRoot.displayText
+            font: cellRoot.cellFont
+            color: cellRoot.shadowColor
+            opacity: cellRoot.shadowOpacity
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignTop
+            wrapMode: Text.NoWrap
+        }
+    }
+
     // Cell content
     Text {
         id: cellText
@@ -54,16 +90,24 @@ Rectangle {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignTop
         wrapMode: Text.NoWrap
+        // In blurred mode MultiEffect renders the text (plus its shadow);
+        // an invisible Text still computes its size, so layout is unaffected
+        visible: !(cellRoot.shadowEnabled && cellRoot.shadowType === 1)
+    }
 
-        // Add slight background for better visibility (editor only)
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: -4
-            color: "#80000000"  // Semi-transparent black background
-            radius: 4
-            z: -1
-            visible: cellRoot.showBackground
-        }
+    // Soft blurred shadow (renders the text and its blurred shadow together)
+    MultiEffect {
+        source: cellText
+        anchors.fill: cellText
+        visible: cellRoot.shadowEnabled && cellRoot.shadowType === 1
+        shadowEnabled: true
+        shadowColor: cellRoot.shadowColor
+        shadowOpacity: cellRoot.shadowOpacity
+        shadowHorizontalOffset: cellRoot.shadowPx
+        shadowVerticalOffset: cellRoot.shadowPx
+        blurMax: 64
+        shadowBlur: Math.min(1.0, cellRoot.shadowPx * 2 / 64)
+        autoPaddingEnabled: true
     }
 
     // Custom property indicators
@@ -104,6 +148,24 @@ Rectangle {
 
             MouseArea {
                 id: customColorMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+        }
+
+        // Custom shadow indicator
+        Rectangle {
+            width: 8
+            height: 8
+            radius: 4
+            color: "orange"
+            visible: hasCustomShadow
+
+            ToolTip.visible: customShadowMouseArea.containsMouse
+            ToolTip.text: "Custom shadow"
+
+            MouseArea {
+                id: customShadowMouseArea
                 anchors.fill: parent
                 hoverEnabled: true
             }

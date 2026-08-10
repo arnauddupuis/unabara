@@ -31,7 +31,13 @@ public:
         HasCustomColorRole,
         TankIndexRole,
         ShowLabelRole,
-        HasCustomShowLabelRole
+        HasCustomShowLabelRole,
+        ShadowEnabledRole,
+        ShadowTypeRole,
+        ShadowColorRole,
+        ShadowSizeRole,
+        ShadowOpacityRole,
+        HasCustomShadowRole
     };
 
     explicit CellModel(QObject *parent = nullptr);

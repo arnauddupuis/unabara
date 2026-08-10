@@ -10,6 +10,7 @@
 
 using Unabara::CellData;
 using Unabara::CellType;
+using Unabara::ShadowType;
 
 class CellDataTest : public QObject
 {
@@ -34,6 +35,21 @@ private slots:
                  CellType::Unknown);
     }
 
+    void shadowTypeStringRoundTrip()
+    {
+        const QList<ShadowType> all = {
+            ShadowType::Offset, ShadowType::Blurred, ShadowType::Outline,
+        };
+        for (ShadowType type : all) {
+            const QString str = CellData::shadowTypeToString(type);
+            QVERIFY2(!str.isEmpty(), "empty shadow type string");
+            QCOMPARE(CellData::shadowTypeFromString(str), type);
+        }
+        // Unknown strings (e.g. from a newer template) degrade gracefully
+        QCOMPARE(CellData::shadowTypeFromString(QStringLiteral("FutureShadow")),
+                 ShadowType::Offset);
+    }
+
     void jsonRoundTripPreservesCell()
     {
         CellData cell(QStringLiteral("tank_1"), CellType::Pressure);
@@ -45,6 +61,11 @@ private slots:
         font.setBold(true);
         cell.setFont(font, true);
         cell.setTextColor(QColor(255, 128, 0), true);
+        cell.setShadowEnabled(true);
+        cell.setShadowType(ShadowType::Outline);
+        cell.setShadowColor(QColor(0, 0, 255, 200));
+        cell.setShadowSize(5);
+        cell.setShadowOpacity(0.4);
 
         const CellData restored = CellData::fromJson(cell.toJson());
         QCOMPARE(restored.cellId(), QStringLiteral("tank_1"));
@@ -57,17 +78,28 @@ private slots:
         QCOMPARE(restored.font().pointSize(), 18);
         QVERIFY(restored.font().bold());
         QCOMPARE(restored.textColor(), QColor(255, 128, 0));
+        QCOMPARE(restored.shadowEnabled(), true);
+        QCOMPARE(restored.shadowType(), ShadowType::Outline);
+        QCOMPARE(restored.shadowColor(), QColor(0, 0, 255, 200));
+        QCOMPARE(restored.shadowSize(), 5);
+        QCOMPARE(restored.shadowOpacity(), 0.4);
+        QVERIFY(restored.hasCustomShadow());
     }
 
     void jsonDefaultsSurviveMinimalInput()
     {
-        // A minimal cell (no custom font/color) must round-trip without
+        // A minimal cell (no custom font/color/shadow) must round-trip without
         // inventing custom styling
         CellData cell(QStringLiteral("depth"), CellType::Depth);
         const CellData restored = CellData::fromJson(cell.toJson());
         QCOMPARE(restored.cellId(), QStringLiteral("depth"));
         QCOMPARE(restored.cellType(), CellType::Depth);
         QCOMPARE(restored.visible(), true);
+        QCOMPARE(restored.shadowEnabled(), false);
+        QCOMPARE(restored.shadowType(), ShadowType::Offset);
+        QCOMPARE(restored.shadowSize(), 2);
+        QCOMPARE(restored.shadowOpacity(), 0.7);
+        QVERIFY(!restored.hasCustomShadow());
     }
 };
 

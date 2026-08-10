@@ -21,6 +21,12 @@ Item {
     property bool currentHasCustomColor: getSelectedCellHasCustomColor()
     property bool currentShowLabel: getCurrentShowLabel()
     property bool currentHasCustomShowLabel: getSelectedCellHasCustomShowLabel()
+    property bool currentShadowEnabled: getCurrentShadowEnabled()
+    property int currentShadowType: getCurrentShadowType()
+    property color currentShadowColor: getCurrentShadowColor()
+    property int currentShadowSize: getCurrentShadowSize()
+    property real currentShadowOpacity: getCurrentShadowOpacity()
+    property bool currentHasCustomShadow: getSelectedCellHasCustomShadow()
 
     implicitHeight: mainColumn.implicitHeight
 
@@ -94,6 +100,64 @@ Item {
         return hasCustom === true
     }
 
+    // Get the effective shadow settings (selected cell or global)
+    function getCurrentShadowEnabled() {
+        if (!generator) return false
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShadowEnabled(selectedCellId)
+        }
+
+        return generator.shadowEnabled
+    }
+
+    function getCurrentShadowType() {
+        if (!generator) return 0
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShadowType(selectedCellId)
+        }
+
+        return generator.shadowType
+    }
+
+    function getCurrentShadowColor() {
+        if (!generator) return "black"
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShadowColor(selectedCellId)
+        }
+
+        return generator.shadowColor
+    }
+
+    function getCurrentShadowSize() {
+        if (!generator) return 2
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShadowSize(selectedCellId)
+        }
+
+        return generator.shadowSize
+    }
+
+    function getCurrentShadowOpacity() {
+        if (!generator) return 0.7
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellShadowOpacity(selectedCellId)
+        }
+
+        return generator.shadowOpacity
+    }
+
+    function getSelectedCellHasCustomShadow() {
+        if (!hasSelection || !selectedCellId) return false
+
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomShadow")
+        return hasCustom === true
+    }
+
     // Update reactive properties when selection or cells change
     onSelectedCellIdChanged: {
         console.log("Selection changed to:", selectedCellId)
@@ -128,6 +192,13 @@ Item {
                 updateCurrentProperties()
             }
         }
+
+        function onShadowChanged() {
+            if (!hasSelection) {
+                console.log("Global shadow changed")
+                updateCurrentProperties()
+            }
+        }
     }
 
     function updateCurrentProperties() {
@@ -140,6 +211,12 @@ Item {
         currentHasCustomColor = getSelectedCellHasCustomColor()
         currentShowLabel = getCurrentShowLabel()
         currentHasCustomShowLabel = getSelectedCellHasCustomShowLabel()
+        currentShadowEnabled = getCurrentShadowEnabled()
+        currentShadowType = getCurrentShadowType()
+        currentShadowColor = getCurrentShadowColor()
+        currentShadowSize = getCurrentShadowSize()
+        currentShadowOpacity = getCurrentShadowOpacity()
+        currentHasCustomShadow = getSelectedCellHasCustomShadow()
     }
 
     // Cell model for interactive preview
@@ -744,6 +821,120 @@ Item {
                     }
                 }
 
+                Label { text: qsTr("Shadow:") }
+                CheckBox {
+                    id: shadowEnabledCheckBox
+                    Layout.fillWidth: true
+                    text: qsTr("Enable text shadow")
+                    checked: root.currentShadowEnabled
+                    Connections {
+                        target: root
+                        function onCurrentShadowEnabledChanged() {
+                            shadowEnabledCheckBox.checked = root.currentShadowEnabled
+                        }
+                    }
+                    onClicked: {
+                        if (root.generator) {
+                            root.generator.shadowEnabled = checked
+                        }
+                    }
+                }
+
+                Button {
+                    text: "↺"
+                    Layout.preferredWidth: 40
+                    enabled: root.hasSelection && root.currentHasCustomShadow
+                    opacity: enabled ? 1.0 : 0.3
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ? qsTr("Reset to global shadow settings") : qsTr("No custom shadow settings")
+                    onClicked: {
+                        if (root.generator && root.selectedCellId) {
+                            root.generator.resetCellShadow(root.selectedCellId)
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Shadow type:") }
+                ComboBox {
+                    id: shadowTypeCombo
+                    Layout.fillWidth: true
+                    enabled: root.currentShadowEnabled
+                    model: [qsTr("Crisp offset"), qsTr("Soft blurred"), qsTr("Outline")]
+                    currentIndex: root.currentShadowType
+                    Connections {
+                        target: root
+                        function onCurrentShadowTypeChanged() {
+                            shadowTypeCombo.currentIndex = root.currentShadowType
+                        }
+                    }
+                    onActivated: {
+                        if (root.generator) {
+                            root.generator.shadowType = currentIndex
+                        }
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                Label { text: qsTr("Shadow color:") }
+                Button {
+                    id: shadowColorButton
+                    Layout.fillWidth: true
+                    enabled: root.currentShadowEnabled
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: root.currentShadowColor
+                        opacity: shadowColorButton.enabled ? 1.0 : 0.3
+                    }
+
+                    onClicked: shadowColorDialog.open()
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                Label { text: qsTr("Shadow size:") }
+                SpinBox {
+                    id: shadowSizeSpinBox
+                    from: 1
+                    to: 10
+                    enabled: root.currentShadowEnabled
+                    value: root.currentShadowSize
+                    Connections {
+                        target: root
+                        function onCurrentShadowSizeChanged() {
+                            shadowSizeSpinBox.value = root.currentShadowSize
+                        }
+                    }
+                    onValueModified: {
+                        if (root.generator) {
+                            root.generator.shadowSize = value
+                        }
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
+                Label { text: qsTr("Shadow opacity:") }
+                Slider {
+                    id: shadowOpacitySlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 1.0
+                    enabled: root.currentShadowEnabled
+                    value: root.currentShadowOpacity
+                    Connections {
+                        target: root
+                        function onCurrentShadowOpacityChanged() {
+                            shadowOpacitySlider.value = root.currentShadowOpacity
+                        }
+                    }
+                    onMoved: {
+                        if (root.generator) {
+                            root.generator.shadowOpacity = value
+                        }
+                    }
+                }
+                Item { Layout.preferredWidth: 40 }
+
             }
         }
         
@@ -986,6 +1177,23 @@ Item {
 
         onAccepted: {
             if (generator) generator.textColor = selectedColor
+        }
+    }
+
+    ColorDialog {
+        id: shadowColorDialog
+        title: qsTr("Select Shadow Color")
+        selectedColor: root.currentShadowColor
+
+        Connections {
+            target: root
+            function onCurrentShadowColorChanged() {
+                shadowColorDialog.selectedColor = root.currentShadowColor
+            }
+        }
+
+        onAccepted: {
+            if (generator) generator.shadowColor = selectedColor
         }
     }
 

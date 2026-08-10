@@ -21,6 +21,7 @@ add_library(unabara_testlib STATIC
     ${CMAKE_SOURCE_DIR}/include/core/log_parser.h
     ${CMAKE_SOURCE_DIR}/include/core/units.h
     ${CMAKE_SOURCE_DIR}/src/core/cell_data.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/overlay_template.cpp
     ${CMAKE_SOURCE_DIR}/src/core/dive_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/units.cpp
@@ -51,3 +52,4 @@ unabara_add_test(subsurface_parser_test)
 unabara_add_test(uddf_parser_test)
 unabara_add_test(core_utils_test)
 unabara_add_test(cell_data_test)
+unabara_add_test(overlay_template_test)

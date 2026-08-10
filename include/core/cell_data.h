@@ -32,6 +32,29 @@ enum class CellType {
 };
 
 /**
+ * @brief Style of the text shadow rendered behind cell text
+ */
+enum class ShadowType {
+    Offset,           // Crisp copy of the text offset down-right
+    Blurred,          // Soft gaussian-like halo
+    Outline           // Text redrawn at 8 surrounding offsets (contour)
+};
+
+/**
+ * @brief Default shadow values shared by CellData, OverlayGenerator and OverlayTemplate
+ *
+ * The "no hasCustom flag = inherit global" model only works when all three
+ * layers agree on defaults before the first global propagation.
+ */
+namespace ShadowDefaults {
+    constexpr bool enabled = false;
+    constexpr ShadowType type = ShadowType::Offset;
+    inline QColor color() { return QColor(0, 0, 0); }
+    constexpr int size = 2;
+    constexpr double opacity = 0.7;
+}
+
+/**
  * @brief Represents a single data cell in the overlay
  *
  * Each cell displays one type of telemetry data and can be positioned
@@ -56,6 +79,12 @@ public:
     bool hasCustomShowLabel() const { return m_hasCustomShowLabel; }
     int tankIndex() const { return m_tankIndex; }
     bool showLabel() const { return m_showLabel; }
+    bool shadowEnabled() const { return m_shadowEnabled; }
+    ShadowType shadowType() const { return m_shadowType; }
+    QColor shadowColor() const { return m_shadowColor; }
+    int shadowSize() const { return m_shadowSize; }
+    double shadowOpacity() const { return m_shadowOpacity; }
+    bool hasCustomShadow() const { return m_hasCustomShadow; }
 
     // Setters
     void setCellId(const QString& id) { m_cellId = id; }
@@ -65,6 +94,11 @@ public:
     void setFont(const QFont& font, bool isCustom = true);
     void setTextColor(const QColor& color, bool isCustom = true);
     void setShowLabel(bool show, bool isCustom = true);
+    void setShadowEnabled(bool enabled, bool isCustom = true);
+    void setShadowType(ShadowType type, bool isCustom = true);
+    void setShadowColor(const QColor& color, bool isCustom = true);
+    void setShadowSize(int size, bool isCustom = true);
+    void setShadowOpacity(double opacity, bool isCustom = true);
     void setCalculatedSize(const QSizeF& size) { m_calculatedSize = size; }
     void setTankIndex(int index) { m_tankIndex = index; }
 
@@ -72,6 +106,7 @@ public:
     void resetFont() { m_hasCustomFont = false; }
     void resetColor() { m_hasCustomColor = false; }
     void resetShowLabel() { m_hasCustomShowLabel = false; }
+    void resetShadow() { m_hasCustomShadow = false; }
 
     // Serialization
     QJsonObject toJson() const;
@@ -80,6 +115,8 @@ public:
     // Helper methods
     static QString cellTypeToString(CellType type);
     static CellType cellTypeFromString(const QString& str);
+    static QString shadowTypeToString(ShadowType type);
+    static ShadowType shadowTypeFromString(const QString& str);
 
 private:
     QString m_cellId;              // Unique identifier (e.g., "depth", "tank_0")
@@ -93,6 +130,12 @@ private:
     bool m_hasCustomColor;         // True if color differs from global default
     bool m_showLabel;              // Whether the label row ("DEPTH" etc.) is rendered above the value
     bool m_hasCustomShowLabel;     // True if showLabel differs from global default
+    bool m_shadowEnabled;          // Whether a shadow is drawn behind the text
+    ShadowType m_shadowType;       // Shadow style (offset, blurred, outline)
+    QColor m_shadowColor;          // Shadow color (opacity applied separately at render time)
+    int m_shadowSize;              // Shadow size in px (offset distance / blur radius / outline thickness)
+    double m_shadowOpacity;        // Shadow opacity (0.0-1.0)
+    bool m_hasCustomShadow;        // True if any shadow setting differs from global default
     int m_tankIndex;               // For pressure cells: which tank (0-based), -1 for N/A
 };
 

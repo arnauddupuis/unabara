@@ -391,6 +391,19 @@ Item {
                         hasCustomFont: model.hasCustomFont
                         hasCustomColor: model.hasCustomColor
 
+                        // Shadow settings from model
+                        shadowEnabled: model.shadowEnabled
+                        shadowType: model.shadowType
+                        shadowColor: model.shadowColor
+                        shadowOpacity: model.shadowOpacity
+                        shadowPx: {
+                            var scaleX = root.generator && root.generator.templateWidth > 0
+                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            // 1.8 matches the C++ shadow scale in renderCellBasedOverlay
+                            return Math.max(1, model.shadowSize * 1.8 * scaleX)
+                        }
+                        hasCustomShadow: model.hasCustomShadow
+
                         // Selection state
                         selected: model.cellId === interactivePreview.selectedCellId
 

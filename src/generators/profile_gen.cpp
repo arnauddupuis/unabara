@@ -117,6 +117,39 @@ ProfileGenerator::ProfileGenerator(QObject* parent)
     connect(cfg, &Config::unitSystemChanged, this, [this]() {
         if (m_gridEnabled) emit gridDepthIntervalChanged();
     });
+
+    // Every setting that affects the cached base image (anything except the
+    // indicator) invalidates it. Hooking the signals covers both the setters
+    // and the Config-sync lambdas above with one connection each.
+    const std::initializer_list<void (ProfileGenerator::*)()> baseSignals = {
+        &ProfileGenerator::backgroundColorChanged,
+        &ProfileGenerator::backgroundOpacityChanged,
+        &ProfileGenerator::curveColorChanged,
+        &ProfileGenerator::curveWidthChanged,
+        &ProfileGenerator::outputWidthChanged,
+        &ProfileGenerator::outputHeightChanged,
+        &ProfileGenerator::decoZoneColorChanged,
+        &ProfileGenerator::decoZoneOpacityChanged,
+        &ProfileGenerator::gridEnabledChanged,
+        &ProfileGenerator::gridDepthIntervalChanged,
+        &ProfileGenerator::gridTimeIntervalChanged,
+        &ProfileGenerator::gridColorChanged,
+        &ProfileGenerator::gridOpacityChanged,
+        &ProfileGenerator::gridLineWidthChanged,
+        &ProfileGenerator::gridShowLabelsChanged,
+    };
+    for (auto sig : baseSignals) {
+        connect(this, sig, this, &ProfileGenerator::invalidateBaseCache);
+    }
+    // Grid labels are unit-dependent; the lambda above only re-emits when the
+    // grid is enabled, so invalidate unconditionally here to stay safe.
+    connect(cfg, &Config::unitSystemChanged,
+            this, &ProfileGenerator::invalidateBaseCache);
+}
+
+void ProfileGenerator::invalidateBaseCache()
+{
+    m_baseCacheGen.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ProfileGenerator::setBackgroundColor(const QColor& c)
@@ -313,11 +346,45 @@ QImage ProfileGenerator::generate(DiveData* dive, double timePoint)
 
 QImage ProfileGenerator::renderFrame(DiveData* dive, double timePoint, double pulsePhase01)
 {
-    QImage img(m_outputWidth, m_outputHeight, QImage::Format_ARGB32_Premultiplied);
-    img.fill(Qt::transparent);
     if (!dive) {
+        QImage img(m_outputWidth, m_outputHeight, QImage::Format_ARGB32_Premultiplied);
+        img.fill(Qt::transparent);
         return img;
     }
+
+    QImage img;
+    {
+        QMutexLocker lock(&m_baseCacheMutex);
+        const quint64 gen = m_baseCacheGen.load(std::memory_order_relaxed);
+        const int points = dive->allDataPoints().size();
+        // The dive pointer + sample count identify the dive contents well
+        // enough: dives are fully populated by the parser before they reach
+        // the UI, and the count guards against a recycled allocation.
+        if (m_baseCacheBuiltGen != gen || m_baseCacheDive != dive
+            || m_baseCachePoints != points
+            || m_baseCache.width() != m_outputWidth
+            || m_baseCache.height() != m_outputHeight) {
+            m_baseCache = renderBase(dive);
+            m_baseCacheBuiltGen = gen;
+            m_baseCacheDive = dive;
+            m_baseCachePoints = points;
+        }
+        img = m_baseCache; // implicitly shared; detaches on first paint below
+    }
+
+    QPainter painter(&img);
+    const QRectF rect(0, 0, img.width(), img.height());
+    ProfileRenderer::drawIndicator(painter, rect, dive, timePoint, m_indicatorColor,
+                                   static_cast<double>(m_indicatorRadius),
+                                   m_indicatorMode == Pulsing, pulsePhase01);
+
+    return img;
+}
+
+QImage ProfileGenerator::renderBase(DiveData* dive)
+{
+    QImage img(m_outputWidth, m_outputHeight, QImage::Format_ARGB32_Premultiplied);
+    img.fill(Qt::transparent);
 
     QPainter painter(&img);
     const QRectF rect(0, 0, m_outputWidth, m_outputHeight);
@@ -342,9 +409,6 @@ QImage ProfileGenerator::renderFrame(DiveData* dive, double timePoint, double pu
     ProfileRenderer::drawDecoZone(painter, rect, dive, m_decoZoneColor, m_decoZoneOpacity);
     ProfileRenderer::drawDepthCurve(painter, rect, dive, m_curveColor,
                                     static_cast<double>(m_curveWidth));
-    ProfileRenderer::drawIndicator(painter, rect, dive, timePoint, m_indicatorColor,
-                                   static_cast<double>(m_indicatorRadius),
-                                   m_indicatorMode == Pulsing, pulsePhase01);
 
     return img;
 }

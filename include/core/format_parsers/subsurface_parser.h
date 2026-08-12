@@ -47,6 +47,7 @@ private:
 
     QMap<int, double> m_initialCylinderPressures;
     double m_lastCeiling = 0.0;
+    double m_lastStopTime = 0.0;
     QList<GasSwitch> m_gasSwitches;
     double m_diveDuration = 0.0;
     QMap<QString, DiveSite> m_diveSites;

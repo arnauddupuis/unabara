@@ -76,8 +76,10 @@ records += data(2, [('u32z', 1111), ('enum', 28), ('enum', 2), ('u16', 120)])
 records += data(2, [('u32z', 2222), ('enum', 28), ('enum', 2), ('u16', 100)])
 
 # RECORD definition: BIG-ENDIAN, with one developer field (3 bytes) to skip.
-# timestamp 253, depth 92 (mm u32), temp 13 (s8), ndl 96 (u32 s), cns 97 (u8)
-records += definition(3, 20, [(253, 'u32'), (92, 'u32'), (13, 's8'), (96, 'u32'), (97, 'u8')],
+# timestamp 253, depth 92 (mm u32), next stop depth 93 (mm u32),
+# next stop time 94 (u32 s), tts 95 (u32 s), temp 13 (s8), ndl 96 (u32 s), cns 97 (u8)
+records += definition(3, 20, [(253, 'u32'), (92, 'u32'), (93, 'u32'), (94, 'u32'),
+                              (95, 'u32'), (13, 's8'), (96, 'u32'), (97, 'u8')],
                       big_endian=True, dev_fields=[(0, 3, 0)])
 
 # TANK_UPDATE definition (little-endian): timestamp, sensor, pressure bar*100
@@ -85,31 +87,34 @@ records += definition(4, 319, [(253, 'u32'), (0, 'u32z'), (1, 'u16')])
 # EVENT definition: timestamp, event 0, data 3
 records += definition(5, 21, [(253, 'u32'), (0, 'enum'), (3, 'u32')])
 
-def record(ts, depth_mm, temp, ndl_s, cns):
-    return data(3, [('u32', ts), ('u32', depth_mm), ('s8', temp), ('u32', ndl_s), ('u8', cns)],
+def record(ts, depth_mm, stop_mm, stop_s, tts_s, temp, ndl_s, cns):
+    return data(3, [('u32', ts), ('u32', depth_mm), ('u32', stop_mm), ('u32', stop_s),
+                    ('u32', tts_s), ('s8', temp), ('u32', ndl_s), ('u8', cns)],
                 big_endian=True, dev_bytes=b'\xAA\xBB\xCC')
 
 # Pre-dive-start gas switch event (should clamp to t=0, dive starts on gas 0 anyway)
 records += data(5, [('u32', START - 2), ('enum', 57), ('u32', 0)])
 
-# Dive samples: 0..9 s, descending, tank updates interleaved
-records += record(START + 0, 1000, 19, 3000, 0)
+# Dive samples: 0..9 s, descending, tank updates interleaved.
+# t=5 and t=7 are deco samples: ndl 0, next stop 3.0 m with a stop time and tts.
+records += record(START + 0, 1000, 0, 0, 0, 19, 3000, 0)
 records += data(4, [('u32', START + 1), ('u32z', 1111), ('u16', 20050)])  # 200.5 bar
 records += data(4, [('u32', START + 1), ('u32z', 2222), ('u16', 18000)])  # 180.0 bar
-records += record(START + 1, 5000, 19, 2900, 0)
+records += record(START + 1, 5000, 0, 0, 0, 19, 2900, 0)
 # Compressed-timestamp records on local type 1 slot? Compressed local is 2 bits (0-3):
 # reuse local 3 (RECORD) via compressed header (local 3 fits in 2 bits)
 records += compressed(3, (START + 2) & 0x1F,
-                      [('u32', START + 2), ('u32', 10000), ('s8', 18), ('u32', 2500), ('u8', 1)],
+                      [('u32', START + 2), ('u32', 10000), ('u32', 0), ('u32', 0),
+                       ('u32', 0), ('s8', 18), ('u32', 2500), ('u8', 1)],
                       big_endian=True)[:1] + \
-           struct.pack('>IIbIB', START + 2, 10000, 18, 2500, 1) + b'\xAA\xBB\xCC'
-records += record(START + 3, 15000, 18, 2000, 1)
+           struct.pack('>IIIIIbIB', START + 2, 10000, 0, 0, 0, 18, 2500, 1) + b'\xAA\xBB\xCC'
+records += record(START + 3, 15000, 0, 0, 0, 18, 2000, 1)
 # Gas switch to gas index 1 (EAN50) at t=5
 records += data(5, [('u32', START + 5), ('enum', 57), ('u32', 1)])
 records += data(4, [('u32', START + 5), ('u32z', 1111), ('u16', 19000)])  # 190.0 bar
-records += record(START + 5, 20000, 18, 1500, 2)
-records += record(START + 7, 12000, 18, 1800, 2)
-records += record(START + 9, 2000, 19, 3000, 3)
+records += record(START + 5, 20000, 3000, 120, 300, 18, 0, 2)
+records += record(START + 7, 12000, 3000, 60, 180, 18, 0, 2)
+records += record(START + 9, 2000, 0, 0, 0, 19, 3000, 3)
 
 # TANK_SUMMARY: sensor, start, end (bar*100)
 records += definition(6, 323, [(253, 'u32'), (0, 'u32z'), (1, 'u16'), (2, 'u16')])

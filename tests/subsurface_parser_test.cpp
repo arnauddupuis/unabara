@@ -19,7 +19,8 @@ const char kTwoDives[] = R"(<divelog program='subsurface' version='3'>
     <sample time='0:00 min' depth='0.0 m' temp='24.0 C' pressure0='200.0 bar' pressure1='180.0 bar' ndl='99:00 min' />
     <sample time='1:00 min' depth='18.0 m' cns='5%' />
     <event time='2:00 min' name='gaschange' cylinder='1' />
-    <sample time='3:00 min' depth='20.0 m' temp='22.0 C' pressure0='170.0 bar' in_deco='1' tts='4:30 min' />
+    <sample time='3:00 min' depth='20.0 m' temp='22.0 C' pressure0='170.0 bar' in_deco='1' tts='4:30 min' stopdepth='3.0 m' stoptime='2:00 min' />
+    <sample time='4:00 min' depth='19.0 m' />
   </divecomputer>
 </dive>
 <dive number='8' date='2026-03-02' time='11:30:00'>
@@ -80,7 +81,7 @@ private slots:
         auto dives = parseXml(kTwoDives, 7, err);
         QCOMPARE(dives.size(), 1);
         const auto &pts = dives.first()->allDataPoints();
-        QCOMPARE(pts.size(), 3);
+        QCOMPARE(pts.size(), 4);
 
         QCOMPARE(pts[0].timestamp, 0.0);
         QCOMPARE(pts[0].temperature, 24.0);
@@ -97,12 +98,20 @@ private slots:
         QCOMPARE(pts[1].getPressure(1), 180.0);
         QCOMPARE(pts[1].cns, 5.0);
 
-        // in_deco='1' forces NDL to 0; tts parsed as M:SS
+        // in_deco='1' forces NDL to 0; tts/stoptime parsed as M:SS,
+        // stopdepth as metres
         QCOMPARE(pts[2].timestamp, 180.0);
         QCOMPARE(pts[2].ndl, 0.0);
         QCOMPARE(pts[2].tts, 4.5);
         QCOMPARE(pts[2].getPressure(0), 170.0);
         QCOMPARE(pts[2].cns, 5.0); // carried
+        QCOMPARE(pts[2].ceiling, 3.0);
+        QCOMPARE(pts[2].stopTime, 2.0);
+
+        // Delta encoding: a sample omitting stopdepth/stoptime carries both
+        QCOMPARE(pts[3].timestamp, 240.0);
+        QCOMPARE(pts[3].ceiling, 3.0);
+        QCOMPARE(pts[3].stopTime, 2.0);
         qDeleteAll(dives);
     }
 

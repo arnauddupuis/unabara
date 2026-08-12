@@ -676,12 +676,17 @@ ApplicationWindow {
                                     Timer {
                                         interval: 80
                                         repeat: true
-                                        // Suppressed while the video preview is playing — the
+                                        // Runs only while this tab is actually visible: each tick
+                                        // re-renders the full profile (O(sample count)), and on
+                                        // long dives that pegs a core and starves the image
+                                        // providers if left running behind another tab. Also
+                                        // suppressed while the video preview is playing — the
                                         // indicator's position is already moving with dive time
                                         // there, and the wall-clock pulse adds visual noise.
                                         running: profileGenerator
                                                  && profileGenerator.indicatorMode === 1
                                                  && mainWindow.hasActiveDive
+                                                 && contentTabs.currentIndex === 1
                                                  && !videoSyncPlayer.playing
                                         onTriggered: {
                                             var period = profileGenerator ? profileGenerator.pulsePeriodMs : 2000

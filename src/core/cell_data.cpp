@@ -229,6 +229,8 @@ QString CellData::cellTypeToString(CellType type)
         case CellType::MeanDepth: return "MeanDepth";
         case CellType::MaxDepth: return "MaxDepth";
         case CellType::Gas: return "Gas";
+        case CellType::StopDepth: return "StopDepth";
+        case CellType::StopTime: return "StopTime";
         default: return "Unknown";
     }
 }
@@ -249,6 +251,8 @@ CellType CellData::cellTypeFromString(const QString& str)
     if (str == "MeanDepth") return CellType::MeanDepth;
     if (str == "MaxDepth") return CellType::MaxDepth;
     if (str == "Gas") return CellType::Gas;
+    if (str == "StopDepth") return CellType::StopDepth;
+    if (str == "StopTime") return CellType::StopTime;
     return CellType::Unknown;
 }
 

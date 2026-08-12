@@ -3,7 +3,10 @@
 
 #include <QColor>
 #include <QImage>
+#include <QMutex>
 #include <QObject>
+
+#include <atomic>
 
 #include "include/core/dive_data.h"
 #include "include/generators/i_frame_generator.h"
@@ -118,6 +121,23 @@ signals:
     void gridShowLabelsChanged();
 
 private:
+    // Everything below the indicator (background, grid, deco zone, depth
+    // curve) is time-independent, so it is rendered once and cached. Each
+    // renderFrame() then just copies the cache and stamps the indicator —
+    // constant-time per pulse tick instead of O(sample count).
+    QImage renderBase(DiveData* dive);
+    void invalidateBaseCache();
+
+    // renderFrame() runs on the QML image-provider thread while setters run
+    // on the GUI thread: the mutex guards the cache, and the atomic
+    // generation counter lets setters invalidate without taking the lock.
+    QMutex m_baseCacheMutex;
+    QImage m_baseCache;
+    std::atomic<quint64> m_baseCacheGen { 1 };
+    quint64 m_baseCacheBuiltGen = 0;
+    DiveData* m_baseCacheDive = nullptr; // identity key only — never dereferenced
+    int m_baseCachePoints = -1;
+
     QColor m_backgroundColor;
     double m_backgroundOpacity;
     QColor m_curveColor;

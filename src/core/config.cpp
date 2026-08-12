@@ -33,6 +33,9 @@ Config::Config(QObject *parent)
     , m_showMeanDepth(false)
     , m_showMaxDepth(false)
     , m_showGas(false)
+    , m_showTTS(false)
+    , m_showStopDepth(true)
+    , m_showStopTime(true)
     , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
     , m_showPO2Cell1(false)
@@ -262,6 +265,45 @@ void Config::setShowGas(bool show)
     if (m_showGas != show) {
         m_showGas = show;
         emit showGasChanged();
+    }
+}
+
+bool Config::showTTS() const
+{
+    return m_showTTS;
+}
+
+void Config::setShowTTS(bool show)
+{
+    if (m_showTTS != show) {
+        m_showTTS = show;
+        emit showTTSChanged();
+    }
+}
+
+bool Config::showStopDepth() const
+{
+    return m_showStopDepth;
+}
+
+void Config::setShowStopDepth(bool show)
+{
+    if (m_showStopDepth != show) {
+        m_showStopDepth = show;
+        emit showStopDepthChanged();
+    }
+}
+
+bool Config::showStopTime() const
+{
+    return m_showStopTime;
+}
+
+void Config::setShowStopTime(bool show)
+{
+    if (m_showStopTime != show) {
+        m_showStopTime = show;
+        emit showStopTimeChanged();
     }
 }
 
@@ -601,6 +643,9 @@ void Config::loadConfig()
     m_showMeanDepth = m_settings.value("overlay/showMeanDepth", false).toBool();
     m_showMaxDepth = m_settings.value("overlay/showMaxDepth", false).toBool();
     m_showGas = m_settings.value("overlay/showGas", false).toBool();
+    m_showTTS = m_settings.value("overlay/showTTS", false).toBool();
+    m_showStopDepth = m_settings.value("overlay/showStopDepth", true).toBool();
+    m_showStopTime = m_settings.value("overlay/showStopTime", true).toBool();
 
     // Load CCR settings
     m_showPO2Cell1 = m_settings.value("overlay/showPO2Cell1", false).toBool();
@@ -751,6 +796,9 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showMeanDepth", m_showMeanDepth);
     m_settings.setValue("overlay/showMaxDepth", m_showMaxDepth);
     m_settings.setValue("overlay/showGas", m_showGas);
+    m_settings.setValue("overlay/showTTS", m_showTTS);
+    m_settings.setValue("overlay/showStopDepth", m_showStopDepth);
+    m_settings.setValue("overlay/showStopTime", m_showStopTime);
 
     // Save CCR settings
     m_settings.setValue("overlay/showPO2Cell1", m_showPO2Cell1);

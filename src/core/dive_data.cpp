@@ -274,7 +274,11 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     result.timestamp = time;
     result.depth = prev.depth + factor * (next.depth - prev.depth);
     result.temperature = prev.temperature + factor * (next.temperature - prev.temperature);
-    result.ndl = prev.ndl + factor * (next.ndl - prev.ndl);
+    // NDL: -1 means "not reported by the computer" — never blend across the
+    // sentinel, or missing data would fabricate deco state
+    result.ndl = (prev.ndl < 0.0 || next.ndl < 0.0)
+        ? (factor >= 1.0 ? next.ndl : prev.ndl)
+        : prev.ndl + factor * (next.ndl - prev.ndl);
     result.o2percent = prev.o2percent + factor * (next.o2percent - prev.o2percent);
     result.tts = prev.tts + factor * (next.tts - prev.tts);
 
@@ -288,6 +292,9 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     // Do NOT interpolate ceiling - use the value from the previous point
     // Ceiling is a state that persists until changed
     result.ceiling = prev.ceiling;
+
+    // Deco stop time is likewise a held state, not a continuous quantity
+    result.stopTime = prev.stopTime;
     
     // For in_deco state, we also shouldn't interpolate (though it's not part of DiveDataPoint directly)
     

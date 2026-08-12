@@ -10,7 +10,7 @@ Run this before merging any change to the dive log parser. Each row below is a s
 
 | File | Expected |
 |---|---|
-| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. CNS ramps to ~55% by the end of the dive (`---` before the first `cns=` sample). Mean depth (AVG cell) shows 19.9 m (from `<depth mean='19.877 m'>`). Max depth (MAX cell) is a running max: 9.6 m at 12:35 (current depth 8.7 m), pinned at 40.6 m from the deepest point to the end. Gas (GAS cell): `EAN29` for the whole dive — the switch to the diluent cylinder at 0:10 coincides with the first sample, so the O2 cylinder (0) is never the active gas at any sample. |
+| `2026-02-28-Monastery_Beach.ssrf` | CCR dive, ~40.6 m max depth, 3 cylinders, gas switches present, CCR sensors (po2Sensors) populated. `diveMode` should resolve to `ClosedCircuit`. CNS ramps to ~55% by the end of the dive (`---` before the first `cns=` sample). Mean depth (AVG cell) shows 19.9 m (from `<depth mean='19.877 m'>`). Max depth (MAX cell) is a running max: 9.6 m at 12:35 (current depth 8.7 m), pinned at 40.6 m from the deepest point to the end. Gas (GAS cell): `EAN29` for the whole dive — the switch to the diluent cylinder at 0:10 coincides with the first sample, so the O2 cylinder (0) is never the active gas at any sample. Deco cells: before 36:00 the NDL cell shows `NDL` and STOP/TIME show only their labels (blank value); at 36:00 the NDL cell switches to `TTS / 5 min` (two lines, no DECO suffix), STOP shows `3.0 m`, TIME shows `1 min`; STOP walks 3.0 → 6.0 → 9.0 m as the dive deepens; from 103:10 (`stopdepth='0.0 m'`, `in_deco='0'`) both cells are blank again. |
 | `Galileo_G2-TEK_SM_DecoO2-cleaned.ssrf` | Sidemount OC with deco O2. Gas (GAS cell): `Air` from the start — the 0↔1 sidemount switches at 9:41/14:49/27:37 don't change the displayed mix (both cylinders are air) — then `EAN99` from 37:17, `Air` at 48:01, `EAN99` from 50:05 to the end. |
 | `CCR_Halcyon_Benoit_cleaned.ssrf` | CCR dive — sensor1/2/3 still populate. |
 | `test_multidive.ssrf` | Multiple dives — picker shows them all; opening any one renders correctly. |
@@ -28,8 +28,9 @@ Run this before merging any change to the dive log parser. Each row below is a s
 
 | File | Expected |
 |---|---|
-| `2025-12-14-14-17-24.fit` | Dive #98, 2025-12-14 14:17 local, OC deco dive on Lake Geneva (location `46.480629, 6.461355`). ~24.1 m max depth, ~77 min, min temp 10 °C. 2 cylinders (Air + EAN80); GAS cell switches to `EAN80` during the final deco stop. CNS ramps to ~15%, `--` at the very start. AVG cell 14.8 m (from the FIT dive summary). Deco phase: NDL 0 with TTS/ceiling populated (ceiling 3 m). |
-| `2026-01-12-10-40-25.fit` | Dive #104, shallow long dive (~9.6 m max, ~114 min), no GPS → location empty. |
+| `2025-12-14-14-17-24.fit` | Dive #98, 2025-12-14 14:17 local, OC deco dive on Lake Geneva (location `46.480629, 6.461355`). ~24.1 m max depth, ~77 min, min temp 10 °C. 2 cylinders (Air + EAN80); GAS cell switches to `EAN80` during the final deco stop. CNS ramps to ~15%, `--` at the very start. AVG cell 14.8 m (from the FIT dive summary). Deco phase: NDL cell switches to a two-line `TTS` display; STOP shows `3.0 m` (record field 93) and TIME the stop countdown (field 94); both blank outside the deco window. |
+| `2026-01-12-10-40-25.fit` | Dive #104, shallow long dive (~9.6 m max, ~114 min), no GPS → location empty. NDL is absent from the first ~11 min of records: the NDL cell must show `NDL / ---` there (NOT switch to TTS — missing NDL is not deco). Later NDL values are huge but genuine (the watch reports up to ~1000 min on shallow dives). STOP/TIME stay blank for the whole dive (fields 93/94 all zero). |
+| `2025-12-26-11-05-34.fit` | Dive #99, OC deco dive. At ~59-60 min (13 m, 6.0 m stop): TTS `9 min`, STOP `6.0 m`, TIME `1 min` — the watch reports only ~22 s of stop time here (field 94, seconds); the TIME cell rounds **up**, so it must never read `0 min` while a stop is required. |
 | Any CCR file from `divelogs_medico_fits.zip` (e.g. `2026-01-25-10-41-00.fit`, dive #114) | `diveMode` resolves to `ClosedCircuit`; 3 cylinders incl. `Air (diluent)` and `EAN50` bailout; PO2 cell shows the active setpoint (0.70 bar). |
 | Non-dive FIT from the zip (e.g. `2026-01-28-05-58-39.fit`) | Clean error: "FIT file does not contain a dive activity", no crash. |
 
@@ -57,6 +58,8 @@ Tank-pod pressures (`TANK_UPDATE`/`SENSOR_PROFILE`) have no coverage in the real
 | Per-sample tank pressure | bar | Pa → bar (via `<tankpressure>` when exporter provides it) | `tank_update` bar×100 → bar (T1/T2 pods only) |
 | Per-sample PO2 (CCR) | `sensor1/2/3` | `<measuredpo2>` (when exporter provides it) | active setpoint (Descent records no sensor values) |
 | Per-sample CNS | `cns='NN%'` attribute | `<cns>` percent element (65.0 = 65 %) | `record` field 97, percent |
+| Deco stop depth (STOP cell) | `stopdepth` attribute | deepest mandatory `<decostop decodepth>` | `record` field 93, mm → m |
+| Deco stop time (TIME cell) | `stoptime` attribute (M:SS) | deepest mandatory `<decostop>`'s `duration` (s → min) | `record` field 94, s → min |
 | Mean depth (static, AVG cell) | `<depth mean>` in `<divecomputer>` | `<averagedepth>` in `<informationafterdive>` (fallback: time-weighted average of samples) | `dive_summary` avg_depth mm → m |
 | Max depth (running, MAX cell) | computed from samples (no parsing) — deepest point reached up to the current time | same | same |
 | Gas switches | `<event name="gaschange">` | `<switchmix ref>` resolved via mix → first tank index | event 57, data = gas slot index |

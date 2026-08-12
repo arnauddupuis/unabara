@@ -32,6 +32,7 @@ void SubsurfaceParser::resetDiveState()
     m_initialCylinderPressures.clear();
     m_gasSwitches.clear();
     m_lastCeiling = 0.0;
+    m_lastStopTime = 0.0;
     m_currentDiveHasCcrCues = false;
 }
 
@@ -347,7 +348,7 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
     qDebug() << "Parsing divecomputer element";
 
     double lastTemperature = 0.0;
-    double lastNDL = 0.0;
+    double lastNDL = -1.0; // -1 = no NDL reported yet (not the same as 0 = deco)
     double lastTTS = 0.0;
     double lastCNS = -1.0;
 
@@ -738,6 +739,32 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
         }
     } else {
         point.ceiling = m_lastCeiling;
+    }
+
+    // Subsurface samples are delta-encoded: stoptime can appear with or
+    // without stopdepth, so it carries forward independently of the ceiling
+    if (attrs.hasAttribute("stoptime")) {
+        QString stopTimeStr = attrs.value("stoptime").toString();
+        QRegularExpression stopTimeRe("(\\d+):(\\d+)\\s+min");
+        QRegularExpressionMatch match = stopTimeRe.match(stopTimeStr);
+
+        if (match.hasMatch()) {
+            int minutes = match.captured(1).toInt();
+            int seconds = match.captured(2).toInt();
+            point.stopTime = minutes + seconds / 60.0;
+            m_lastStopTime = point.stopTime;
+            hasData = true;
+        } else {
+            bool ok;
+            double stopTime = stopTimeStr.toDouble(&ok);
+            if (ok) {
+                point.stopTime = stopTime;
+                m_lastStopTime = point.stopTime;
+                hasData = true;
+            }
+        }
+    } else {
+        point.stopTime = m_lastStopTime;
     }
 
     if (hasData) {

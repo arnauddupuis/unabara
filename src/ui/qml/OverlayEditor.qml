@@ -409,6 +409,18 @@ Item {
                     root.generator.setCellTypeVisible("gas", root.generator.showGas)
                     previewContainer.updateCellModel()
                 }
+                function onShowTTSChanged() {
+                    root.generator.setCellTypeVisible("tts", root.generator.showTTS)
+                    previewContainer.updateCellModel()
+                }
+                function onShowStopDepthChanged() {
+                    root.generator.setCellTypeVisible("stop_depth", root.generator.showStopDepth)
+                    previewContainer.updateCellModel()
+                }
+                function onShowStopTimeChanged() {
+                    root.generator.setCellTypeVisible("stop_time", root.generator.showStopTime)
+                    previewContainer.updateCellModel()
+                }
                 function onShowPO2Cell1Changed() {
                     root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
                     previewContainer.updateCellModel()
@@ -989,7 +1001,40 @@ Item {
                         }
                     }
                 }
-                
+
+                CheckBox {
+                    id: showTTSCheckbox
+                    text: qsTr("Show Time To Surface")
+                    checked: generator ? generator.showTTS : false
+                    onCheckedChanged: {
+                        if (generator && generator.showTTS !== checked) {
+                            generator.showTTS = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showStopDepthCheckbox
+                    text: qsTr("Show Deco Stop Depth")
+                    checked: generator ? generator.showStopDepth : true
+                    onCheckedChanged: {
+                        if (generator && generator.showStopDepth !== checked) {
+                            generator.showStopDepth = checked
+                        }
+                    }
+                }
+
+                CheckBox {
+                    id: showStopTimeCheckbox
+                    text: qsTr("Show Deco Stop Time")
+                    checked: generator ? generator.showStopTime : true
+                    onCheckedChanged: {
+                        if (generator && generator.showStopTime !== checked) {
+                            generator.showStopTime = checked
+                        }
+                    }
+                }
+
                 CheckBox {
                     id: showPressureCheckbox
                     text: qsTr("Show Tank Pressure")

@@ -65,6 +65,43 @@ private slots:
         QCOMPARE(d.dataAtTime(5.0).ceiling, 6.0);
     }
 
+    void ndlSentinelDoesNotBlend()
+    {
+        // -1 means "computer never reported NDL"; blending across the
+        // sentinel would fabricate a deco state (ndl == 0) that never existed
+        DiveData d;
+        DiveDataPoint a = point(0.0, 10.0); // ndl defaults to -1
+        DiveDataPoint b = point(10.0, 10.0);
+        b.ndl = 40.0;
+        d.addDataPoint(a);
+        d.addDataPoint(b);
+        QCOMPARE(d.dataAtTime(5.0).ndl, -1.0);
+
+        DiveData e;
+        DiveDataPoint c = point(0.0, 10.0);
+        c.ndl = 40.0;
+        DiveDataPoint f = point(10.0, 10.0);
+        f.ndl = 20.0;
+        e.addDataPoint(c);
+        e.addDataPoint(f);
+        QCOMPARE(e.dataAtTime(5.0).ndl, 30.0);
+    }
+
+    void stopTimeIsNotInterpolated()
+    {
+        // Stop time is a held state like ceiling — blending two required stop
+        // times would display a countdown the computer never showed
+        DiveData d;
+        DiveDataPoint a = point(0.0, 30.0);
+        a.stopTime = 3.0;
+        DiveDataPoint b = point(10.0, 28.0);
+        b.stopTime = 1.0;
+        d.addDataPoint(a);
+        d.addDataPoint(b);
+
+        QCOMPARE(d.dataAtTime(5.0).stopTime, 3.0);
+    }
+
     void cnsSentinelDoesNotBlend()
     {
         // -1 means "no data"; interpolating across it would fabricate values

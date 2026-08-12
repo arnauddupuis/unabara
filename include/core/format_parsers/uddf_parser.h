@@ -51,6 +51,7 @@ private:
                        double &lastNDL,
                        double &lastTTS,
                        double &lastCeiling,
+                       double &lastStopTime,
                        double &lastCNS,
                        QMap<int, double> &lastPressures,
                        QMap<int, double> &lastPO2Sensors,

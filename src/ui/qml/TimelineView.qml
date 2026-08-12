@@ -580,10 +580,11 @@ Item {
                             infoText += "Temp: " + dataPoint.temperature.toFixed(1) + "°C  ";
                         }
                         
-                        // Add NDL or TTS based on decompression status
-                        if (dataPoint.ndl <= 0) {
+                        // Add NDL or TTS based on decompression status.
+                        // ndl < 0 means the computer never reported NDL — show neither.
+                        if (dataPoint.ndl === 0) {
                             infoText += "TTS: " + Math.round(dataPoint.tts) + "min (DECO)  ";
-                        } else {
+                        } else if (dataPoint.ndl > 0) {
                             infoText += "NDL: " + Math.round(dataPoint.ndl) + "min  ";
                         }
 

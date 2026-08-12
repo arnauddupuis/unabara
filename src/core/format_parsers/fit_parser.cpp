@@ -328,9 +328,10 @@ DiveData *FitParser::buildDive(const QList<FitMessage> &messages, const Metadata
     // they change, so missing fields reuse the previous sample's value.
     double lastDepth = 0.0;
     double lastTemperature = 0.0;
-    double lastNDL = 0.0;
+    double lastNDL = -1.0; // -1 = no NDL reported yet (not the same as 0 = deco)
     double lastTTS = 0.0;
     double lastCeiling = 0.0;
+    double lastStopTime = 0.0;
     double lastCNS = -1.0;
     QMap<int, double> lastPressures; // pressure channel -> bar
     QVector<quint32> tankSensors = meta.tankSensors;
@@ -428,6 +429,11 @@ DiveData *FitParser::buildDive(const QList<FitMessage> &messages, const Metadata
                     lastCeiling = message.value(93) / 1000.0; // next stop depth, mm -> m
                 }
                 point.ceiling = lastCeiling;
+
+                if (message.has(94)) {
+                    lastStopTime = message.value(94) / 60.0; // next stop time, s -> min
+                }
+                point.stopTime = lastStopTime;
 
                 if (message.has(97)) {
                     lastCNS = message.value(97); // percent

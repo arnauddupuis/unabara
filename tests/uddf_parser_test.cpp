@@ -41,6 +41,7 @@ const char kUddfDive[] = R"(<uddf version='3.2'>
     <waypoint>
       <divetime>120.0</divetime>
       <depth>20,5</depth>
+      <decostop kind='mandatory' decodepth='3.0' duration='120'/>
       <decostop kind='mandatory' decodepth='6.0' duration='180'/>
     </waypoint>
   </samples>
@@ -111,6 +112,7 @@ private slots:
         QCOMPARE(pts[0].temperature, 24.0); // 297.15 K
         QCOMPARE(pts[0].getPressure(0), 200.0);
         QCOMPARE(pts[0].cns, -1.0);
+        QCOMPARE(pts[0].ndl, -1.0); // no deco info reported yet — not "in deco"
 
         QCOMPARE(pts[1].depth, 18.0);
         QCOMPARE(pts[1].temperature, 24.0); // carried
@@ -118,11 +120,15 @@ private slots:
         QCOMPARE(pts[1].cns, 12.5);
         QCOMPARE(pts[1].ndl, 20.0); // 1200 s -> min
 
-        // Comma decimal accepted; mandatory decostop -> ceiling + TTS
+        // Comma decimal accepted. Two mandatory decostops, shallower listed
+        // first: ceiling = deepest stop, TTS = summed durations, stop time =
+        // the deepest stop's own duration (order-independent)
         QCOMPARE(pts[2].depth, 20.5);
         QCOMPARE(pts[2].ceiling, 6.0);
-        QCOMPARE(pts[2].tts, 3.0); // 180 s -> min
+        QCOMPARE(pts[2].tts, 5.0); // 120 s + 180 s -> min
+        QCOMPARE(pts[2].stopTime, 3.0); // 180 s (deepest stop only) -> min
         QCOMPARE(pts[2].cns, 12.5); // carried
+        QCOMPARE(pts[1].stopTime, 0.0); // no stop before deco
         qDeleteAll(dives);
     }
 

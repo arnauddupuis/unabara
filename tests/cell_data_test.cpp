@@ -23,7 +23,9 @@ private slots:
             CellType::Depth,    CellType::Temperature, CellType::Time,
             CellType::NDL,      CellType::TTS,         CellType::Pressure,
             CellType::PO2Cell1, CellType::PO2Cell2,    CellType::PO2Cell3,
-            CellType::CompositePO2, CellType::CNS,
+            CellType::CompositePO2, CellType::CNS,     CellType::MeanDepth,
+            CellType::MaxDepth, CellType::Gas,         CellType::StopDepth,
+            CellType::StopTime,
         };
         for (CellType type : all) {
             const QString str = CellData::cellTypeToString(type);

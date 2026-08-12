@@ -1,6 +1,7 @@
 #include "include/ui/cell_model.h"
 #include "include/core/units.h"
 #include <QDebug>
+#include <QtMath>
 
 CellModel::CellModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -257,34 +258,22 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
     }
 
     case Unabara::CellType::NDL: {
-        // Dynamically switch between NDL and TTS based on deco status
-        bool inDeco = (dataPoint.ndl <= 0);
+        // Dynamically switch between NDL and TTS based on deco status. The
+        // deco details (stop depth/time) live in the StopDepth/StopTime cells
+        // so this cell keeps a stable two-line geometry.
+        // ndl == 0 is a reported deco state; ndl < 0 means the computer never
+        // reported NDL (must NOT read as deco — shows "NDL ---" instead).
+        bool inDeco = (dataPoint.ndl == 0.0);
 
         if (inDeco) {
-            // Show TTS with DECO indicator when in decompression
-            QString value;
-            if (dataPoint.tts > 0) {
-                value = QString("%1 min").arg(static_cast<int>(dataPoint.tts));
-            } else {
-                value = "---";
-            }
-
-            // Add ceiling info if available
-            QString decoInfo;
-            if (dataPoint.ceiling > 0) {
-                QString ceilingStr = Units::formatDepthValue(dataPoint.ceiling, unitSystem);
-                decoInfo = QString("\nDECO (%1)").arg(ceilingStr);
-            }
-
-            return format("TTS", value + decoInfo);
+            QString value = dataPoint.tts > 0
+                ? QString("%1 min").arg(qRound(dataPoint.tts))
+                : QStringLiteral("---");
+            return format("TTS", value);
         } else {
-            // Show NDL when not in decompression
-            QString value;
-            if (dataPoint.ndl > 0) {
-                value = QString("%1 min").arg(static_cast<int>(dataPoint.ndl));
-            } else {
-                value = "---";
-            }
+            QString value = dataPoint.ndl > 0
+                ? QString("%1 min").arg(qRound(dataPoint.ndl))
+                : QStringLiteral("---");
             return format("NDL", value);
         }
     }
@@ -292,11 +281,29 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
     case Unabara::CellType::TTS: {
         QString value;
         if (dataPoint.tts > 0) {
-            value = QString("%1 min").arg(static_cast<int>(dataPoint.tts));
+            value = QString("%1 min").arg(qRound(dataPoint.tts));
         } else {
             value = "---";
         }
         return format("TTS", value);
+    }
+
+    case Unabara::CellType::StopDepth: {
+        // Blank value outside deco: parsers carry stop values forward, so the
+        // inDeco gate (not the value alone) decides visibility
+        bool show = dataPoint.ndl == 0.0 && dataPoint.ceiling > 0;
+        QString value = show ? Units::formatDepthValue(dataPoint.ceiling, unitSystem)
+                             : QString();
+        return format("STOP", value);
+    }
+
+    case Unabara::CellType::StopTime: {
+        bool show = dataPoint.ndl == 0.0 && dataPoint.stopTime > 0;
+        // Round up: a 22 s remaining stop is still a stop — "0 min" would
+        // read as cleared (Garmin reports this field in seconds)
+        QString value = show ? QString("%1 min").arg(qCeil(dataPoint.stopTime))
+                             : QString();
+        return format("TIME", value);
     }
 
     case Unabara::CellType::Pressure: {

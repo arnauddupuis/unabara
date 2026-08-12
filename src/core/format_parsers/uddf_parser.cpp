@@ -526,12 +526,13 @@ void UDDFParser::parseSamples(QXmlStreamReader &xml, DiveData *dive)
 {
     // UDDF waypoints record changes only — values not present in a waypoint
     // should be inherited from the previous one. We carry forward temperature,
-    // NDL, TTS, ceiling, CNS, per-tank pressure, and per-sensor PO2 across
-    // waypoints, mirroring the SSRF parser's logic.
+    // NDL, TTS, ceiling, stop time, CNS, per-tank pressure, and per-sensor PO2
+    // across waypoints, mirroring the SSRF parser's logic.
     double lastTemperature = 0.0;
-    double lastNDL = 0.0;
+    double lastNDL = -1.0; // -1 = no NDL reported yet (not the same as 0 = deco)
     double lastTTS = 0.0;
     double lastCeiling = 0.0;
+    double lastStopTime = 0.0;
     double lastCNS = -1.0;
     QMap<int, double> lastPressures;
     QMap<int, double> lastPO2Sensors;
@@ -567,7 +568,8 @@ void UDDFParser::parseSamples(QXmlStreamReader &xml, DiveData *dive)
         if (xml.tokenType() == QXmlStreamReader::StartElement
             && xml.name() == QStringLiteral("waypoint")) {
             parseWaypoint(xml, dive, lastTemperature, lastNDL, lastTTS, lastCeiling,
-                          lastCNS, lastPressures, lastPO2Sensors, po2SensorRefToIndex);
+                          lastStopTime, lastCNS, lastPressures, lastPO2Sensors,
+                          po2SensorRefToIndex);
         }
     }
 }
@@ -578,6 +580,7 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
                                double &lastNDL,
                                double &lastTTS,
                                double &lastCeiling,
+                               double &lastStopTime,
                                double &lastCNS,
                                QMap<int, double> &lastPressures,
                                QMap<int, double> &lastPO2Sensors,
@@ -609,6 +612,7 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
     int mandatoryDecostopCount = 0;
     double waypointDecoCeiling = 0.0;        // metres, deepest mandatory stop
     double waypointTotalDecoDuration = 0.0;  // seconds, summed across mandatory stops
+    double waypointDeepestStopDuration = 0.0; // seconds, duration of the deepest stop only
 
     while (!xml.atEnd()) {
         xml.readNext();
@@ -709,6 +713,10 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
                     attrs.value(QStringLiteral("duration")));
                 if (!std::isnan(decodepth) && decodepth > waypointDecoCeiling) {
                     waypointDecoCeiling = decodepth;
+                    // The current stop's own duration — captured here (not
+                    // summed) so element order doesn't matter
+                    waypointDeepestStopDuration =
+                        (!std::isnan(duration) && duration > 0.0) ? duration : 0.0;
                 }
                 if (!std::isnan(duration) && duration > 0.0) {
                     waypointTotalDecoDuration += duration;
@@ -758,6 +766,14 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
 
         point.ceiling = waypointDecoCeiling;
         lastCeiling = point.ceiling;
+
+        // Stop time is the deepest stop's own duration, not the summed TTS
+        if (waypointDeepestStopDuration > 0.0) {
+            point.stopTime = waypointDeepestStopDuration / 60.0;
+            lastStopTime = point.stopTime;
+        } else {
+            point.stopTime = lastStopTime;
+        }
     } else if (ndlSetThisWaypoint) {
         point.ndl = waypointNDL;
         lastNDL = point.ndl;
@@ -765,6 +781,7 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
             point.tts = lastTTS;
         }
         point.ceiling = lastCeiling;
+        point.stopTime = lastStopTime;
     } else {
         if (lastNDL >= 0.0) {
             point.ndl = lastNDL;
@@ -773,6 +790,7 @@ void UDDFParser::parseWaypoint(QXmlStreamReader &xml,
             point.tts = lastTTS;
         }
         point.ceiling = lastCeiling;
+        point.stopTime = lastStopTime;
     }
 
     // Carry CNS forward when this waypoint did not report it.

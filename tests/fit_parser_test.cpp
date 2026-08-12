@@ -235,12 +235,30 @@ private slots:
         QCOMPARE(points[3].getPressure(0), 200.5);
         QCOMPARE(points[3].getPressure(1), 180.0);
 
-        // t=9: after the gas switch to EAN50
+        // t=0..3: no deco stop scheduled
+        QCOMPARE(points[0].ceiling, 0.0);
+        QCOMPARE(points[0].stopTime, 0.0);
+
+        // t=5: in deco — record fields 93 (next stop depth), 94 (next stop
+        // time) and 95 (tts) are decoded
+        QCOMPARE(points[4].timestamp, 5.0);
+        QCOMPARE(points[4].ndl, 0.0);
+        QCOMPARE(points[4].ceiling, 3.0);       // 3000 mm
+        QCOMPARE(points[4].stopTime, 2.0);      // 120 s
+        QCOMPARE(points[4].tts, 5.0);           // 300 s
+
+        // t=7: stop time counts down
+        QCOMPARE(points[5].stopTime, 1.0);      // 60 s
+        QCOMPARE(points[5].tts, 3.0);           // 180 s
+
+        // t=9: after the gas switch to EAN50, deco cleared
         QCOMPARE(points[6].timestamp, 9.0);
         QCOMPARE(points[6].depth, 2.0);
         QCOMPARE(points[6].cns, 3.0);
         QCOMPARE(points[6].o2percent, 50.0);
         QCOMPARE(points[6].getPressure(0), 190.0);
+        QCOMPARE(points[6].ceiling, 0.0);
+        QCOMPARE(points[6].stopTime, 0.0);
         qDeleteAll(dives);
     }
 

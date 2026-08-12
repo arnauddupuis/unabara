@@ -113,6 +113,52 @@
                 "y": 0.22916666666666666
             },
             "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 64,
+                "width": 85
+            },
+            "cellId": "stop_depth",
+            "cellType": "StopDepth",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 15,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.25,
+                "y": 0.735
+            },
+            "showLabel": true,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 64,
+                "width": 85
+            },
+            "cellId": "stop_time",
+            "cellType": "StopTime",
+            "font": {
+                "bold": false,
+                "family": "Sans Serif",
+                "italic": false,
+                "pointSize": 15,
+                "weight": 400
+            },
+            "hasCustomColor": false,
+            "hasCustomFont": true,
+            "position": {
+                "x": 0.55,
+                "y": 0.735
+            },
+            "showLabel": true,
+            "visible": true
         }
     ],
     "defaultFont": {

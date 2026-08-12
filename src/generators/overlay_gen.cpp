@@ -1,5 +1,6 @@
 #include "include/generators/overlay_gen.h"
 #include <QPainter>
+#include <QtMath>
 #include <QFontMetrics>
 #include <QDateTime>
 #include <QDebug>
@@ -32,6 +33,9 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showMeanDepth(false)
     , m_showMaxDepth(false)
     , m_showGas(false)
+    , m_showTTS(false)
+    , m_showStopDepth(true)
+    , m_showStopTime(true)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -58,6 +62,9 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showMeanDepth = config->showMeanDepth();
     m_showMaxDepth = config->showMaxDepth();
     m_showGas = config->showGas();
+    m_showTTS = config->showTTS();
+    m_showStopDepth = config->showStopDepth();
+    m_showStopTime = config->showStopTime();
     m_showPO2Cell1 = config->showPO2Cell1();
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
@@ -410,6 +417,33 @@ void OverlayGenerator::setShowGas(bool show)
         m_showGas = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showGasChanged();
+    }
+}
+
+void OverlayGenerator::setShowTTS(bool show)
+{
+    if (m_showTTS != show) {
+        m_showTTS = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showTTSChanged();
+    }
+}
+
+void OverlayGenerator::setShowStopDepth(bool show)
+{
+    if (m_showStopDepth != show) {
+        m_showStopDepth = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showStopDepthChanged();
+    }
+}
+
+void OverlayGenerator::setShowStopTime(bool show)
+{
+    if (m_showStopTime != show) {
+        m_showStopTime = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showStopTimeChanged();
     }
 }
 
@@ -841,6 +875,8 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         {"mean_depth", Unabara::CellType::MeanDepth},
         {"max_depth", Unabara::CellType::MaxDepth},
         {"gas", Unabara::CellType::Gas},
+        {"stop_depth", Unabara::CellType::StopDepth},
+        {"stop_time", Unabara::CellType::StopTime},
         {"po2_cell1", Unabara::CellType::PO2Cell1},
         {"po2_cell2", Unabara::CellType::PO2Cell2},
         {"po2_cell3", Unabara::CellType::PO2Cell3},
@@ -1006,6 +1042,9 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showMeanDepth = false;
     m_showMaxDepth = false;
     m_showGas = false;
+    m_showTTS = false;
+    m_showStopDepth = false;
+    m_showStopTime = false;
     m_showPO2Cell1 = false;
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
@@ -1031,6 +1070,12 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showMaxDepth = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::Gas) {
             m_showGas = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::TTS) {
+            m_showTTS = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::StopDepth) {
+            m_showStopDepth = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::StopTime) {
+            m_showStopTime = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell1) {
             m_showPO2Cell1 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::PO2Cell2) {
@@ -1055,6 +1100,9 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showMeanDepthChanged();
     emit showMaxDepthChanged();
     emit showGasChanged();
+    emit showTTSChanged();
+    emit showStopDepthChanged();
+    emit showStopTimeChanged();
     emit showPO2Cell1Changed();
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
@@ -1157,6 +1205,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showDepth) numSections++;
     if (m_showTemperature) numSections++;
     if (m_showNDL) numSections++;  // NDL/TTS share the same section
+    if (m_showStopDepth) numSections++;
+    if (m_showStopTime) numSections++;
+    if (m_showTTS) numSections++;
     if (m_showTime) numSections++;
     if (m_showCNS) numSections++;
     if (m_showMeanDepth) numSections++;
@@ -1219,6 +1270,40 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setFont(m_font, false);
         cell.setTextColor(m_textColor, false);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::NDL, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    // Deco stop cells next to NDL/TTS: blank outside deco
+    if (m_showStopDepth) {
+        Unabara::CellData cell("stop_depth", Unabara::CellType::StopDepth);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::StopDepth, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showStopTime) {
+        Unabara::CellData cell("stop_time", Unabara::CellType::StopTime);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::StopTime, m_font, templateSize));
+        cell.setVisible(true);
+        m_cells.append(cell);
+        currentSection++;
+    }
+
+    if (m_showTTS) {
+        Unabara::CellData cell("tts", Unabara::CellType::TTS);
+        cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
+        cell.setFont(m_font, false);
+        cell.setTextColor(m_textColor, false);
+        cell.setCalculatedSize(calculateCellSize(Unabara::CellType::TTS, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
         currentSection++;
@@ -1460,18 +1545,6 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     //          << "ndl:" << dataPoint.ndl
     //          << "tts:" << dataPoint.tts;
     
-    // Determine if we're in decompression
-    bool inDeco = (dataPoint.ndl <= 0);
-    
-    // Ensure TTS is reasonable when in deco mode
-    if (inDeco && dataPoint.tts <= 0.0) {
-        qDebug() << "Warning: In decompression but TTS is" << dataPoint.tts 
-                 << "- This might indicate a parsing issue";
-        // Set a minimum value to ensure display makes sense
-        dataPoint.tts = 1.0;
-    }
-
-
     // Set up the painter
     QPainter painter(&result);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -1497,7 +1570,9 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
                                                    bool showLabel) const
 {
     Units::UnitSystem unitSystem = Config::instance()->unitSystem();
-    bool inDeco = (dataPoint.ndl <= 0);
+    // ndl == 0 is a reported deco state; ndl < 0 means the computer never
+    // reported NDL (must NOT read as deco — shows "NDL ---" instead).
+    bool inDeco = (dataPoint.ndl == 0.0);
 
     auto format = [showLabel](const QString& label, const QString& value) {
         return showLabel ? QString("%1\n%2").arg(label, value) : value;
@@ -1519,14 +1594,12 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
     }
 
     case Unabara::CellType::NDL:
-        // Dynamically switch between NDL and TTS based on deco status
+        // Dynamically switch between NDL and TTS based on deco status. The
+        // deco details (stop depth/time) live in the StopDepth/StopTime cells
+        // so this cell keeps a stable two-line geometry.
         if (inDeco) {
             QString ttsStr = dataPoint.tts > 0 ? QString("%1 min").arg(qRound(dataPoint.tts)) : "---";
-            QString decoInfo;
-            if (dataPoint.ceiling > 0) {
-                decoInfo = QString("\nDECO (%1)").arg(Units::formatDepthValue(dataPoint.ceiling, unitSystem));
-            }
-            return format("TTS", ttsStr + decoInfo);
+            return format("TTS", ttsStr);
         } else {
             QString ndlStr = dataPoint.ndl > 0 ? QString("%1 min").arg(qRound(dataPoint.ndl)) : "---";
             return format("NDL", ndlStr);
@@ -1535,6 +1608,24 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
     case Unabara::CellType::TTS: {
         QString ttsStr = dataPoint.tts > 0 ? QString("%1 min").arg(qRound(dataPoint.tts)) : "---";
         return format("TTS", ttsStr);
+    }
+
+    case Unabara::CellType::StopDepth: {
+        // Blank value outside deco: parsers carry stop values forward, so the
+        // inDeco gate (not the value alone) decides visibility
+        bool show = inDeco && dataPoint.ceiling > 0;
+        QString value = show ? Units::formatDepthValue(dataPoint.ceiling, unitSystem)
+                             : QString();
+        return format("STOP", value);
+    }
+
+    case Unabara::CellType::StopTime: {
+        bool show = inDeco && dataPoint.stopTime > 0;
+        // Round up: a 22 s remaining stop is still a stop — "0 min" would
+        // read as cleared (Garmin reports this field in seconds)
+        QString value = show ? QString("%1 min").arg(qCeil(dataPoint.stopTime))
+                             : QString();
+        return format("TIME", value);
     }
 
     case Unabara::CellType::Pressure: {
@@ -1825,6 +1916,9 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
     }
 }
 
+// Frozen legacy path: only reachable with an empty cell list, which cannot
+// happen in practice (the constructor always builds a default layout). Kept
+// as-is; it still renders the old combined TTS + DECO line.
 void OverlayGenerator::renderSectionBasedOverlay(QPainter& painter, const QSize& imageSize,
                                                   const DiveDataPoint& dataPoint, DiveData* dive)
 {
@@ -2091,7 +2185,7 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
                 break;
             case Unabara::CellType::TTS:
                 header = tr("TTS");
-                value = "99 min\n9.9 m";  // Typical TTS + ceiling
+                value = "99 min";    // Typical TTS value
                 break;
             case Unabara::CellType::Pressure:
                 header = tr("TANK 1");   // Typical tank number
@@ -2122,6 +2216,14 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::Gas:
                 header = tr("GAS");
                 value = "EAN32";         // Widest plausible mix string
+                break;
+            case Unabara::CellType::StopDepth:
+                header = tr("STOP");
+                value = "99.9 m";        // Sized for the populated (in-deco) state
+                break;
+            case Unabara::CellType::StopTime:
+                header = tr("TIME");
+                value = "99 min";        // Sized for the populated (in-deco) state
                 break;
             default:
                 header = "UNKNOWN";

@@ -28,6 +28,8 @@ enum class CellType {
     MeanDepth,        // Average depth of the dive (static, reported by the dive computer)
     MaxDepth,         // Maximum depth reached so far (running max, like the DC's MAX field)
     Gas,              // Currently breathed gas mix (from gas switches)
+    StopDepth,        // Current deco stop depth ("STOP")
+    StopTime,         // Time at the current deco stop ("TIME")
     Unknown
 };
 

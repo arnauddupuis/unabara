@@ -39,6 +39,9 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(bool showMeanDepth READ showMeanDepth WRITE setShowMeanDepth NOTIFY showMeanDepthChanged)
     Q_PROPERTY(bool showMaxDepth READ showMaxDepth WRITE setShowMaxDepth NOTIFY showMaxDepthChanged)
     Q_PROPERTY(bool showGas READ showGas WRITE setShowGas NOTIFY showGasChanged)
+    Q_PROPERTY(bool showTTS READ showTTS WRITE setShowTTS NOTIFY showTTSChanged)
+    Q_PROPERTY(bool showStopDepth READ showStopDepth WRITE setShowStopDepth NOTIFY showStopDepthChanged)
+    Q_PROPERTY(bool showStopTime READ showStopTime WRITE setShowStopTime NOTIFY showStopTimeChanged)
 
     // CCR properties
     Q_PROPERTY(bool showPO2Cell1 READ showPO2Cell1 WRITE setShowPO2Cell1 NOTIFY showPO2Cell1Changed)
@@ -82,6 +85,9 @@ public:
     bool showMeanDepth() const { return m_showMeanDepth; }
     bool showMaxDepth() const { return m_showMaxDepth; }
     bool showGas() const { return m_showGas; }
+    bool showTTS() const { return m_showTTS; }
+    bool showStopDepth() const { return m_showStopDepth; }
+    bool showStopTime() const { return m_showStopTime; }
 
     // CCR getters
     bool showPO2Cell1() const { return m_showPO2Cell1; }
@@ -120,6 +126,9 @@ public:
     void setShowMeanDepth(bool show);
     void setShowMaxDepth(bool show);
     void setShowGas(bool show);
+    void setShowTTS(bool show);
+    void setShowStopDepth(bool show);
+    void setShowStopTime(bool show);
 
     // CCR setters
     void setShowPO2Cell1(bool show);
@@ -207,6 +216,9 @@ signals:
     void showMeanDepthChanged();
     void showMaxDepthChanged();
     void showGasChanged();
+    void showTTSChanged();
+    void showStopDepthChanged();
+    void showStopTimeChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -255,6 +267,9 @@ private:
     bool m_showMeanDepth;
     bool m_showMaxDepth;
     bool m_showGas;
+    bool m_showTTS;
+    bool m_showStopDepth;
+    bool m_showStopTime;
 
     // CCR settings
     bool m_showPO2Cell1;

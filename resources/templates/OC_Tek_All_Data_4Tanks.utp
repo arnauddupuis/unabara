@@ -172,6 +172,38 @@
             },
             "textColor": "#fffbc30d",
             "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "stop_depth",
+            "cellType": "StopDepth",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.65,
+                "y": 0.302
+            },
+            "showLabel": true,
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 87,
+                "width": 113
+            },
+            "cellId": "stop_time",
+            "cellType": "StopTime",
+            "hasCustomColor": false,
+            "hasCustomFont": false,
+            "position": {
+                "x": 0.65,
+                "y": 0.405
+            },
+            "showLabel": true,
+            "visible": true
         }
     ],
     "defaultFont": {

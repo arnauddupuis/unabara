@@ -119,7 +119,8 @@ Item {
     Connections {
         target: overlayGenerator
         function onFontChanged()              { root.refreshTick++ }
-        function onTextColorChanged()         { root.refreshTick++ }
+        function onLabelColorChanged()        { root.refreshTick++ }
+        function onValueColorChanged()        { root.refreshTick++ }
         function onTemplateChanged()          { root.refreshTick++ }
         function onShowDepthChanged()         { root.refreshTick++ }
         function onShowTemperatureChanged()   { root.refreshTick++ }

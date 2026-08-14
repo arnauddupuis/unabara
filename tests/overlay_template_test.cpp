@@ -26,7 +26,9 @@ private slots:
         templ.setBackgroundImagePath(QStringLiteral(":/images/test.png"));
         templ.setBackgroundOpacity(0.5);
         templ.setDefaultFont(QFont(QStringLiteral("Monospace"), 18));
-        templ.setDefaultTextColor(QColor(255, 128, 0));
+        // Deliberately different colors to catch a label/value swap
+        templ.setDefaultLabelColor(QColor(255, 128, 0));
+        templ.setDefaultValueColor(QColor(0, 128, 255));
         templ.setDefaultShadowEnabled(true);
         templ.setDefaultShadowType(ShadowType::Blurred);
         templ.setDefaultShadowColor(QColor(10, 20, 30, 200));
@@ -38,7 +40,11 @@ private slots:
         QCOMPARE(restored.templateName(), QStringLiteral("Test Template"));
         QCOMPARE(restored.backgroundOpacity(), 0.5);
         QCOMPARE(restored.defaultFont().family(), QStringLiteral("Monospace"));
-        QCOMPARE(restored.defaultTextColor(), QColor(255, 128, 0));
+        QCOMPARE(restored.defaultLabelColor(), QColor(255, 128, 0));
+        QCOMPARE(restored.defaultValueColor(), QColor(0, 128, 255));
+        // Downgrade-compat field mirrors the value color for older versions
+        QCOMPARE(templ.toJson()[QStringLiteral("defaultTextColor")].toString(),
+                 QColor(0, 128, 255).name(QColor::HexArgb));
         QCOMPARE(restored.defaultShadowEnabled(), true);
         QCOMPARE(restored.defaultShadowType(), ShadowType::Blurred);
         QCOMPARE(restored.defaultShadowColor(), QColor(10, 20, 30, 200));
@@ -61,6 +67,23 @@ private slots:
         QCOMPARE(restored.defaultShadowColor(), QColor(0, 0, 0));
         QCOMPARE(restored.defaultShadowSize(), 2);
         QCOMPARE(restored.defaultShadowOpacity(), 0.7);
+        // No color keys at all → both default colors stay white
+        QCOMPARE(restored.defaultLabelColor(), QColor(Qt::white));
+        QCOMPARE(restored.defaultValueColor(), QColor(Qt::white));
+    }
+
+    void legacyDefaultTextColorSeedsBoth()
+    {
+        // .utp files predating the label/value split only carry
+        // "defaultTextColor" — it must seed both new defaults
+        QJsonObject json;
+        json[QStringLiteral("version")] = QStringLiteral("1.0");
+        json[QStringLiteral("templateName")] = QStringLiteral("Legacy");
+        json[QStringLiteral("defaultTextColor")] = QStringLiteral("#ff112233");
+
+        const OverlayTemplate restored = OverlayTemplate::fromJson(json);
+        QCOMPARE(restored.defaultLabelColor(), QColor(QStringLiteral("#ff112233")));
+        QCOMPARE(restored.defaultValueColor(), QColor(QStringLiteral("#ff112233")));
     }
 };
 

@@ -36,16 +36,20 @@ QVariant CellModel::data(const QModelIndex &index, int role) const
         return cell.visible();
     case FontRole:
         return cell.font();
-    case TextColorRole:
-        return cell.textColor();
+    case LabelColorRole:
+        return cell.labelColor();
+    case ValueColorRole:
+        return cell.valueColor();
     case DisplayTextRole:
         return generateDisplayText(cell);
     case CalculatedSizeRole:
         return cell.calculatedSize();
     case HasCustomFontRole:
         return cell.hasCustomFont();
-    case HasCustomColorRole:
-        return cell.hasCustomColor();
+    case HasCustomLabelColorRole:
+        return cell.hasCustomLabelColor();
+    case HasCustomValueColorRole:
+        return cell.hasCustomValueColor();
     case TankIndexRole:
         return cell.tankIndex();
     case ShowLabelRole:
@@ -77,11 +81,13 @@ QHash<int, QByteArray> CellModel::roleNames() const
     roles[PositionRole] = "position";
     roles[VisibleRole] = "visible";
     roles[FontRole] = "font";
-    roles[TextColorRole] = "textColor";
+    roles[LabelColorRole] = "labelColor";
+    roles[ValueColorRole] = "valueColor";
     roles[DisplayTextRole] = "displayText";
     roles[CalculatedSizeRole] = "calculatedSize";
     roles[HasCustomFontRole] = "hasCustomFont";
-    roles[HasCustomColorRole] = "hasCustomColor";
+    roles[HasCustomLabelColorRole] = "hasCustomLabelColor";
+    roles[HasCustomValueColorRole] = "hasCustomValueColor";
     roles[TankIndexRole] = "tankIndex";
     roles[ShowLabelRole] = "showLabel";
     roles[HasCustomShowLabelRole] = "hasCustomShowLabel";
@@ -172,27 +178,6 @@ void CellModel::updateCellFont(const QString& cellId, const QFont& font)
             m_cells[i].setFont(font, true);
             QModelIndex idx = index(i);
             emit dataChanged(idx, idx, {FontRole, HasCustomFontRole});
-            emit cellDataChanged(cellId);
-            break;
-        }
-    }
-}
-
-void CellModel::updateCellColor(const QString& cellId, const QColor& color)
-{
-    if (!m_generator) {
-        qWarning() << "CellModel::updateCellColor: No generator set";
-        return;
-    }
-
-    m_generator->setCellColor(cellId, color);
-
-    // Update our local copy
-    for (int i = 0; i < m_cells.size(); ++i) {
-        if (m_cells[i].cellId() == cellId) {
-            m_cells[i].setTextColor(color, true);
-            QModelIndex idx = index(i);
-            emit dataChanged(idx, idx, {TextColorRole, HasCustomColorRole});
             emit cellDataChanged(cellId);
             break;
         }

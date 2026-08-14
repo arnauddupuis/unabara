@@ -16,9 +16,11 @@ Item {
 
     // Reactive properties that update when selection or cells change
     property var currentFont: getCurrentFont()
-    property var currentColor: getCurrentColor()
+    property var currentLabelColor: getCurrentLabelColor()
+    property var currentValueColor: getCurrentValueColor()
     property bool currentHasCustomFont: getSelectedCellHasCustomFont()
-    property bool currentHasCustomColor: getSelectedCellHasCustomColor()
+    property bool currentHasCustomLabelColor: getSelectedCellHasCustomLabelColor()
+    property bool currentHasCustomValueColor: getSelectedCellHasCustomValueColor()
     property bool currentShowLabel: getCurrentShowLabel()
     property bool currentHasCustomShowLabel: getSelectedCellHasCustomShowLabel()
     property bool currentShadowEnabled: getCurrentShadowEnabled()
@@ -57,15 +59,25 @@ Item {
         return generator.font
     }
 
-    // Get the effective color (selected cell or global) - reads from generator
-    function getCurrentColor() {
+    // Get the effective colors (selected cell or global) - read from generator
+    function getCurrentLabelColor() {
         if (!generator) return "white"
 
         if (hasSelection && selectedCellId) {
-            return generator.getCellColor(selectedCellId)
+            return generator.getCellLabelColor(selectedCellId)
         }
 
-        return generator.textColor
+        return generator.labelColor
+    }
+
+    function getCurrentValueColor() {
+        if (!generator) return "white"
+
+        if (hasSelection && selectedCellId) {
+            return generator.getCellValueColor(selectedCellId)
+        }
+
+        return generator.valueColor
     }
 
     function getSelectedCellHasCustomFont() {
@@ -75,10 +87,17 @@ Item {
         return hasCustom === true
     }
 
-    function getSelectedCellHasCustomColor() {
+    function getSelectedCellHasCustomLabelColor() {
         if (!hasSelection || !selectedCellId) return false
 
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomColor")
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomLabelColor")
+        return hasCustom === true
+    }
+
+    function getSelectedCellHasCustomValueColor() {
+        if (!hasSelection || !selectedCellId) return false
+
+        var hasCustom = getCellProperty(selectedCellId, "hasCustomValueColor")
         return hasCustom === true
     }
 
@@ -179,9 +198,16 @@ Item {
             }
         }
 
-        function onTextColorChanged() {
+        function onLabelColorChanged() {
             if (!hasSelection) {
-                console.log("Global color changed")
+                console.log("Global label color changed")
+                updateCurrentProperties()
+            }
+        }
+
+        function onValueColorChanged() {
+            if (!hasSelection) {
+                console.log("Global value color changed")
                 updateCurrentProperties()
             }
         }
@@ -203,12 +229,13 @@ Item {
 
     function updateCurrentProperties() {
         var newFont = getCurrentFont()
-        var newColor = getCurrentColor()
-        console.log("Updating properties - Font:", newFont ? newFont.family : "null", "Size:", newFont ? newFont.pointSize : "null", "Color:", newColor)
+        console.log("Updating properties - Font:", newFont ? newFont.family : "null", "Size:", newFont ? newFont.pointSize : "null")
         currentFont = newFont
-        currentColor = newColor
+        currentLabelColor = getCurrentLabelColor()
+        currentValueColor = getCurrentValueColor()
         currentHasCustomFont = getSelectedCellHasCustomFont()
-        currentHasCustomColor = getSelectedCellHasCustomColor()
+        currentHasCustomLabelColor = getSelectedCellHasCustomLabelColor()
+        currentHasCustomValueColor = getSelectedCellHasCustomValueColor()
         currentShowLabel = getCurrentShowLabel()
         currentHasCustomShowLabel = getSelectedCellHasCustomShowLabel()
         currentShadowEnabled = getCurrentShadowEnabled()
@@ -366,7 +393,10 @@ Item {
                 function onFontChanged() {
                     previewContainer.updateCellModel()
                 }
-                function onTextColorChanged() {
+                function onLabelColorChanged() {
+                    previewContainer.updateCellModel()
+                }
+                function onValueColorChanged() {
                     previewContainer.updateCellModel()
                 }
 
@@ -772,30 +802,58 @@ Item {
                 }
                 Item { Layout.preferredWidth: 40 }
 
-                Label { text: qsTr("Color:") }
+                Label { text: qsTr("Label color:") }
                 Button {
-                    id: colorButton
+                    id: labelColorButton
                     Layout.fillWidth: true
 
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 4
-                        color: root.currentColor
+                        color: root.currentLabelColor
                     }
 
-                    onClicked: colorDialog.open()
+                    onClicked: labelColorDialog.open()
                 }
 
                 Button {
                     text: "↺"
                     Layout.preferredWidth: 40
-                    enabled: root.hasSelection && root.currentHasCustomColor
+                    enabled: root.hasSelection && root.currentHasCustomLabelColor
                     opacity: enabled ? 1.0 : 0.3
                     ToolTip.visible: hovered
-                    ToolTip.text: enabled ? qsTr("Reset to global color") : qsTr("No custom color")
+                    ToolTip.text: enabled ? qsTr("Reset to global label color") : qsTr("No custom label color")
                     onClicked: {
                         if (root.generator && root.selectedCellId) {
-                            root.generator.resetCellColor(root.selectedCellId)
+                            root.generator.resetCellLabelColor(root.selectedCellId)
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Data color:") }
+                Button {
+                    id: valueColorButton
+                    Layout.fillWidth: true
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: root.currentValueColor
+                    }
+
+                    onClicked: valueColorDialog.open()
+                }
+
+                Button {
+                    text: "↺"
+                    Layout.preferredWidth: 40
+                    enabled: root.hasSelection && root.currentHasCustomValueColor
+                    opacity: enabled ? 1.0 : 0.3
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ? qsTr("Reset to global data color") : qsTr("No custom data color")
+                    onClicked: {
+                        if (root.generator && root.selectedCellId) {
+                            root.generator.resetCellValueColor(root.selectedCellId)
                         }
                     }
                 }
@@ -1209,19 +1267,36 @@ Item {
     }
     
     ColorDialog {
-        id: colorDialog
-        title: qsTr("Select Text Color")
-        selectedColor: root.currentColor
+        id: labelColorDialog
+        title: qsTr("Select Label Color")
+        selectedColor: root.currentLabelColor
 
         Connections {
             target: root
-            function onCurrentColorChanged() {
-                colorDialog.selectedColor = root.currentColor
+            function onCurrentLabelColorChanged() {
+                labelColorDialog.selectedColor = root.currentLabelColor
             }
         }
 
         onAccepted: {
-            if (generator) generator.textColor = selectedColor
+            if (generator) generator.labelColor = selectedColor
+        }
+    }
+
+    ColorDialog {
+        id: valueColorDialog
+        title: qsTr("Select Data Color")
+        selectedColor: root.currentValueColor
+
+        Connections {
+            target: root
+            function onCurrentValueColorChanged() {
+                valueColorDialog.selectedColor = root.currentValueColor
+            }
+        }
+
+        onAccepted: {
+            if (generator) generator.valueColor = selectedColor
         }
     }
 

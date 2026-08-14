@@ -20,13 +20,15 @@ Rectangle {
     property point cellPosition: Qt.point(0, 0)  // Normalized position (0.0-1.0)
     property bool cellVisible: true
     property font cellFont: Qt.font({family: "Sans Serif", pointSize: 12})
-    property color cellTextColor: "white"
+    property color cellLabelColor: "white"
+    property color cellValueColor: "white"
     property string displayText: ""
     property size cellCalculatedSize: Qt.size(100, 40)
     property bool selected: false
     property bool overlapping: false
     property bool hasCustomFont: false
-    property bool hasCustomColor: false
+    property bool hasCustomLabelColor: false
+    property bool hasCustomValueColor: false
     property bool shadowEnabled: false
     property int shadowType: 0            // 0 = offset, 1 = blurred, 2 = outline
     property color shadowColor: "black"
@@ -36,6 +38,21 @@ Rectangle {
     property bool dragging: mouseArea.drag.active  // Expose drag state
     property var generator: null  // Reference to overlay generator for snap settings
     property bool showBackground: true  // Show cell background (editor only, not for export)
+
+    // The label line and the value line have independent colors, so the text
+    // is built as StyledText with a <font> tag around the label. The shadow
+    // copies keep drawing the plain displayText (uniform shadow color).
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+    function styledDisplayText() {
+        var t = displayText
+        var i = t.indexOf('\n')
+        if (i < 0)
+            return escapeHtml(t)
+        return "<font color=\"" + cellLabelColor + "\">" + escapeHtml(t.substring(0, i))
+             + "</font><br>" + escapeHtml(t.substring(i + 1))
+    }
 
     // Signals
     signal clicked()
@@ -84,9 +101,10 @@ Rectangle {
         id: cellText
         x: 4
         y: 4
-        text: displayText
+        text: cellRoot.styledDisplayText()
+        textFormat: Text.StyledText
         font: cellFont
-        color: cellTextColor
+        color: cellValueColor
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignTop
         wrapMode: Text.NoWrap
@@ -135,13 +153,13 @@ Rectangle {
             }
         }
 
-        // Custom color indicator
+        // Custom color indicator (label and/or value color)
         Rectangle {
             width: 8
             height: 8
             radius: 4
             color: "magenta"
-            visible: hasCustomColor
+            visible: hasCustomLabelColor || hasCustomValueColor
 
             ToolTip.visible: customColorMouseArea.containsMouse
             ToolTip.text: "Custom color"

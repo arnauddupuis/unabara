@@ -57,6 +57,15 @@ namespace ShadowDefaults {
 }
 
 /**
+ * @brief Default text color shared by CellData, OverlayGenerator and OverlayTemplate
+ *
+ * Applies to both the label and the value color.
+ */
+namespace ColorDefaults {
+    inline QColor text() { return QColor(Qt::white); }
+}
+
+/**
  * @brief Represents a single data cell in the overlay
  *
  * Each cell displays one type of telemetry data and can be positioned
@@ -74,10 +83,12 @@ public:
     QPointF position() const { return m_position; }
     bool visible() const { return m_visible; }
     QFont font() const { return m_font; }
-    QColor textColor() const { return m_textColor; }
+    QColor labelColor() const { return m_labelColor; }
+    QColor valueColor() const { return m_valueColor; }
     QSizeF calculatedSize() const { return m_calculatedSize; }
     bool hasCustomFont() const { return m_hasCustomFont; }
-    bool hasCustomColor() const { return m_hasCustomColor; }
+    bool hasCustomLabelColor() const { return m_hasCustomLabelColor; }
+    bool hasCustomValueColor() const { return m_hasCustomValueColor; }
     bool hasCustomShowLabel() const { return m_hasCustomShowLabel; }
     int tankIndex() const { return m_tankIndex; }
     bool showLabel() const { return m_showLabel; }
@@ -94,7 +105,8 @@ public:
     void setPosition(const QPointF& pos) { m_position = pos; }
     void setVisible(bool visible) { m_visible = visible; }
     void setFont(const QFont& font, bool isCustom = true);
-    void setTextColor(const QColor& color, bool isCustom = true);
+    void setLabelColor(const QColor& color, bool isCustom = true);
+    void setValueColor(const QColor& color, bool isCustom = true);
     void setShowLabel(bool show, bool isCustom = true);
     void setShadowEnabled(bool enabled, bool isCustom = true);
     void setShadowType(ShadowType type, bool isCustom = true);
@@ -106,7 +118,6 @@ public:
 
     // Reset custom properties to inherit from global
     void resetFont() { m_hasCustomFont = false; }
-    void resetColor() { m_hasCustomColor = false; }
     void resetShowLabel() { m_hasCustomShowLabel = false; }
     void resetShadow() { m_hasCustomShadow = false; }
 
@@ -126,10 +137,12 @@ private:
     QPointF m_position;            // Normalized position (0.0-1.0)
     bool m_visible;                // Whether cell is shown
     QFont m_font;                  // Cell-specific font
-    QColor m_textColor;            // Cell-specific text color
+    QColor m_labelColor;           // Cell-specific label ("DEPTH" etc.) text color
+    QColor m_valueColor;           // Cell-specific value ("29.3 m" etc.) text color
     QSizeF m_calculatedSize;       // Calculated size based on content and font
     bool m_hasCustomFont;          // True if font differs from global default
-    bool m_hasCustomColor;         // True if color differs from global default
+    bool m_hasCustomLabelColor;    // True if label color differs from global default
+    bool m_hasCustomValueColor;    // True if value color differs from global default
     bool m_showLabel;              // Whether the label row ("DEPTH" etc.) is rendered above the value
     bool m_hasCustomShowLabel;     // True if showLabel differs from global default
     bool m_shadowEnabled;          // Whether a shadow is drawn behind the text

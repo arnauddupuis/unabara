@@ -376,7 +376,8 @@ Item {
                                 italic: f.italic
                             })
                         }
-                        cellTextColor: model.textColor
+                        cellLabelColor: model.labelColor
+                        cellValueColor: model.valueColor
                         displayText: model.displayText
                         // Scale pixel size to current container size
                         // calculatedSize is in pixels, scale proportionally to fit container
@@ -389,7 +390,8 @@ Item {
                             )
                         }
                         hasCustomFont: model.hasCustomFont
-                        hasCustomColor: model.hasCustomColor
+                        hasCustomLabelColor: model.hasCustomLabelColor
+                        hasCustomValueColor: model.hasCustomValueColor
 
                         // Shadow settings from model
                         shadowEnabled: model.shadowEnabled

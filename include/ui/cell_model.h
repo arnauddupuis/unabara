@@ -24,11 +24,13 @@ public:
         PositionRole,
         VisibleRole,
         FontRole,
-        TextColorRole,
+        LabelColorRole,
+        ValueColorRole,
         DisplayTextRole,
         CalculatedSizeRole,
         HasCustomFontRole,
-        HasCustomColorRole,
+        HasCustomLabelColorRole,
+        HasCustomValueColorRole,
         TankIndexRole,
         ShowLabelRole,
         HasCustomShowLabelRole,
@@ -51,7 +53,6 @@ public:
     Q_INVOKABLE void updateFromGenerator(OverlayGenerator* generator, DiveData* dive, double timePoint);
     Q_INVOKABLE void updateCellPosition(const QString& cellId, const QPointF& position);
     Q_INVOKABLE void updateCellFont(const QString& cellId, const QFont& font);
-    Q_INVOKABLE void updateCellColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void updateCellVisible(const QString& cellId, bool visible);
 
     // Getters

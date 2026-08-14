@@ -1,4 +1,5 @@
 #include "include/core/config.h"
+#include "include/core/cell_data.h"
 #include <QStandardPaths>
 #include <QDir>
 #include <QJsonDocument>
@@ -22,7 +23,8 @@ Config::Config(QObject *parent)
     : QObject(parent)
     , m_settings("UnabaraProject", "Unabara")
     , m_font("Sans Serif", 12)
-    , m_textColor(Qt::white)
+    , m_labelColor(Unabara::ColorDefaults::text())
+    , m_valueColor(Unabara::ColorDefaults::text())
     , m_backgroundOpacity(1.0)
     , m_showDepth(true)
     , m_showTemperature(true)
@@ -124,16 +126,29 @@ void Config::setFont(const QFont &font)
     }
 }
 
-QColor Config::textColor() const
+QColor Config::labelColor() const
 {
-    return m_textColor;
+    return m_labelColor;
 }
 
-void Config::setTextColor(const QColor &color)
+void Config::setLabelColor(const QColor &color)
 {
-    if (m_textColor != color) {
-        m_textColor = color;
-        emit textColorChanged();
+    if (m_labelColor != color) {
+        m_labelColor = color;
+        emit labelColorChanged();
+    }
+}
+
+QColor Config::valueColor() const
+{
+    return m_valueColor;
+}
+
+void Config::setValueColor(const QColor &color)
+{
+    if (m_valueColor != color) {
+        m_valueColor = color;
+        emit valueColorChanged();
     }
 }
 
@@ -625,10 +640,16 @@ void Config::loadConfig()
     m_font.setItalic(fontItalic);
     
     // Load text color
+    // Legacy single-color RGB keys seed both colors when the split
+    // label/value keys (HexArgb strings) are absent
     int r = m_settings.value("overlay/textColorR", 255).toInt();
     int g = m_settings.value("overlay/textColorG", 255).toInt();
     int b = m_settings.value("overlay/textColorB", 255).toInt();
-    m_textColor = QColor(r, g, b);
+    const QColor legacyTextColor(r, g, b);
+    m_labelColor = QColor(m_settings.value("overlay/labelColor",
+        legacyTextColor.name(QColor::HexArgb)).toString());
+    m_valueColor = QColor(m_settings.value("overlay/valueColor",
+        legacyTextColor.name(QColor::HexArgb)).toString());
 
     // Load background opacity
     m_backgroundOpacity = m_settings.value("overlay/backgroundOpacity", 1.0).toDouble();
@@ -779,9 +800,12 @@ void Config::saveConfig()
     m_settings.setValue("overlay/fontItalic", m_font.italic());
     
     // Save text color
-    m_settings.setValue("overlay/textColorR", m_textColor.red());
-    m_settings.setValue("overlay/textColorG", m_textColor.green());
-    m_settings.setValue("overlay/textColorB", m_textColor.blue());
+    m_settings.setValue("overlay/labelColor", m_labelColor.name(QColor::HexArgb));
+    m_settings.setValue("overlay/valueColor", m_valueColor.name(QColor::HexArgb));
+    // Legacy keys mirror the value color so older app versions stay usable
+    m_settings.setValue("overlay/textColorR", m_valueColor.red());
+    m_settings.setValue("overlay/textColorG", m_valueColor.green());
+    m_settings.setValue("overlay/textColorB", m_valueColor.blue());
 
     // Save background opacity
     m_settings.setValue("overlay/backgroundOpacity", m_backgroundOpacity);

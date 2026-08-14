@@ -16,7 +16,8 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_templateWidth(640)
     , m_templateHeight(120)
     , m_font(QFont("Sans Serif", 12))
-    , m_textColor(Qt::white)
+    , m_labelColor(Unabara::ColorDefaults::text())
+    , m_valueColor(Unabara::ColorDefaults::text())
     , m_showLabel(true)
     , m_shadowEnabled(Unabara::ShadowDefaults::enabled)
     , m_shadowType(Unabara::ShadowDefaults::type)
@@ -51,7 +52,8 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_templatePath = config->templatePath();
     updateTemplateDimensions();
     m_font = config->font();
-    m_textColor = config->textColor();
+    m_labelColor = config->labelColor();
+    m_valueColor = config->valueColor();
     m_backgroundOpacity = config->backgroundOpacity();
     m_showDepth = config->showDepth();
     m_showTemperature = config->showTemperature();
@@ -150,29 +152,57 @@ void OverlayGenerator::setFont(const QFont &font)
     }
 }
 
-void OverlayGenerator::setTextColor(const QColor &color)
+void OverlayGenerator::setLabelColor(const QColor &color)
 {
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
-        if (m_textColor != color) {
-            m_textColor = color;
-            Config::instance()->setTextColor(color); // Update Config
+        if (m_labelColor != color) {
+            m_labelColor = color;
+            Config::instance()->setLabelColor(color); // Update Config
 
-            // Apply to all cells that don't have custom colors
+            // Apply to all cells that don't have custom label colors
             for (auto& cell : m_cells) {
-                if (!cell.hasCustomColor()) {
-                    cell.setTextColor(color, false); // false = not custom, inherited from global
+                if (!cell.hasCustomLabelColor()) {
+                    cell.setLabelColor(color, false); // false = not custom, inherited from global
                 }
             }
 
-            emit textColorChanged();
+            emit labelColorChanged();
             emit cellsChanged();
         }
     } else {
         // Cell selected - apply only to selected cell
         Unabara::CellData* cell = getCellData(m_selectedCellId);
-        if (cell && cell->textColor() != color) {
-            cell->setTextColor(color, true); // true = custom color
+        if (cell && cell->labelColor() != color) {
+            cell->setLabelColor(color, true); // true = custom color
+            emit cellsChanged();
+        }
+    }
+}
+
+void OverlayGenerator::setValueColor(const QColor &color)
+{
+    if (m_selectedCellId.isEmpty()) {
+        // No cell selected - apply to all cells (global default)
+        if (m_valueColor != color) {
+            m_valueColor = color;
+            Config::instance()->setValueColor(color); // Update Config
+
+            // Apply to all cells that don't have custom value colors
+            for (auto& cell : m_cells) {
+                if (!cell.hasCustomValueColor()) {
+                    cell.setValueColor(color, false); // false = not custom, inherited from global
+                }
+            }
+
+            emit valueColorChanged();
+            emit cellsChanged();
+        }
+    } else {
+        // Cell selected - apply only to selected cell
+        Unabara::CellData* cell = getCellData(m_selectedCellId);
+        if (cell && cell->valueColor() != color) {
+            cell->setValueColor(color, true); // true = custom color
             emit cellsChanged();
         }
     }
@@ -665,12 +695,22 @@ void OverlayGenerator::resetCellFont(const QString& cellId)
     }
 }
 
-void OverlayGenerator::resetCellColor(const QString& cellId)
+void OverlayGenerator::resetCellLabelColor(const QString& cellId)
 {
     Unabara::CellData* cell = getCellData(cellId);
-    if (cell && cell->hasCustomColor()) {
+    if (cell && cell->hasCustomLabelColor()) {
         // Reset to global default color
-        cell->setTextColor(m_textColor, false);  // false = inherited from global
+        cell->setLabelColor(m_labelColor, false);  // false = inherited from global
+        emit cellsChanged();
+    }
+}
+
+void OverlayGenerator::resetCellValueColor(const QString& cellId)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell && cell->hasCustomValueColor()) {
+        // Reset to global default color
+        cell->setValueColor(m_valueColor, false);  // false = inherited from global
         emit cellsChanged();
     }
 }
@@ -700,6 +740,12 @@ void OverlayGenerator::resetCellShadow(const QString& cellId)
 }
 
 // Cell-based layout management methods
+
+void OverlayGenerator::seedCellColors(Unabara::CellData& cell) const
+{
+    cell.setLabelColor(m_labelColor, false);  // false = inherited from global
+    cell.setValueColor(m_valueColor, false);
+}
 
 Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId)
 {
@@ -741,13 +787,22 @@ QFont OverlayGenerator::getCellFont(const QString& cellId) const
     return m_font;
 }
 
-QColor OverlayGenerator::getCellColor(const QString& cellId) const
+QColor OverlayGenerator::getCellLabelColor(const QString& cellId) const
 {
     const auto* cell = getCellData(cellId);
-    if (cell && cell->hasCustomColor()) {
-        return cell->textColor();
+    if (cell && cell->hasCustomLabelColor()) {
+        return cell->labelColor();
     }
-    return m_textColor;
+    return m_labelColor;
+}
+
+QColor OverlayGenerator::getCellValueColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    if (cell && cell->hasCustomValueColor()) {
+        return cell->valueColor();
+    }
+    return m_valueColor;
 }
 
 void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
@@ -761,14 +816,25 @@ void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
     }
 }
 
-void OverlayGenerator::setCellColor(const QString& cellId, const QColor& color)
+void OverlayGenerator::setCellLabelColor(const QString& cellId, const QColor& color)
 {
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
-        cell->setTextColor(color, true);  // true = custom color
+        cell->setLabelColor(color, true);  // true = custom color
         emit cellLayoutChanged();
     } else {
-        qWarning() << "setCellColor: Cell not found:" << cellId;
+        qWarning() << "setCellLabelColor: Cell not found:" << cellId;
+    }
+}
+
+void OverlayGenerator::setCellValueColor(const QString& cellId, const QColor& color)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        cell->setValueColor(color, true);  // true = custom color
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellValueColor: Cell not found:" << cellId;
     }
 }
 
@@ -895,7 +961,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
     Unabara::CellData newCell(cellId, idToType.value(cellId));
     newCell.setPosition(QPointF(0.5, 0.5));
     newCell.setFont(m_font, false);
-    newCell.setTextColor(m_textColor, false);
+    seedCellColors(newCell);
     newCell.setCalculatedSize(calculateCellSize(newCell.cellType(), m_font, templateSize));
     newCell.setVisible(true);
     m_cells.append(newCell);
@@ -954,7 +1020,7 @@ void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
             cell.setTankIndex(0);
             cell.setPosition(QPointF(0.5, 0.5));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -967,7 +1033,7 @@ void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
                 int row = i / 2;
                 cell.setPosition(QPointF(0.5 + col * 0.25, 0.5 + row * 0.2));
                 cell.setFont(m_font, false);
-                cell.setTextColor(m_textColor, false);
+                seedCellColors(cell);
                 cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
                 cell.setVisible(true);
                 m_cells.append(cell);
@@ -1011,7 +1077,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     updateTemplateDimensions();  // Update width/height for new template image
     m_backgroundOpacity = templ.backgroundOpacity();
     m_font = templ.defaultFont();
-    m_textColor = templ.defaultTextColor();
+    m_labelColor = templ.defaultLabelColor();
+    m_valueColor = templ.defaultValueColor();
     m_shadowEnabled = templ.defaultShadowEnabled();
     m_shadowType = templ.defaultShadowType();
     m_shadowColor = templ.defaultShadowColor();
@@ -1020,8 +1087,9 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_cells = templ.cells();
     m_useCellBasedLayout = true;
 
-    // Re-propagate global shadow settings into cells without a per-cell
-    // override, in case a hand-edited template disagrees with its defaults
+    // Re-propagate global shadow and color settings into cells without a
+    // per-cell override — saved templates omit non-custom values, so loaded
+    // cells otherwise sit at constructor defaults instead of the template's
     for (auto& cell : m_cells) {
         if (!cell.hasCustomShadow()) {
             cell.setShadowEnabled(m_shadowEnabled, false);
@@ -1029,6 +1097,12 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             cell.setShadowColor(m_shadowColor, false);
             cell.setShadowSize(m_shadowSize, false);
             cell.setShadowOpacity(m_shadowOpacity, false);
+        }
+        if (!cell.hasCustomLabelColor()) {
+            cell.setLabelColor(m_labelColor, false);
+        }
+        if (!cell.hasCustomValueColor()) {
+            cell.setValueColor(m_valueColor, false);
         }
     }
 
@@ -1116,7 +1190,8 @@ Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
     templ.setBackgroundImagePath(m_templatePath);
     templ.setBackgroundOpacity(m_backgroundOpacity);
     templ.setDefaultFont(m_font);
-    templ.setDefaultTextColor(m_textColor);
+    templ.setDefaultLabelColor(m_labelColor);
+    templ.setDefaultValueColor(m_valueColor);
     templ.setDefaultShadowEnabled(m_shadowEnabled);
     templ.setDefaultShadowType(m_shadowType);
     templ.setDefaultShadowColor(m_shadowColor);
@@ -1246,7 +1321,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("depth", Unabara::CellType::Depth);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Depth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1257,7 +1332,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("temperature", Unabara::CellType::Temperature);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Temperature, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1268,7 +1343,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("ndl", Unabara::CellType::NDL);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::NDL, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1280,7 +1355,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("stop_depth", Unabara::CellType::StopDepth);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::StopDepth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1291,7 +1366,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("stop_time", Unabara::CellType::StopTime);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::StopTime, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1302,7 +1377,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("tts", Unabara::CellType::TTS);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::TTS, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1320,7 +1395,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             cell.setTankIndex(0);
             cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -1351,7 +1426,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
                 cell.setTankIndex(i);
                 cell.setPosition(QPointF(tankX, tankY));
                 cell.setFont(m_font, false);
-                cell.setTextColor(m_textColor, false);
+                seedCellColors(cell);
                 cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
                 cell.setVisible(true);
                 m_cells.append(cell);
@@ -1368,7 +1443,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         cell.setTankIndex(0);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Pressure, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1379,7 +1454,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("time", Unabara::CellType::Time);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Time, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1390,7 +1465,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("cns", Unabara::CellType::CNS);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CNS, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1401,7 +1476,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("mean_depth", Unabara::CellType::MeanDepth);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MeanDepth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1412,7 +1487,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("max_depth", Unabara::CellType::MaxDepth);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::MaxDepth, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1423,7 +1498,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
         Unabara::CellData cell("gas", Unabara::CellType::Gas);
         cell.setPosition(QPointF(currentSection * sectionWidth, yPos));
         cell.setFont(m_font, false);
-        cell.setTextColor(m_textColor, false);
+        seedCellColors(cell);
         cell.setCalculatedSize(calculateCellSize(Unabara::CellType::Gas, m_font, templateSize));
         cell.setVisible(true);
         m_cells.append(cell);
@@ -1447,7 +1522,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             Unabara::CellData cell("po2_cell1", Unabara::CellType::PO2Cell1);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell1, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -1458,7 +1533,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             Unabara::CellData cell("po2_cell2", Unabara::CellType::PO2Cell2);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell2, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -1469,7 +1544,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             Unabara::CellData cell("po2_cell3", Unabara::CellType::PO2Cell3);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::PO2Cell3, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -1480,7 +1555,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             Unabara::CellData cell("composite_po2", Unabara::CellType::CompositePO2);
             cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
             cell.setFont(m_font, false);
-            cell.setTextColor(m_textColor, false);
+            seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CompositePO2, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
@@ -1823,9 +1898,10 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
     for (const auto& cell : m_cells) {
         if (!cell.visible()) continue;
 
-        // Get effective font and color (same as before)
+        // Get effective font and colors (same as before)
         QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
-        QColor effectiveColor = cell.hasCustomColor() ? cell.textColor() : m_textColor;
+        QColor effectiveLabelColor = cell.hasCustomLabelColor() ? cell.labelColor() : m_labelColor;
+        QColor effectiveValueColor = cell.hasCustomValueColor() ? cell.valueColor() : m_valueColor;
 
         // Effective shadow settings (single hasCustomShadow flag covers the group)
         const bool customShadow = cell.hasCustomShadow();
@@ -1910,9 +1986,28 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
             }
         }
 
-        // Draw the text (center-aligned to match QML's Text.AlignHCenter)
-        painter.setPen(effectiveColor);
-        painter.drawText(cellRect, Qt::AlignHCenter, displayText);
+        // Draw the text (center-aligned to match QML's Text.AlignHCenter).
+        // The label line and the value line have independent colors: the
+        // combined string is drawn twice with complementary clip bands so the
+        // multi-line layout stays byte-identical to a single drawText (drawing
+        // the lines separately drifts by a pixel for some font sizes).
+        if (displayText.indexOf(QLatin1Char('\n')) < 0) {
+            painter.setPen(effectiveValueColor);
+            painter.drawText(cellRect, Qt::AlignHCenter, displayText);
+        } else {
+            const QRect labelBand(cellRect.x(), cellRect.y(),
+                                  cellRect.width(), fm.lineSpacing());
+            painter.save();
+            painter.setClipRect(labelBand);
+            painter.setPen(effectiveLabelColor);
+            painter.drawText(cellRect, Qt::AlignHCenter, displayText);
+            painter.setClipRect(QRect(labelBand.x(), labelBand.y() + labelBand.height(),
+                                      labelBand.width(),
+                                      cellRect.height() - labelBand.height()));
+            painter.setPen(effectiveValueColor);
+            painter.drawText(cellRect, Qt::AlignHCenter, displayText);
+            painter.restore();
+        }
     }
 }
 
@@ -1923,7 +2018,7 @@ void OverlayGenerator::renderSectionBasedOverlay(QPainter& painter, const QSize&
                                                   const DiveDataPoint& dataPoint, DiveData* dive)
 {
     painter.setFont(m_font);
-    painter.setPen(m_textColor);
+    painter.setPen(m_valueColor);
 
     int width = imageSize.width();
     int height = imageSize.height();

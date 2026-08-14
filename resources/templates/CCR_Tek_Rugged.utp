@@ -16,13 +16,22 @@
                 "pointSize": 20,
                 "weight": 400
             },
-            "hasCustomColor": true,
+            "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
                 "x": 0.17543859649122806,
                 "y": 0.5729166666666666
             },
-            "textColor": "#ff19b9fb",
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "visible": true
         },
         {
@@ -41,10 +50,20 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
                 "x": 0.5701754385964912,
                 "y": 0.5729166666666666
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "visible": true
         },
         {
@@ -63,10 +82,20 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
                 "x": 0.4824561403508772,
                 "y": 0.20833333333333334
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "visible": true
         },
         {
@@ -85,10 +114,20 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
                 "x": 0.17543859649122806,
                 "y": 0.20833333333333334
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "visible": true
         },
         {
@@ -107,11 +146,23 @@
             },
             "hasCustomColor": true,
             "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff04fb10",
             "position": {
                 "x": 0.19736842105263158,
                 "y": 0.4296875
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "textColor": "#ff04fb10",
+            "valueColor": "#ff04fb10",
             "visible": true
         },
         {
@@ -130,11 +181,23 @@
             },
             "hasCustomColor": true,
             "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff04fb10",
             "position": {
                 "x": 0.39473684210526316,
                 "y": 0.4296875
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "textColor": "#ff04fb10",
+            "valueColor": "#ff04fb10",
             "visible": true
         },
         {
@@ -153,11 +216,23 @@
             },
             "hasCustomColor": true,
             "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff04fb10",
             "position": {
                 "x": 0.5701754385964912,
                 "y": 0.4296875
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "textColor": "#ff04fb10",
+            "valueColor": "#ff04fb10",
             "visible": true
         },
         {
@@ -176,10 +251,20 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
                 "x": 0.4166666666666667,
                 "y": 0.5859375
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
             "visible": true
         },
         {
@@ -198,10 +283,19 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
-                "x": 0.66,
-                "y": 0.208
+                "x": 0.6469298245614035,
+                "y": 0.20833333333333334
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
             "showLabel": true,
             "visible": true
         },
@@ -221,10 +315,19 @@
             },
             "hasCustomColor": false,
             "hasCustomFont": true,
+            "hasCustomLabelColor": false,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": false,
             "position": {
-                "x": 0.66,
-                "y": 0.315
+                "x": 0.6478860439386755,
+                "y": 0.32112424924924926
             },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
             "showLabel": true,
             "visible": true
         }
@@ -236,7 +339,14 @@
         "pointSize": 14,
         "weight": 400
     },
+    "defaultLabelColor": "#ff3182bc",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": false,
+    "defaultShadowOpacity": 0.7,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "offset",
     "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
     "templateName": "CCR_Tek_Rugged",
     "version": "1.0"
 }

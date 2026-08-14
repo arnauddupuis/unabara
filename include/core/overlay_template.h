@@ -30,7 +30,8 @@ public:
     double backgroundOpacity() const { return m_backgroundOpacity; }
     QVector<CellData> cells() const { return m_cells; }
     QFont defaultFont() const { return m_defaultFont; }
-    QColor defaultTextColor() const { return m_defaultTextColor; }
+    QColor defaultLabelColor() const { return m_defaultLabelColor; }
+    QColor defaultValueColor() const { return m_defaultValueColor; }
     bool defaultShadowEnabled() const { return m_defaultShadowEnabled; }
     ShadowType defaultShadowType() const { return m_defaultShadowType; }
     QColor defaultShadowColor() const { return m_defaultShadowColor; }
@@ -43,7 +44,8 @@ public:
     void setBackgroundOpacity(double opacity) { m_backgroundOpacity = opacity; }
     void setCells(const QVector<CellData>& cells) { m_cells = cells; }
     void setDefaultFont(const QFont& font) { m_defaultFont = font; }
-    void setDefaultTextColor(const QColor& color) { m_defaultTextColor = color; }
+    void setDefaultLabelColor(const QColor& color) { m_defaultLabelColor = color; }
+    void setDefaultValueColor(const QColor& color) { m_defaultValueColor = color; }
     void setDefaultShadowEnabled(bool enabled) { m_defaultShadowEnabled = enabled; }
     void setDefaultShadowType(ShadowType type) { m_defaultShadowType = type; }
     void setDefaultShadowColor(const QColor& color) { m_defaultShadowColor = color; }
@@ -80,7 +82,8 @@ private:
     double m_backgroundOpacity;
     QVector<CellData> m_cells;
     QFont m_defaultFont;
-    QColor m_defaultTextColor;
+    QColor m_defaultLabelColor;
+    QColor m_defaultValueColor;
     bool m_defaultShadowEnabled;
     ShadowType m_defaultShadowType;
     QColor m_defaultShadowColor;

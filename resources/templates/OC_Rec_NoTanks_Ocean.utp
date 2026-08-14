@@ -112,7 +112,7 @@
                 "y": 0.735
             },
             "showLabel": true,
-            "visible": true
+            "visible": false
         },
         {
             "calculatedSize": {
@@ -135,7 +135,7 @@
                 "y": 0.735
             },
             "showLabel": true,
-            "visible": true
+            "visible": false
         }
     ],
     "defaultFont": {

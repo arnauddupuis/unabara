@@ -24,7 +24,8 @@ class Config : public QObject
     // Overlay settings
     Q_PROPERTY(QString templatePath READ templatePath WRITE setTemplatePath NOTIFY templatePathChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
-    Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
+    Q_PROPERTY(QColor labelColor READ labelColor WRITE setLabelColor NOTIFY labelColorChanged)
+    Q_PROPERTY(QColor valueColor READ valueColor WRITE setValueColor NOTIFY valueColorChanged)
     Q_PROPERTY(double backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
     Q_PROPERTY(bool showDepth READ showDepth WRITE setShowDepth NOTIFY showDepthChanged)
     Q_PROPERTY(bool showTemperature READ showTemperature WRITE setShowTemperature NOTIFY showTemperatureChanged)
@@ -93,8 +94,10 @@ public:
     QFont font() const;
     void setFont(const QFont &font);
     
-    QColor textColor() const;
-    void setTextColor(const QColor &color);
+    QColor labelColor() const;
+    void setLabelColor(const QColor &color);
+    QColor valueColor() const;
+    void setValueColor(const QColor &color);
 
     double backgroundOpacity() const;
     void setBackgroundOpacity(double opacity);
@@ -238,7 +241,8 @@ signals:
     void lastExportPathChanged();
     void templatePathChanged();
     void fontChanged();
-    void textColorChanged();
+    void labelColorChanged();
+    void valueColorChanged();
     void backgroundOpacityChanged();
     void showDepthChanged();
     void showTemperatureChanged();
@@ -303,7 +307,8 @@ private:
     QString m_lastExportPath;
     QString m_templatePath;
     QFont m_font;
-    QColor m_textColor;
+    QColor m_labelColor;
+    QColor m_valueColor;
     double m_backgroundOpacity;
     bool m_showDepth;
     bool m_showTemperature;

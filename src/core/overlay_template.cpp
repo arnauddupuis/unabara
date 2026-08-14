@@ -15,7 +15,8 @@ OverlayTemplate::OverlayTemplate()
     , m_backgroundImagePath(":/images/DC_Faces/unabara_round_ocean.png")
     , m_backgroundOpacity(1.0)
     , m_defaultFont(QFont("Sans Serif", 12))
-    , m_defaultTextColor(Qt::white)
+    , m_defaultLabelColor(ColorDefaults::text())
+    , m_defaultValueColor(ColorDefaults::text())
     , m_defaultShadowEnabled(ShadowDefaults::enabled)
     , m_defaultShadowType(ShadowDefaults::type)
     , m_defaultShadowColor(ShadowDefaults::color())
@@ -135,8 +136,11 @@ QJsonObject OverlayTemplate::toJson() const
     fontJson["bold"] = m_defaultFont.bold();
     json["defaultFont"] = fontJson;
 
-    // Default text color
-    json["defaultTextColor"] = m_defaultTextColor.name(QColor::HexArgb);
+    // Default text colors; legacy "defaultTextColor" mirrors the value color
+    // so older app versions can still read the template
+    json["defaultLabelColor"] = m_defaultLabelColor.name(QColor::HexArgb);
+    json["defaultValueColor"] = m_defaultValueColor.name(QColor::HexArgb);
+    json["defaultTextColor"] = m_defaultValueColor.name(QColor::HexArgb);
 
     // Default shadow settings
     json["defaultShadowEnabled"] = m_defaultShadowEnabled;
@@ -182,10 +186,17 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
         templ.m_defaultFont = font;
     }
 
-    // Default text color
-    if (json.contains("defaultTextColor")) {
-        templ.m_defaultTextColor = QColor(json["defaultTextColor"].toString());
-    }
+    // Default text colors (templates predating the label/value split only
+    // carry "defaultTextColor", which seeds both)
+    const QColor legacyTextColor = json.contains("defaultTextColor")
+        ? QColor(json["defaultTextColor"].toString())
+        : ColorDefaults::text();
+    templ.m_defaultLabelColor = json.contains("defaultLabelColor")
+        ? QColor(json["defaultLabelColor"].toString())
+        : legacyTextColor;
+    templ.m_defaultValueColor = json.contains("defaultValueColor")
+        ? QColor(json["defaultValueColor"].toString())
+        : legacyTextColor;
 
     // Default shadow settings (absent in templates predating shadows → ShadowDefaults)
     templ.m_defaultShadowEnabled = json["defaultShadowEnabled"].toBool(ShadowDefaults::enabled);

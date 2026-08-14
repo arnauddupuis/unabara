@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
     auto invalidateProfile = [profileFrameCache]() { profileFrameCache->invalidate(); };
 
     QObject::connect(overlayGenerator, &OverlayGenerator::fontChanged,              invalidateOverlay);
-    QObject::connect(overlayGenerator, &OverlayGenerator::textColorChanged,         invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::labelColorChanged,        invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::valueColorChanged,        invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::templateChanged,          invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showDepthChanged,         invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showTemperatureChanged,   invalidateOverlay);
@@ -130,7 +131,8 @@ int main(int argc, char *argv[])
     undoManager->trackSignal(SIGNAL(cellsChanged()));
     undoManager->trackSignal(SIGNAL(cellLayoutChanged()));
     undoManager->trackSignal(SIGNAL(fontChanged()));
-    undoManager->trackSignal(SIGNAL(textColorChanged()));
+    undoManager->trackSignal(SIGNAL(labelColorChanged()));
+    undoManager->trackSignal(SIGNAL(valueColorChanged()));
     undoManager->trackSignal(SIGNAL(backgroundOpacityChanged()));
     undoManager->trackSignal(SIGNAL(templateChanged()));
     undoManager->trackSignal(SIGNAL(showLabelChanged()));

@@ -445,7 +445,8 @@ ApplicationWindow {
                         function onShowPressureChanged() { previewImage.updatePreview() }
                         function onTemplateChanged() { previewImage.updatePreview() }
                         function onFontChanged() { previewImage.updatePreview() }
-                        function onTextColorChanged() { previewImage.updatePreview() }
+                        function onLabelColorChanged() { previewImage.updatePreview() }
+                        function onValueColorChanged() { previewImage.updatePreview() }
                         function onBackgroundOpacityChanged() { previewImage.updatePreview() }
                         function onShadowChanged() { previewImage.updatePreview() }
                         function onShowLabelChanged() { previewImage.updatePreview() }

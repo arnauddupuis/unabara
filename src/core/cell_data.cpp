@@ -8,10 +8,12 @@ CellData::CellData()
     , m_position(0.0, 0.0)
     , m_visible(true)
     , m_font(QFont("Arial", 12))
-    , m_textColor(Qt::white)
+    , m_labelColor(ColorDefaults::text())
+    , m_valueColor(ColorDefaults::text())
     , m_calculatedSize(0.0, 0.0)
     , m_hasCustomFont(false)
-    , m_hasCustomColor(false)
+    , m_hasCustomLabelColor(false)
+    , m_hasCustomValueColor(false)
     , m_showLabel(true)
     , m_hasCustomShowLabel(false)
     , m_shadowEnabled(ShadowDefaults::enabled)
@@ -30,10 +32,12 @@ CellData::CellData(const QString& cellId, CellType cellType)
     , m_position(0.0, 0.0)
     , m_visible(true)
     , m_font(QFont("Arial", 12))
-    , m_textColor(Qt::white)
+    , m_labelColor(ColorDefaults::text())
+    , m_valueColor(ColorDefaults::text())
     , m_calculatedSize(0.0, 0.0)
     , m_hasCustomFont(false)
-    , m_hasCustomColor(false)
+    , m_hasCustomLabelColor(false)
+    , m_hasCustomValueColor(false)
     , m_showLabel(true)
     , m_hasCustomShowLabel(false)
     , m_shadowEnabled(ShadowDefaults::enabled)
@@ -52,10 +56,16 @@ void CellData::setFont(const QFont& font, bool isCustom)
     m_hasCustomFont = isCustom;
 }
 
-void CellData::setTextColor(const QColor& color, bool isCustom)
+void CellData::setLabelColor(const QColor& color, bool isCustom)
 {
-    m_textColor = color;
-    m_hasCustomColor = isCustom;
+    m_labelColor = color;
+    m_hasCustomLabelColor = isCustom;
+}
+
+void CellData::setValueColor(const QColor& color, bool isCustom)
+{
+    m_valueColor = color;
+    m_hasCustomValueColor = isCustom;
 }
 
 void CellData::setShowLabel(bool show, bool isCustom)
@@ -120,9 +130,14 @@ QJsonObject CellData::toJson() const
         json["font"] = fontJson;
     }
 
-    // Text color (only if custom)
-    if (m_hasCustomColor) {
-        json["textColor"] = m_textColor.name(QColor::HexArgb);
+    // Text colors (only if custom); legacy "textColor" mirrors the value
+    // color so older app versions can still read the template
+    if (m_hasCustomLabelColor) {
+        json["labelColor"] = m_labelColor.name(QColor::HexArgb);
+    }
+    if (m_hasCustomValueColor) {
+        json["valueColor"] = m_valueColor.name(QColor::HexArgb);
+        json["textColor"] = m_valueColor.name(QColor::HexArgb);
     }
 
     // Calculated size (for reference, not strictly necessary)
@@ -137,7 +152,9 @@ QJsonObject CellData::toJson() const
     }
 
     json["hasCustomFont"] = m_hasCustomFont;
-    json["hasCustomColor"] = m_hasCustomColor;
+    json["hasCustomLabelColor"] = m_hasCustomLabelColor;
+    json["hasCustomValueColor"] = m_hasCustomValueColor;
+    json["hasCustomColor"] = m_hasCustomValueColor;
 
     json["showLabel"] = m_showLabel;
     json["hasCustomShowLabel"] = m_hasCustomShowLabel;
@@ -178,10 +195,24 @@ CellData CellData::fromJson(const QJsonObject& json)
         cell.m_hasCustomFont = json["hasCustomFont"].toBool(true);
     }
 
-    // Text color (if present, it's custom)
-    if (json.contains("textColor")) {
-        cell.m_textColor = QColor(json["textColor"].toString());
-        cell.m_hasCustomColor = json["hasCustomColor"].toBool(true);
+    // Text colors. New-format files always carry "hasCustomLabelColor";
+    // legacy files only have the single "textColor", which seeds both.
+    if (json.contains("hasCustomLabelColor")) {
+        if (json.contains("labelColor")) {
+            cell.m_labelColor = QColor(json["labelColor"].toString());
+        }
+        if (json.contains("valueColor")) {
+            cell.m_valueColor = QColor(json["valueColor"].toString());
+        }
+        cell.m_hasCustomLabelColor = json["hasCustomLabelColor"].toBool(false);
+        cell.m_hasCustomValueColor = json["hasCustomValueColor"].toBool(false);
+    } else if (json.contains("textColor")) {
+        const QColor legacy(json["textColor"].toString());
+        const bool legacyCustom = json["hasCustomColor"].toBool(true);
+        cell.m_labelColor = legacy;
+        cell.m_valueColor = legacy;
+        cell.m_hasCustomLabelColor = legacyCustom;
+        cell.m_hasCustomValueColor = legacyCustom;
     }
 
     // Calculated size

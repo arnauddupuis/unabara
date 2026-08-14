@@ -22,7 +22,8 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(int templateWidth READ templateWidth NOTIFY templateChanged)
     Q_PROPERTY(int templateHeight READ templateHeight NOTIFY templateChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
-    Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
+    Q_PROPERTY(QColor labelColor READ labelColor WRITE setLabelColor NOTIFY labelColorChanged)
+    Q_PROPERTY(QColor valueColor READ valueColor WRITE setValueColor NOTIFY valueColorChanged)
     Q_PROPERTY(bool showLabel READ showLabel WRITE setShowLabel NOTIFY showLabelChanged)
     Q_PROPERTY(bool shadowEnabled READ shadowEnabled WRITE setShadowEnabled NOTIFY shadowChanged)
     Q_PROPERTY(int shadowType READ shadowType WRITE setShadowType NOTIFY shadowChanged)
@@ -68,7 +69,8 @@ public:
     int templateWidth() const { return m_templateWidth; }
     int templateHeight() const { return m_templateHeight; }
     QFont font() const { return m_font; }
-    QColor textColor() const { return m_textColor; }
+    QColor labelColor() const { return m_labelColor; }
+    QColor valueColor() const { return m_valueColor; }
     bool showLabel() const { return m_showLabel; }
     bool shadowEnabled() const { return m_shadowEnabled; }
     int shadowType() const { return static_cast<int>(m_shadowType); }
@@ -109,7 +111,8 @@ public:
     // Setters
     void setTemplatePath(const QString &path);
     void setFont(const QFont &font);
-    void setTextColor(const QColor &color);
+    void setLabelColor(const QColor &color);
+    void setValueColor(const QColor &color);
     void setShowLabel(bool show);
     void setShadowEnabled(bool enabled);
     void setShadowType(int type);
@@ -154,9 +157,11 @@ public:
     Q_INVOKABLE int cellCount() const { return m_cells.size(); }
     Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
     Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
-    Q_INVOKABLE QColor getCellColor(const QString& cellId) const;
+    Q_INVOKABLE QColor getCellLabelColor(const QString& cellId) const;
+    Q_INVOKABLE QColor getCellValueColor(const QString& cellId) const;
     Q_INVOKABLE void setCellFont(const QString& cellId, const QFont& font);
-    Q_INVOKABLE void setCellColor(const QString& cellId, const QColor& color);
+    Q_INVOKABLE void setCellLabelColor(const QString& cellId, const QColor& color);
+    Q_INVOKABLE void setCellValueColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
     Q_INVOKABLE bool getCellShadowEnabled(const QString& cellId) const;
@@ -167,7 +172,8 @@ public:
     Q_INVOKABLE void setCellVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void setCellTypeVisible(const QString& cellId, bool visible);
     Q_INVOKABLE void resetCellFont(const QString& cellId);
-    Q_INVOKABLE void resetCellColor(const QString& cellId);
+    Q_INVOKABLE void resetCellLabelColor(const QString& cellId);
+    Q_INVOKABLE void resetCellValueColor(const QString& cellId);
     Q_INVOKABLE void resetCellShowLabel(const QString& cellId);
     Q_INVOKABLE void resetCellShadow(const QString& cellId);
     bool useCellBasedLayout() const { return m_useCellBasedLayout; }
@@ -203,7 +209,8 @@ public:
 signals:
     void templateChanged();
     void fontChanged();
-    void textColorChanged();
+    void labelColorChanged();
+    void valueColorChanged();
     void showLabelChanged();
     void shadowChanged();
     void backgroundOpacityChanged();
@@ -250,7 +257,8 @@ private:
     int m_templateWidth;
     int m_templateHeight;
     QFont m_font;
-    QColor m_textColor;
+    QColor m_labelColor;
+    QColor m_valueColor;
     bool m_showLabel;
     bool m_shadowEnabled;
     Unabara::ShadowType m_shadowType;
@@ -298,6 +306,9 @@ private:
 
     // Export-pass state stash (saved by beginExport, restored by endExport)
     bool m_savedShowCellBackgrounds = true;
+
+    // Seed a cell's label/value colors from the globals (isCustom = false)
+    void seedCellColors(Unabara::CellData& cell) const;
 
     // Helper methods for drawing
     int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;

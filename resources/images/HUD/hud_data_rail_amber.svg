@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="380" height="1080" viewBox="0 0 380 1080">
+<defs></defs>
+<rect x="14" y="26" width="352" height="1030" rx="10" fill="#0A1014" fill-opacity="0.55"/>
+<line x1="30" y1="46" x2="30" y2="1036" stroke="#FFB300" stroke-width="3" opacity="0.9"/>
+<text x="205" y="74" font-family="Orbitron" font-size="13" font-weight="600" letter-spacing="4" fill="#FFB300" fill-opacity="0.8" text-anchor="middle">UNABARA</text>
+<line x1="52" y1="88" x2="352" y2="88" stroke="#FFB300" stroke-width="1.5" opacity="0.5"/>
+<line x1="52" y1="250" x2="352" y2="250" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="245.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="360" x2="352" y2="360" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="355.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="470" x2="352" y2="470" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="465.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="580" x2="352" y2="580" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="575.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="690" x2="352" y2="690" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="685.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="800" x2="352" y2="800" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="795.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<line x1="52" y1="910" x2="352" y2="910" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="26" y="905.5" width="9" height="9" fill="#FFB300" opacity="0.9"/>
+<path d="M 48 94 h 18 M 48 94 v 18 M 360 94 h -18 M 360 94 v 18 M 48 242 h 18 M 48 242 v -18 M 360 242 h -18 M 360 242 v -18" stroke="#FFB300" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="square"/>
+</svg>

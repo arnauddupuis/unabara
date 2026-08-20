@@ -1,0 +1,130 @@
+{
+    "backgroundImage": ":/images/HUD/social_glass_light.png",
+    "backgroundOpacity": 1.0,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 224,
+                "width": 354
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 36,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": true,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffe3edf4",
+            "position": {
+                "x": 0.159615,
+                "y": 0.18125
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": true,
+            "shadowOpacity": 0.6,
+            "shadowSize": 2,
+            "shadowType": "outline",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 148,
+                "width": 310
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 26,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": true,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffe3edf4",
+            "position": {
+                "x": 0.201923,
+                "y": 0.523214
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": true,
+            "shadowOpacity": 0.6,
+            "shadowSize": 2,
+            "shadowType": "outline",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 148,
+                "width": 210
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 26,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": true,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffe3edf4",
+            "position": {
+                "x": 0.298077,
+                "y": 0.791071
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": true,
+            "shadowOpacity": 0.6,
+            "shadowSize": 2,
+            "shadowType": "outline",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Orbitron",
+        "italic": false,
+        "pointSize": 26,
+        "weight": 400
+    },
+    "defaultLabelColor": "#ffe3edf4",
+    "defaultPrimaryColor": "#ffe3edf4",
+    "defaultSecondaryColor": "#ffffffff",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": false,
+    "defaultShadowOpacity": 0.7,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "offset",
+    "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
+    "templateName": "Social_Glass_Light",
+    "version": "1.1"
+}

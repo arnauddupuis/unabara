@@ -1,0 +1,130 @@
+{
+    "backgroundImage": ":/images/HUD/social_stack_hud_amber.png",
+    "backgroundOpacity": 1.0,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 234,
+                "width": 370
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 38,
+                "weight": 600
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffffc24d",
+            "position": {
+                "x": 0.144231,
+                "y": 0.158929
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 140,
+                "width": 308
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 22,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffffc24d",
+            "position": {
+                "x": 0.203846,
+                "y": 0.522321
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 152,
+                "width": 230
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 24,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffffc24d",
+            "position": {
+                "x": 0.278846,
+                "y": 0.79375
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Orbitron",
+        "italic": false,
+        "pointSize": 24,
+        "weight": 400
+    },
+    "defaultLabelColor": "#ffffc24d",
+    "defaultPrimaryColor": "#ffffc24d",
+    "defaultSecondaryColor": "#ffffffff",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": true,
+    "defaultShadowOpacity": 0.7,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "outline",
+    "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
+    "templateName": "Social_Stack_HUD_Amber",
+    "version": "1.1"
+}

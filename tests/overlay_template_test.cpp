@@ -34,6 +34,8 @@ private slots:
         templ.setDefaultShadowColor(QColor(10, 20, 30, 200));
         templ.setDefaultShadowSize(7);
         templ.setDefaultShadowOpacity(0.4);
+        templ.setDefaultPrimaryColor(QColor(255, 179, 0));
+        templ.setDefaultSecondaryColor(QColor(220, 231, 238));
         templ.addCell(CellData(QStringLiteral("depth"), CellType::Depth));
 
         const OverlayTemplate restored = OverlayTemplate::fromJson(templ.toJson());
@@ -50,7 +52,32 @@ private slots:
         QCOMPARE(restored.defaultShadowColor(), QColor(10, 20, 30, 200));
         QCOMPARE(restored.defaultShadowSize(), 7);
         QCOMPARE(restored.defaultShadowOpacity(), 0.4);
+        QCOMPARE(restored.defaultPrimaryColor(), QColor(255, 179, 0));
+        QCOMPARE(restored.defaultSecondaryColor(), QColor(220, 231, 238));
+        QVERIFY(restored.hasDefaultPrimaryColor());
+        QVERIFY(restored.hasDefaultSecondaryColor());
         QCOMPARE(restored.cellCount(), 1);
+    }
+
+    void missingSchemeKeysLeaveFlagsFalse()
+    {
+        // Templates without the v1.1 color-scheme keys must not report a
+        // scheme — the apply-to-profile prompt keys off these flags
+        QJsonObject json;
+        json[QStringLiteral("version")] = QStringLiteral("1.0");
+        json[QStringLiteral("templateName")] = QStringLiteral("Legacy");
+        json[QStringLiteral("defaultLabelColor")] = QStringLiteral("#ffffb300");
+        json[QStringLiteral("defaultValueColor")] = QStringLiteral("#ffffffff");
+
+        const OverlayTemplate restored = OverlayTemplate::fromJson(json);
+        QVERIFY(!restored.hasDefaultPrimaryColor());
+        QVERIFY(!restored.hasDefaultSecondaryColor());
+        QVERIFY(!restored.defaultPrimaryColor().isValid());
+        QVERIFY(!restored.defaultSecondaryColor().isValid());
+        // ...and the absence survives a save/load round-trip
+        const OverlayTemplate again = OverlayTemplate::fromJson(restored.toJson());
+        QVERIFY(!again.hasDefaultPrimaryColor());
+        QVERIFY(!again.hasDefaultSecondaryColor());
     }
 
     void shadowDefaultsSurviveMissingKeys()
@@ -70,6 +97,43 @@ private slots:
         // No color keys at all → both default colors stay white
         QCOMPARE(restored.defaultLabelColor(), QColor(Qt::white));
         QCOMPARE(restored.defaultValueColor(), QColor(Qt::white));
+    }
+
+    void bundledHudTemplatesAreValid()
+    {
+        // Every template of the HUD/Social family shipped in resources.qrc
+        // must load, pass validation, and survive a JSON round-trip. Loaded
+        // from the source tree since tests don't compile the resource bundle.
+        const QDir dir(QStringLiteral(TEMPLATES_DIR));
+        const QStringList families = {QStringLiteral("HUD_*.utp"),
+                                      QStringLiteral("Social_*.utp"),
+                                      QStringLiteral("Broadcast_*.utp")};
+        const QStringList files = dir.entryList(families, QDir::Files);
+        QCOMPARE(files.size(), 16);
+
+        for (const QString& file : files) {
+            QString error;
+            const OverlayTemplate templ =
+                OverlayTemplate::loadFromFile(dir.absoluteFilePath(file), &error);
+            QVERIFY2(error.isEmpty(), qPrintable(file + ": " + error));
+            QVERIFY2(templ.validate().isEmpty(),
+                     qPrintable(file + ": " + templ.validate().join("; ")));
+            QVERIFY2(templ.backgroundImagePath().startsWith(
+                         QStringLiteral(":/images/HUD/")),
+                     qPrintable(file));
+            QVERIFY(!templ.cells().isEmpty());
+            // The whole family ships a profile color scheme (v1.1)
+            QVERIFY2(templ.hasDefaultPrimaryColor() && templ.hasDefaultSecondaryColor(),
+                     qPrintable(file + ": missing color scheme keys"));
+
+            const OverlayTemplate restored = OverlayTemplate::fromJson(templ.toJson());
+            QCOMPARE(restored.cells().size(), templ.cells().size());
+            for (const CellData& cell : restored.cells()) {
+                QVERIFY2(cell.position().x() >= 0.0 && cell.position().x() <= 1.0
+                         && cell.position().y() >= 0.0 && cell.position().y() <= 1.0,
+                         qPrintable(file + ": " + cell.cellId()));
+            }
+        }
     }
 
     void legacyDefaultTextColorSeedsBoth()

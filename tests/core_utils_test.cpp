@@ -1,10 +1,11 @@
-// Tests for parse_utils (shared parsing helpers) and Units (display
-// formatting and unit conversions).
+// Tests for parse_utils (shared parsing helpers), Units (display formatting
+// and unit conversions), and ColorUtils (template color scheme helpers).
 
 #include <QtTest>
 
 #include <cmath>
 
+#include "include/core/color_utils.h"
 #include "include/core/format_parsers/parse_utils.h"
 #include "include/core/units.h"
 
@@ -77,6 +78,24 @@ private slots:
                  QStringLiteral("18.0"));
         QCOMPARE(Units::formatDepth(10.0, Units::UnitSystem::Imperial),
                  QStringLiteral("32.8"));
+    }
+
+    // ---- ColorUtils ----
+
+    void colorShiftHelpers()
+    {
+        using namespace Unabara::ColorUtils;
+
+        // Reference values from the template-color-scheme spec
+        QCOMPARE(darkened(QColor("#ffffff")), QColor("#b4b4b4"));
+        QCOMPARE(darkened(QColor("#ff13f5")), QColor("#b400aa"));
+        // Channels clamp at 0 instead of wrapping
+        QCOMPARE(darkened(QColor("#200a00")), QColor("#000000"));
+        // Result is always opaque, even from a translucent input
+        QCOMPARE(darkened(QColor(255, 255, 255, 128)).alpha(), 255);
+
+        QCOMPARE(opaque(QColor(10, 20, 30, 77)), QColor(10, 20, 30));
+        QCOMPARE(opaque(QColor("#80ff13f5")), QColor("#ff13f5"));
     }
 };
 

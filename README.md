@@ -201,6 +201,11 @@ Then you can use the generated video or image sequence as a telemetry overlay in
 
 Unabara is licensed under the GNU General Public License v2.0.
 
+Unabara bundles the [Orbitron](https://fonts.google.com/specimen/Orbitron) and
+[Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono) typefaces,
+both licensed under the SIL Open Font License 1.1 (see
+`resources/fonts/OFL-Orbitron.txt` and `resources/fonts/OFL-ShareTechMono.txt`).
+
 ## Name Origin
 
 "Unabara" (海原) is a Japanese word meaning "the ocean" or "the great expanse of the sea."

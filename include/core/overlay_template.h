@@ -32,6 +32,10 @@ public:
     QFont defaultFont() const { return m_defaultFont; }
     QColor defaultLabelColor() const { return m_defaultLabelColor; }
     QColor defaultValueColor() const { return m_defaultValueColor; }
+    QColor defaultPrimaryColor() const { return m_defaultPrimaryColor; }
+    QColor defaultSecondaryColor() const { return m_defaultSecondaryColor; }
+    bool hasDefaultPrimaryColor() const { return m_hasDefaultPrimaryColor; }
+    bool hasDefaultSecondaryColor() const { return m_hasDefaultSecondaryColor; }
     bool defaultShadowEnabled() const { return m_defaultShadowEnabled; }
     ShadowType defaultShadowType() const { return m_defaultShadowType; }
     QColor defaultShadowColor() const { return m_defaultShadowColor; }
@@ -46,6 +50,10 @@ public:
     void setDefaultFont(const QFont& font) { m_defaultFont = font; }
     void setDefaultLabelColor(const QColor& color) { m_defaultLabelColor = color; }
     void setDefaultValueColor(const QColor& color) { m_defaultValueColor = color; }
+    void setDefaultPrimaryColor(const QColor& color)
+    { m_defaultPrimaryColor = color; m_hasDefaultPrimaryColor = color.isValid(); }
+    void setDefaultSecondaryColor(const QColor& color)
+    { m_defaultSecondaryColor = color; m_hasDefaultSecondaryColor = color.isValid(); }
     void setDefaultShadowEnabled(bool enabled) { m_defaultShadowEnabled = enabled; }
     void setDefaultShadowType(ShadowType type) { m_defaultShadowType = type; }
     void setDefaultShadowColor(const QColor& color) { m_defaultShadowColor = color; }
@@ -84,6 +92,13 @@ private:
     QFont m_defaultFont;
     QColor m_defaultLabelColor;
     QColor m_defaultValueColor;
+    // Optional profile color scheme (v1.1). The has-flags distinguish "keys
+    // absent" from "keys present with default-looking values" — the apply-to-
+    // profile prompt must only fire for templates that actually carry them.
+    QColor m_defaultPrimaryColor;
+    QColor m_defaultSecondaryColor;
+    bool m_hasDefaultPrimaryColor = false;
+    bool m_hasDefaultSecondaryColor = false;
     bool m_defaultShadowEnabled;
     ShadowType m_defaultShadowType;
     QColor m_defaultShadowColor;

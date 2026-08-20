@@ -245,6 +245,31 @@ ApplicationWindow {
         }
     }
 
+    // Offer to theme the dive profile with the template's color scheme.
+    // templateLoaded only fires on explicit file loads (never on undo
+    // restores; the startup load happens before QML exists).
+    Connections {
+        target: overlayGenerator
+        function onTemplateLoaded(filePath) {
+            if (!overlayGenerator.hasColorScheme)
+                return
+            if (profileGenerator.colorSchemeApplied(overlayGenerator.primaryColor,
+                                                    overlayGenerator.secondaryColor))
+                return
+            var policy = config.profileColorSchemePolicy
+            if (policy === "never")
+                return
+            if (policy === "always") {
+                profileGenerator.applyColorScheme(overlayGenerator.primaryColor,
+                                                  overlayGenerator.secondaryColor)
+                return
+            }
+            var name = filePath.split("/").pop().replace(/\.utp$/, "").replace(/_/g, " ")
+            templateColorsDialog.templateName = name
+            templateColorsDialog.open()
+        }
+    }
+
     Component.onCompleted: {
         // Check if FFmpeg is available and show a notification if not
         if (!videoExporter.isFFmpegAvailable()) {
@@ -1606,6 +1631,62 @@ ApplicationWindow {
                     onClicked: {
                         Qt.openUrlExternally(updateDialog.releaseUrl)
                         updateDialog.close()
+                    }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: templateColorsDialog
+        title: qsTr("Apply Template Colors?")
+        property string templateName: ""
+        modal: true
+        width: 450
+        // No explicit height: the dialog sizes to its content. A fixed height
+        // overflows when the wrapped text needs more lines (theme/font/locale
+        // dependent), pushing the buttons outside the popup.
+
+        onAboutToShow: rememberColorChoiceCheck.checked = false
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 15
+
+            Label {
+                text: qsTr("The template \"%1\" comes with a color scheme.\n\nApply it to the dive profile (curve, indicator, grid and deco zone colors)?").arg(templateColorsDialog.templateName)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+
+            CheckBox {
+                id: rememberColorChoiceCheck
+                text: qsTr("Remember my choice for all templates")
+                checked: false
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 10
+
+                Button {
+                    text: qsTr("No")
+                    onClicked: {
+                        if (rememberColorChoiceCheck.checked)
+                            config.profileColorSchemePolicy = "never"
+                        templateColorsDialog.close()
+                    }
+                }
+
+                Button {
+                    text: qsTr("Apply")
+                    highlighted: true
+                    onClicked: {
+                        if (rememberColorChoiceCheck.checked)
+                            config.profileColorSchemePolicy = "always"
+                        profileGenerator.applyColorScheme(overlayGenerator.primaryColor,
+                                                          overlayGenerator.secondaryColor)
+                        templateColorsDialog.close()
                     }
                 }
             }

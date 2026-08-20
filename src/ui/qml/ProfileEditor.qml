@@ -403,6 +403,42 @@ Item {
             }
         }
 
+        GroupBox {
+            title: qsTr("Template Colors")
+            Layout.fillWidth: true
+
+            GridLayout {
+                anchors.fill: parent
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 8
+
+                Button {
+                    text: qsTr("Apply Template Colors")
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    enabled: root.generator && overlayGenerator && overlayGenerator.hasColorScheme
+                    onClicked: root.generator.applyColorScheme(overlayGenerator.primaryColor,
+                                                               overlayGenerator.secondaryColor)
+                }
+
+                Label { text: qsTr("On template load:") }
+                ComboBox {
+                    id: colorSchemePolicyCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("Ask"), qsTr("Always apply"), qsTr("Never apply")]
+                    property var policies: ["ask", "always", "never"]
+                    currentIndex: {
+                        var idx = policies.indexOf(config ? config.profileColorSchemePolicy : "ask")
+                        return idx >= 0 ? idx : 0
+                    }
+                    onActivated: {
+                        if (config) config.profileColorSchemePolicy = policies[currentIndex]
+                    }
+                }
+            }
+        }
+
         Item { Layout.fillHeight: true }
     }
 

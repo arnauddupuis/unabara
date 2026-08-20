@@ -249,10 +249,11 @@ Item {
                         var decoOpacity = config.profileDecoZoneOpacity;
                         if (decoOpacity > 0) {
                             var decoColor = config.profileDecoZoneColor;
-                            ctx.fillStyle = "rgba(" + decoColor.r * 255 + "," +
-                                                       decoColor.g * 255 + "," +
-                                                       decoColor.b * 255 + "," +
-                                                       decoOpacity + ")";
+                            // Qt.rgba, not a hand-built "rgba(...)" string: fractional
+                            // channel values (any color whose channels aren't 0 or 255)
+                            // make an invalid CSS string that Canvas silently rejects
+                            ctx.fillStyle = Qt.rgba(decoColor.r, decoColor.g,
+                                                    decoColor.b, decoOpacity);
                             var inRun = false;
                             var runStartX = 0;
                             for (var j = 0; j < timelineData.length; j++) {

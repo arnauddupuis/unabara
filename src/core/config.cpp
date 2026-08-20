@@ -382,6 +382,21 @@ void Config::setActiveTemplatePath(const QString &path)
     }
 }
 
+// Profile color scheme policy ("ask" | "always" | "never")
+QString Config::profileColorSchemePolicy() const
+{
+    return m_profileColorSchemePolicy;
+}
+
+void Config::setProfileColorSchemePolicy(const QString &policy)
+{
+    if (m_profileColorSchemePolicy != policy) {
+        m_profileColorSchemePolicy = policy;
+        saveConfig();
+        emit profileColorSchemePolicyChanged();
+    }
+}
+
 // CCR settings implementation
 bool Config::showPO2Cell1() const
 {
@@ -738,6 +753,7 @@ void Config::loadConfig()
     m_profileGridOpacity = m_settings.value("profile/gridOpacity", 0.5).toDouble();
     m_profileGridLineWidth = m_settings.value("profile/gridLineWidth", 1).toInt();
     m_profileGridShowLabels = m_settings.value("profile/gridShowLabels", true).toBool();
+    m_profileColorSchemePolicy = m_settings.value("profile/colorSchemePolicy", "ask").toString();
 
     // Load per-video overlay layouts
     {
@@ -872,6 +888,7 @@ void Config::saveConfig()
     m_settings.setValue("profile/gridOpacity", m_profileGridOpacity);
     m_settings.setValue("profile/gridLineWidth", m_profileGridLineWidth);
     m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
+    m_settings.setValue("profile/colorSchemePolicy", m_profileColorSchemePolicy);
 
     // Save per-video overlay layouts
     {

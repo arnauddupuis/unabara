@@ -146,6 +146,31 @@ if(UNIX AND NOT APPLE)
         RENAME org.unabara.unabara.svg)
 endif()
 
+# Developer tools (headless template renderer used when authoring bundled
+# templates) — not part of user builds or release artifacts.
+option(UNABARA_BUILD_TOOLS "Build developer tools" OFF)
+if(UNABARA_BUILD_TOOLS)
+    qt_add_executable(render_utp
+        tools/render_utp/main.cpp
+        src/core/dive_data.cpp
+        src/core/config.cpp
+        src/core/units.cpp
+        src/core/cell_data.cpp
+        src/core/overlay_template.cpp
+        src/generators/overlay_gen.cpp
+        include/core/dive_data.h
+        include/core/config.h
+        include/core/units.h
+        include/generators/overlay_gen.h
+        resources.qrc
+    )
+    target_include_directories(render_utp PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+    )
+    target_link_libraries(render_utp PRIVATE Qt::Core Qt::Gui)
+endif()
+
 option(UNABARA_BUILD_TESTS "Build the unit tests" OFF)
 if(UNABARA_BUILD_TESTS)
     enable_testing()

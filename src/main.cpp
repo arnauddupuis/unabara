@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QIcon>
+#include <QFontDatabase>
 #include <QDebug>
 
 // Include the generated version header
@@ -38,6 +39,14 @@ int main(int argc, char *argv[])
     app.setApplicationVersion(UNABARA_VERSION_STR);
     app.setOrganizationName("UnabaraProject");
     app.setWindowIcon(QIcon(":/images/unabara-icon.png"));
+
+    // Bundled OFL fonts used by the HUD/Social template family. Must be
+    // registered before the OverlayGenerator is constructed — it loads the
+    // active template (which may reference these families) in its constructor.
+    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf"}) {
+        if (QFontDatabase::addApplicationFont(QLatin1String(fontPath)) == -1)
+            qWarning() << "Failed to register bundled font" << fontPath;
+    }
 
     qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
     
@@ -137,6 +146,7 @@ int main(int argc, char *argv[])
     undoManager->trackSignal(SIGNAL(templateChanged()));
     undoManager->trackSignal(SIGNAL(showLabelChanged()));
     undoManager->trackSignal(SIGNAL(shadowChanged()));
+    undoManager->trackSignal(SIGNAL(colorSchemeChanged()));
 
     // History boundaries: a template file load (combobox / Load button) and a
     // dive import both reset undo history so it never crosses them. templateLoaded

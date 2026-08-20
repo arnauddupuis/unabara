@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="280" viewBox="0 0 1920 280">
+<defs></defs>
+<rect x="20" y="20" width="1880" height="240" rx="8" fill="#0A1216" fill-opacity="0.55"/>
+<line x1="20" y1="24" x2="200" y2="24" stroke="#FFB300" stroke-width="6" opacity="1"/>
+<line x1="220" y1="24" x2="1900" y2="24" stroke="#FFB300" stroke-width="3" opacity="0.9"/>
+<path d="M 240 32 v 10 M 280 32 v 7 M 320 32 v 7 M 360 32 v 7 M 400 32 v 7 M 440 32 v 10 M 480 32 v 7 M 520 32 v 7 M 560 32 v 7 M 600 32 v 7 M 640 32 v 10 M 680 32 v 7 M 720 32 v 7 M 760 32 v 7 M 800 32 v 7 M 840 32 v 10 M 880 32 v 7 M 920 32 v 7 M 960 32 v 7 M 1000 32 v 7 M 1040 32 v 10 M 1080 32 v 7 M 1120 32 v 7 M 1160 32 v 7 M 1200 32 v 7 M 1240 32 v 10 M 1280 32 v 7 M 1320 32 v 7 M 1360 32 v 7 M 1400 32 v 7 M 1440 32 v 10 M 1480 32 v 7 M 1520 32 v 7 M 1560 32 v 7 M 1600 32 v 7 M 1640 32 v 10 M 1680 32 v 7 M 1720 32 v 7 M 1760 32 v 7 M 1800 32 v 7 M 1840 32 v 10 M 1880 32 v 7" stroke="#FFB300" stroke-width="1.5" opacity="0.45"/>
+<line x1="36" y1="60" x2="36" y2="220" stroke="#FFB300" stroke-width="5" opacity="0.95"/>
+<text x="54" y="254" font-family="Orbitron" font-size="16" font-weight="600" letter-spacing="4" fill="#FFB300" fill-opacity="0.8" text-anchor="start">UNABARA</text>
+<path d="M 250 45 h 30 M 250 45 v 30 M 610 45 h -30 M 610 45 v 30 M 250 235 h 30 M 250 235 v -30 M 610 235 h -30 M 610 235 v -30" stroke="#FFB300" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="square"/>
+<rect x="250" y="45" width="360" height="190" fill="#FFB300" opacity="0.04"/>
+<path d="M 262 58 l 7 7 l -7 7 M 268.3 58 l 7 7 l -7 7" stroke="#FFB300" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 670 45 h 30 M 670 45 v 30 M 1030 45 h -30 M 1030 45 v 30 M 670 235 h 30 M 670 235 v -30 M 1030 235 h -30 M 1030 235 v -30" stroke="#FFB300" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="square"/>
+<rect x="670" y="45" width="360" height="190" fill="#FFB300" opacity="0.04"/>
+<path d="M 682 58 l 7 7 l -7 7 M 688.3 58 l 7 7 l -7 7" stroke="#FFB300" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 1090 45 h 30 M 1090 45 v 30 M 1450 45 h -30 M 1450 45 v 30 M 1090 235 h 30 M 1090 235 v -30 M 1450 235 h -30 M 1450 235 v -30" stroke="#FFB300" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="square"/>
+<rect x="1090" y="45" width="360" height="190" fill="#FFB300" opacity="0.04"/>
+<path d="M 1102 58 l 7 7 l -7 7 M 1108.3 58 l 7 7 l -7 7" stroke="#FFB300" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 1510 45 h 30 M 1510 45 v 30 M 1870 45 h -30 M 1870 45 v 30 M 1510 235 h 30 M 1510 235 v -30 M 1870 235 h -30 M 1870 235 v -30" stroke="#FFB300" stroke-width="3" fill="none" opacity="0.9" stroke-linecap="square"/>
+<rect x="1510" y="45" width="360" height="190" fill="#FFB300" opacity="0.04"/>
+<path d="M 1522 58 l 7 7 l -7 7 M 1528.3 58 l 7 7 l -7 7" stroke="#FFB300" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<line x1="640" y1="60" x2="640" y2="220" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<line x1="1060" y1="60" x2="1060" y2="220" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<line x1="1480" y1="60" x2="1480" y2="220" stroke="#FFB300" stroke-width="1" opacity="0.18"/>
+<rect x="1810" y="238" width="14" height="10" fill="#FFB300" opacity="1"/>
+<rect x="1832" y="238" width="14" height="10" fill="#FFB300" opacity="0.55"/>
+<rect x="1854" y="238" width="14" height="10" fill="#FFB300" opacity="0.25"/>
+</svg>

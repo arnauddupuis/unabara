@@ -91,6 +91,14 @@ public:
     void setGridLineWidth(int width);
     void setGridShowLabels(bool show);
 
+    // Apply a template color scheme: curve = primary, indicator = secondary,
+    // grid = darkened(secondary), deco zone = darkened(primary). Colors are
+    // normalized to opaque (Config persists profile colors without alpha).
+    Q_INVOKABLE void applyColorScheme(const QColor& primary, const QColor& secondary);
+    // True when the current profile colors already match that mapping —
+    // used to skip the apply prompt when there is nothing to change.
+    Q_INVOKABLE bool colorSchemeApplied(const QColor& primary, const QColor& secondary) const;
+
     // IFrameGenerator — for exports, pulse phase is timestamp-derived so each
     // frame in a sequence has a deterministic pulse state.
     Q_INVOKABLE QImage generate(DiveData* dive, double timePoint) override;

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="520" height="1120" viewBox="0 0 520 1120">
+<defs></defs>
+<text x="260" y="84" font-family="Orbitron" font-size="15" font-weight="600" letter-spacing="6" fill="#DCE7EE" fill-opacity="0.7" text-anchor="middle">UNABARA</text>
+<rect x="68" y="128" width="384" height="334" rx="4" fill="#0A1014" fill-opacity="0.45"/>
+<path d="M 60 120 h 40 M 60 120 v 40 M 460 120 h -40 M 460 120 v 40 M 60 470 h 40 M 60 470 v -40 M 460 470 h -40 M 460 470 v -40" stroke="#DCE7EE" stroke-width="4" fill="none" opacity="0.92" stroke-linecap="square"/>
+<path d="M 420 136 l 7 7 l -7 7 M 426.3 136 l 7 7 l -7 7" stroke="#DCE7EE" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 80 452 v 6 M 94 452 v 6 M 108 452 v 6 M 122 452 v 6 M 136 452 v 6 M 150 452 v 6" stroke="#DCE7EE" stroke-width="1.5" opacity="0.5"/>
+<rect x="68" y="528" width="384" height="254" rx="4" fill="#0A1014" fill-opacity="0.45"/>
+<path d="M 60 520 h 32 M 60 520 v 32 M 460 520 h -32 M 460 520 v 32 M 60 790 h 32 M 60 790 v -32 M 460 790 h -32 M 460 790 v -32" stroke="#DCE7EE" stroke-width="3.5" fill="none" opacity="0.92" stroke-linecap="square"/>
+<path d="M 420 536 l 7 7 l -7 7 M 426.3 536 l 7 7 l -7 7" stroke="#DCE7EE" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 80 772 v 6 M 94 772 v 6 M 108 772 v 6 M 122 772 v 6 M 136 772 v 6 M 150 772 v 6" stroke="#DCE7EE" stroke-width="1.5" opacity="0.5"/>
+<rect x="68" y="838" width="384" height="254" rx="4" fill="#0A1014" fill-opacity="0.45"/>
+<path d="M 60 830 h 32 M 60 830 v 32 M 460 830 h -32 M 460 830 v 32 M 60 1100 h 32 M 60 1100 v -32 M 460 1100 h -32 M 460 1100 v -32" stroke="#DCE7EE" stroke-width="3.5" fill="none" opacity="0.92" stroke-linecap="square"/>
+<path d="M 420 846 l 7 7 l -7 7 M 426.3 846 l 7 7 l -7 7" stroke="#DCE7EE" stroke-width="2.5" fill="none" opacity="0.55" stroke-linecap="square"/>
+<path d="M 80 1082 v 6 M 94 1082 v 6 M 108 1082 v 6 M 122 1082 v 6 M 136 1082 v 6 M 150 1082 v 6" stroke="#DCE7EE" stroke-width="1.5" opacity="0.5"/>
+</svg>

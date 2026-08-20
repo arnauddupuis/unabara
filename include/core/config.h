@@ -53,6 +53,10 @@ class Config : public QObject
     // Active template (.utp file path)
     Q_PROPERTY(QString activeTemplatePath READ activeTemplatePath WRITE setActiveTemplatePath NOTIFY activeTemplatePathChanged)
 
+    // What to do when a loaded template carries a profile color scheme:
+    // "ask" (default), "always" (apply silently), "never"
+    Q_PROPERTY(QString profileColorSchemePolicy READ profileColorSchemePolicy WRITE setProfileColorSchemePolicy NOTIFY profileColorSchemePolicyChanged)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
@@ -155,6 +159,10 @@ public:
     // Active template
     QString activeTemplatePath() const;
     void setActiveTemplatePath(const QString &path);
+
+    // Profile color scheme policy
+    QString profileColorSchemePolicy() const;
+    void setProfileColorSchemePolicy(const QString &policy);
 
     // Export settings
     double frameRate() const;
@@ -260,6 +268,7 @@ signals:
     void frameRateChanged();
     void templateDirectoryChanged();
     void activeTemplatePathChanged();
+    void profileColorSchemePolicyChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -326,6 +335,7 @@ private:
     double m_frameRate;
     QString m_templateDirectory;
     QString m_activeTemplatePath;
+    QString m_profileColorSchemePolicy;
     
     // CCR settings
     bool m_showPO2Cell1;

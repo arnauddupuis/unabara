@@ -1,0 +1,201 @@
+{
+    "backgroundImage": ":/images/HUD/hud_sonar_reticle_green.png",
+    "backgroundOpacity": 1.0,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 128,
+                "width": 334
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": true,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 40,
+                "weight": 700
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": true,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff5cff82",
+            "position": {
+                "x": 0.283333,
+                "y": 0.427778
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": false,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 204
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff5cff82",
+            "position": {
+                "x": 0.386667,
+                "y": 0.161111
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 138
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff5cff82",
+            "position": {
+                "x": 0.077778,
+                "y": 0.444444
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 138
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff5cff82",
+            "position": {
+                "x": 0.761111,
+                "y": 0.444444
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 268
+            },
+            "cellId": "tank_0",
+            "cellType": "Pressure",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ff5cff82",
+            "position": {
+                "x": 0.366667,
+                "y": 0.722222
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "tankIndex": 0,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Share Tech Mono",
+        "italic": false,
+        "pointSize": 17,
+        "weight": 400
+    },
+    "defaultLabelColor": "#ff5cff82",
+    "defaultPrimaryColor": "#ff5cff82",
+    "defaultSecondaryColor": "#ffffffff",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": false,
+    "defaultShadowOpacity": 0.7,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "offset",
+    "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
+    "templateName": "HUD_Sonar_Reticle_Green",
+    "version": "1.1"
+}

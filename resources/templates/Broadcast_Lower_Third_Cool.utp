@@ -1,0 +1,235 @@
+{
+    "backgroundImage": ":/images/HUD/broadcast_lower_third_cool.png",
+    "backgroundOpacity": 1.0,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 126,
+                "width": 198
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.115104,
+                "y": 0.213636
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 126,
+                "width": 280
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.34375,
+                "y": 0.213636
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 126,
+                "width": 190
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.601562,
+                "y": 0.213636
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 126,
+                "width": 166
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 20,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.816146,
+                "y": 0.213636
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 92,
+                "width": 126
+            },
+            "cellId": "stop_depth",
+            "cellType": "StopDepth",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 14,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.925521,
+                "y": 0.109091
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": false
+        },
+        {
+            "calculatedSize": {
+                "height": 92,
+                "width": 104
+            },
+            "cellId": "stop_time",
+            "cellType": "StopTime",
+            "font": {
+                "bold": false,
+                "family": "Orbitron",
+                "italic": false,
+                "pointSize": 14,
+                "weight": 500
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffcfe0ea",
+            "position": {
+                "x": 0.93125,
+                "y": 0.495455
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": false
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Orbitron",
+        "italic": false,
+        "pointSize": 20,
+        "weight": 400
+    },
+    "defaultLabelColor": "#ffcfe0ea",
+    "defaultPrimaryColor": "#ffcfe0ea",
+    "defaultSecondaryColor": "#ffffffff",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": true,
+    "defaultShadowOpacity": 0.75,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "outline",
+    "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
+    "templateName": "Broadcast_Lower_Third_Cool",
+    "version": "1.1"
+}

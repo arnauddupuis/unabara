@@ -39,7 +39,8 @@ function(unabara_add_test NAME)
     target_link_libraries(${NAME} PRIVATE unabara_testlib Qt6::Test)
     target_compile_definitions(${NAME} PRIVATE
         SYNTH_FIT_PATH="${SYNTH_FIT}"
-        TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+        TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+        TEMPLATES_DIR="${CMAKE_SOURCE_DIR}/resources/templates")
     add_dependencies(${NAME} unabara_test_fixtures)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # QFont/QColor tests need a QGuiApplication; keep it headless

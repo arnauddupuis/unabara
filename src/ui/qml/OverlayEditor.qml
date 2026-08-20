@@ -591,6 +591,73 @@ Item {
                     }
                 }
 
+                // Profile color scheme carried by the template (optional).
+                // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
+                Label { text: qsTr("Primary Color:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        id: primaryColorButton
+                        Layout.fillWidth: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            color: generator && generator.hasPrimaryColor
+                                   ? generator.primaryColor : "transparent"
+                            border.color: "#808080"
+                            border.width: generator && generator.hasPrimaryColor ? 0 : 1
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: qsTr("not set")
+                                opacity: 0.6
+                                visible: !(generator && generator.hasPrimaryColor)
+                            }
+                        }
+
+                        onClicked: primaryColorDialog.open()
+                    }
+
+                    Button {
+                        text: "×"
+                        Layout.preferredWidth: 40
+                        enabled: generator && (generator.hasPrimaryColor || generator.hasSecondaryColor)
+                        opacity: enabled ? 1.0 : 0.3
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Remove the color scheme from this template")
+                        onClicked: {
+                            if (generator) generator.clearColorScheme()
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Secondary Color:") }
+                Button {
+                    id: secondaryColorButton
+                    Layout.fillWidth: true
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: generator && generator.hasSecondaryColor
+                               ? generator.secondaryColor : "transparent"
+                        border.color: "#808080"
+                        border.width: generator && generator.hasSecondaryColor ? 0 : 1
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: qsTr("not set")
+                            opacity: 0.6
+                            visible: !(generator && generator.hasSecondaryColor)
+                        }
+                    }
+
+                    onClicked: secondaryColorDialog.open()
+                }
+
                 // Action buttons
                 RowLayout {
                     Layout.columnSpan: 2
@@ -1266,6 +1333,40 @@ Item {
         }
     }
     
+    ColorDialog {
+        id: primaryColorDialog
+        title: qsTr("Select Template Primary Color")
+
+        Connections {
+            target: root.generator
+            function onColorSchemeChanged() {
+                if (root.generator && root.generator.hasPrimaryColor)
+                    primaryColorDialog.selectedColor = root.generator.primaryColor
+            }
+        }
+
+        onAccepted: {
+            if (generator) generator.primaryColor = selectedColor
+        }
+    }
+
+    ColorDialog {
+        id: secondaryColorDialog
+        title: qsTr("Select Template Secondary Color")
+
+        Connections {
+            target: root.generator
+            function onColorSchemeChanged() {
+                if (root.generator && root.generator.hasSecondaryColor)
+                    secondaryColorDialog.selectedColor = root.generator.secondaryColor
+            }
+        }
+
+        onAccepted: {
+            if (generator) generator.secondaryColor = selectedColor
+        }
+    }
+
     ColorDialog {
         id: labelColorDialog
         title: qsTr("Select Label Color")

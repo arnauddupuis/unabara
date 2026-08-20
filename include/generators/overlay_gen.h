@@ -61,6 +61,15 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(int gridSpacing READ gridSpacing WRITE setGridSpacing NOTIFY gridSpacingChanged)
     Q_PROPERTY(bool showGrid READ showGrid WRITE setShowGrid NOTIFY showGridChanged)
 
+    // Optional profile color scheme carried by the loaded template (v1.1
+    // .utp keys defaultPrimaryColor/defaultSecondaryColor). Invalid colors
+    // mean the template has no scheme; user-editable in Template Management.
+    Q_PROPERTY(QColor primaryColor READ primaryColor WRITE setPrimaryColor NOTIFY colorSchemeChanged)
+    Q_PROPERTY(QColor secondaryColor READ secondaryColor WRITE setSecondaryColor NOTIFY colorSchemeChanged)
+    Q_PROPERTY(bool hasColorScheme READ hasColorScheme NOTIFY colorSchemeChanged)
+    Q_PROPERTY(bool hasPrimaryColor READ hasPrimaryColor NOTIFY colorSchemeChanged)
+    Q_PROPERTY(bool hasSecondaryColor READ hasSecondaryColor NOTIFY colorSchemeChanged)
+
 public:
     explicit OverlayGenerator(QObject *parent = nullptr);
     
@@ -107,6 +116,16 @@ public:
     bool snapToGrid() const { return m_snapToGrid; }
     int gridSpacing() const { return m_gridSpacing; }
     bool showGrid() const { return m_showGrid; }
+
+    // Profile color scheme getters/setters
+    QColor primaryColor() const { return m_primaryColor; }
+    QColor secondaryColor() const { return m_secondaryColor; }
+    bool hasColorScheme() const { return m_primaryColor.isValid() && m_secondaryColor.isValid(); }
+    bool hasPrimaryColor() const { return m_primaryColor.isValid(); }
+    bool hasSecondaryColor() const { return m_secondaryColor.isValid(); }
+    void setPrimaryColor(const QColor& color);
+    void setSecondaryColor(const QColor& color);
+    Q_INVOKABLE void clearColorScheme();
 
     // Setters
     void setTemplatePath(const QString &path);
@@ -252,6 +271,9 @@ signals:
     void gridSpacingChanged();
     void showGridChanged();
 
+    // Profile color scheme signal (covers primary, secondary, hasColorScheme)
+    void colorSchemeChanged();
+
 private:
     QString m_templatePath;
     int m_templateWidth;
@@ -303,6 +325,10 @@ private:
     bool m_snapToGrid;
     int m_gridSpacing;  // Grid spacing in pixels
     bool m_showGrid;
+
+    // Profile color scheme from the loaded template (invalid = no scheme)
+    QColor m_primaryColor;
+    QColor m_secondaryColor;
 
     // Export-pass state stash (saved by beginExport, restored by endExport)
     bool m_savedShowCellBackgrounds = true;

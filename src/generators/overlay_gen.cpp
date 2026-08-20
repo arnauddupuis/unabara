@@ -564,6 +564,33 @@ void OverlayGenerator::setShowGrid(bool show)
     }
 }
 
+// Profile color scheme setters. Invalid colors are legal (= "not set");
+// clearColorScheme() removes the scheme so saved templates omit the keys.
+void OverlayGenerator::setPrimaryColor(const QColor& color)
+{
+    if (m_primaryColor != color) {
+        m_primaryColor = color;
+        emit colorSchemeChanged();
+    }
+}
+
+void OverlayGenerator::setSecondaryColor(const QColor& color)
+{
+    if (m_secondaryColor != color) {
+        m_secondaryColor = color;
+        emit colorSchemeChanged();
+    }
+}
+
+void OverlayGenerator::clearColorScheme()
+{
+    if (m_primaryColor.isValid() || m_secondaryColor.isValid()) {
+        m_primaryColor = QColor();
+        m_secondaryColor = QColor();
+        emit colorSchemeChanged();
+    }
+}
+
 void OverlayGenerator::setShowCellBackgrounds(bool show)
 {
     if (m_showCellBackgrounds != show) {
@@ -1087,6 +1114,14 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_cells = templ.cells();
     m_useCellBasedLayout = true;
 
+    // Optional profile color scheme: carried when the template has one,
+    // cleared (invalid QColor) when it doesn't — so undo snapshots and
+    // Save Template round-trip it faithfully
+    m_primaryColor = templ.hasDefaultPrimaryColor() ? templ.defaultPrimaryColor()
+                                                    : QColor();
+    m_secondaryColor = templ.hasDefaultSecondaryColor() ? templ.defaultSecondaryColor()
+                                                        : QColor();
+
     // Re-propagate global shadow and color settings into cells without a
     // per-cell override — saved templates omit non-custom values, so loaded
     // cells otherwise sit at constructor defaults instead of the template's
@@ -1162,6 +1197,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     }
 
     emit templateChanged();
+    emit colorSchemeChanged();
     emit shadowChanged();
     emit cellsChanged();
     emit cellLayoutChanged();
@@ -1197,6 +1233,12 @@ Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
     templ.setDefaultShadowColor(m_shadowColor);
     templ.setDefaultShadowSize(m_shadowSize);
     templ.setDefaultShadowOpacity(m_shadowOpacity);
+    if (m_primaryColor.isValid()) {
+        templ.setDefaultPrimaryColor(m_primaryColor);
+    }
+    if (m_secondaryColor.isValid()) {
+        templ.setDefaultSecondaryColor(m_secondaryColor);
+    }
     templ.setCells(m_cells);
     return templ;
 }

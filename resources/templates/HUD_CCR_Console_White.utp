@@ -1,0 +1,305 @@
+{
+    "backgroundImage": ":/images/HUD/hud_ccr_console_white.png",
+    "backgroundOpacity": 1.0,
+    "cells": [
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 138
+            },
+            "cellId": "po2_cell1",
+            "cellType": "PO2Cell1",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#fff2f7fa",
+            "position": {
+                "x": 0.063125,
+                "y": 0.3125
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#fff2f7fa",
+            "valueColor": "#fff2f7fa",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 138
+            },
+            "cellId": "po2_cell2",
+            "cellType": "PO2Cell2",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#fff2f7fa",
+            "position": {
+                "x": 0.200625,
+                "y": 0.3125
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#fff2f7fa",
+            "valueColor": "#fff2f7fa",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 100,
+                "width": 138
+            },
+            "cellId": "po2_cell3",
+            "cellType": "PO2Cell3",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 17,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#fff2f7fa",
+            "position": {
+                "x": 0.338125,
+                "y": 0.3125
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#fff2f7fa",
+            "valueColor": "#fff2f7fa",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 110,
+                "width": 106
+            },
+            "cellId": "composite_po2",
+            "cellType": "CompositePO2",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 19,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#fff2f7fa",
+            "position": {
+                "x": 0.485625,
+                "y": 0.3
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#fff2f7fa",
+            "valueColor": "#fff2f7fa",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 122,
+                "width": 170
+            },
+            "cellId": "depth",
+            "cellType": "Depth",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 21,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffb9c6ce",
+            "position": {
+                "x": 0.628125,
+                "y": 0.185
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 110,
+                "width": 228
+            },
+            "cellId": "time",
+            "cellType": "Time",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 19,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffb9c6ce",
+            "position": {
+                "x": 0.7975,
+                "y": 0.2
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 110,
+                "width": 154
+            },
+            "cellId": "temperature",
+            "cellType": "Temperature",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 19,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffb9c6ce",
+            "position": {
+                "x": 0.633125,
+                "y": 0.5875
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        },
+        {
+            "calculatedSize": {
+                "height": 110,
+                "width": 154
+            },
+            "cellId": "ndl",
+            "cellType": "NDL",
+            "font": {
+                "bold": false,
+                "family": "Share Tech Mono",
+                "italic": false,
+                "pointSize": 19,
+                "weight": 400
+            },
+            "hasCustomColor": true,
+            "hasCustomFont": true,
+            "hasCustomLabelColor": true,
+            "hasCustomShadow": false,
+            "hasCustomShowLabel": false,
+            "hasCustomValueColor": true,
+            "labelColor": "#ffb9c6ce",
+            "position": {
+                "x": 0.820625,
+                "y": 0.5875
+            },
+            "shadowColor": "#ff000000",
+            "shadowEnabled": false,
+            "shadowOpacity": 0.7,
+            "shadowSize": 2,
+            "shadowType": "offset",
+            "showLabel": true,
+            "textColor": "#ffffffff",
+            "valueColor": "#ffffffff",
+            "visible": true
+        }
+    ],
+    "defaultFont": {
+        "bold": false,
+        "family": "Share Tech Mono",
+        "italic": false,
+        "pointSize": 19,
+        "weight": 400
+    },
+    "defaultLabelColor": "#ffb9c6ce",
+    "defaultPrimaryColor": "#ffb9c6ce",
+    "defaultSecondaryColor": "#ffffffff",
+    "defaultShadowColor": "#ff000000",
+    "defaultShadowEnabled": false,
+    "defaultShadowOpacity": 0.7,
+    "defaultShadowSize": 2,
+    "defaultShadowType": "offset",
+    "defaultTextColor": "#ffffffff",
+    "defaultValueColor": "#ffffffff",
+    "templateName": "HUD_CCR_Console_White",
+    "version": "1.1"
+}

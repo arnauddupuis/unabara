@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+#include "include/core/color_utils.h"
 #include "include/core/config.h"
 #include "include/core/units.h"
 #include "include/generators/profile_renderer.h"
@@ -169,6 +170,24 @@ void ProfileGenerator::setBackgroundOpacity(double o)
         Config::instance()->setProfileBackgroundOpacity(o);
         emit backgroundOpacityChanged();
     }
+}
+
+void ProfileGenerator::applyColorScheme(const QColor& primary, const QColor& secondary)
+{
+    using namespace Unabara::ColorUtils;
+    setCurveColor(opaque(primary));
+    setIndicatorColor(opaque(secondary));
+    setGridColor(darkened(secondary));
+    setDecoZoneColor(darkened(primary));
+}
+
+bool ProfileGenerator::colorSchemeApplied(const QColor& primary, const QColor& secondary) const
+{
+    using namespace Unabara::ColorUtils;
+    return m_curveColor == opaque(primary)
+        && m_indicatorColor == opaque(secondary)
+        && m_gridColor == darkened(secondary)
+        && m_decoZoneColor == darkened(primary);
 }
 
 void ProfileGenerator::setCurveColor(const QColor& c)

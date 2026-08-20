@@ -4,11 +4,13 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QVersionNumber>
 #include <QDebug>
 
 namespace Unabara {
 
-const QString OverlayTemplate::TEMPLATE_VERSION = "1.0";
+// 1.1 added the optional defaultPrimaryColor/defaultSecondaryColor scheme keys
+const QString OverlayTemplate::TEMPLATE_VERSION = "1.1";
 
 OverlayTemplate::OverlayTemplate()
     : m_templateName("Untitled Template")
@@ -142,6 +144,15 @@ QJsonObject OverlayTemplate::toJson() const
     json["defaultValueColor"] = m_defaultValueColor.name(QColor::HexArgb);
     json["defaultTextColor"] = m_defaultValueColor.name(QColor::HexArgb);
 
+    // Optional profile color scheme — written only when the template carries
+    // one, so its absence stays observable through a load/save round-trip
+    if (m_hasDefaultPrimaryColor) {
+        json["defaultPrimaryColor"] = m_defaultPrimaryColor.name(QColor::HexArgb);
+    }
+    if (m_hasDefaultSecondaryColor) {
+        json["defaultSecondaryColor"] = m_defaultSecondaryColor.name(QColor::HexArgb);
+    }
+
     // Default shadow settings
     json["defaultShadowEnabled"] = m_defaultShadowEnabled;
     json["defaultShadowType"] = CellData::shadowTypeToString(m_defaultShadowType);
@@ -163,11 +174,18 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
 {
     OverlayTemplate templ;
 
-    // Check version
-    QString version = json["version"].toString();
-    if (version != TEMPLATE_VERSION) {
-        qWarning() << "Template version mismatch. Expected:" << TEMPLATE_VERSION
-                   << "Got:" << version << "- Attempting to load anyway";
+    // Check version. Older files are expected (missing keys fall back to
+    // defaults) — only a file NEWER than this app version deserves a warning,
+    // since it may carry keys we don't understand.
+    const QString version = json["version"].toString();
+    const QVersionNumber fileVersion = QVersionNumber::fromString(version);
+    const QVersionNumber appVersion = QVersionNumber::fromString(TEMPLATE_VERSION);
+    if (fileVersion > appVersion) {
+        qWarning() << "Template version" << version << "is newer than supported"
+                   << TEMPLATE_VERSION << "- Attempting to load anyway";
+    } else if (fileVersion != appVersion) {
+        qDebug() << "Loading older template version" << version
+                 << "(current:" << TEMPLATE_VERSION << ")";
     }
 
     templ.m_templateName = json["templateName"].toString("Untitled Template");
@@ -197,6 +215,14 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
     templ.m_defaultValueColor = json.contains("defaultValueColor")
         ? QColor(json["defaultValueColor"].toString())
         : legacyTextColor;
+
+    // Optional profile color scheme (v1.1) — presence is meaningful
+    if (json.contains("defaultPrimaryColor")) {
+        templ.setDefaultPrimaryColor(QColor(json["defaultPrimaryColor"].toString()));
+    }
+    if (json.contains("defaultSecondaryColor")) {
+        templ.setDefaultSecondaryColor(QColor(json["defaultSecondaryColor"].toString()));
+    }
 
     // Default shadow settings (absent in templates predating shadows → ShadowDefaults)
     templ.m_defaultShadowEnabled = json["defaultShadowEnabled"].toBool(ShadowDefaults::enabled);

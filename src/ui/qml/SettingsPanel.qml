@@ -194,6 +194,31 @@ Item {
                     columnSpacing: 10
                     rowSpacing: 8
 
+                    Label { text: qsTr("Export directory:") }
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        TextField {
+                            Layout.fillWidth: true
+                            text: config ? config.lastExportPath : ""
+                            readOnly: true
+                        }
+
+                        Button {
+                            text: qsTr("Browse...")
+                            onClicked: exportDirDialog.open()
+                        }
+                    }
+
+                    Label {
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: palette.placeholderText
+                        text: qsTr("Each export creates an automatically named sub-folder or file inside this directory. It can also be changed from the export dialog.")
+                    }
+
                     Label { text: qsTr("Image sequence frame rate:") }
                     SpinBox {
                         editable: true
@@ -209,6 +234,17 @@ Item {
             }
 
             Item { Layout.preferredHeight: 8 }
+        }
+    }
+
+    FolderDialog {
+        id: exportDirDialog
+        title: qsTr("Select Export Directory")
+        currentFolder: config && config.lastExportPath !== ""
+                       ? "file://" + config.lastExportPath : ""
+        onAccepted: {
+            if (config)
+                config.lastExportPath = mainWindow.urlToLocalFile(selectedFolder.toString())
         }
     }
 

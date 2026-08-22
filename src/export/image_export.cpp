@@ -1,4 +1,5 @@
 #include "include/export/image_export.h"
+#include "include/core/config.h"
 #include <QDir>
 #include <QDateTime>
 #include <QStandardPaths>
@@ -144,9 +145,13 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive,
         return QString();
     }
 
-    // Create a unique directory for this dive
+    // Create a unique directory for this dive under the user's configured
+    // base export directory. Read from Config at call time (not m_exportPath):
+    // main.qml points m_exportPath at the created sub-directory for the frame
+    // writer, so using it as the base would nest every subsequent export one
+    // level deeper.
     QString dirName = generateUniqueDirectoryName(dive, videoFilePath, contentType);
-    QString path = QDir(m_exportPath).filePath(dirName);
+    QString path = QDir(Config::instance()->lastExportPath()).filePath(dirName);
 
     QDir dir;
     if (!dir.mkpath(path)) {

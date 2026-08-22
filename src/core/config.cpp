@@ -96,6 +96,9 @@ void Config::setLastExportPath(const QString &path)
 {
     if (m_lastExportPath != path) {
         m_lastExportPath = path;
+        // User-facing setting (Settings tab / export dialog): persist now,
+        // not only at exit
+        saveConfig();
         emit lastExportPathChanged();
     }
 }

@@ -733,6 +733,18 @@ ApplicationWindow {
         }
     }
     
+    FolderDialog {
+        id: exportDestinationDialog
+        title: qsTr("Select Export Directory")
+        currentFolder: config && config.lastExportPath !== ""
+                       ? "file://" + config.lastExportPath : ""
+        onAccepted: {
+            // Persisted immediately; the exporters read it at export time and
+            // the Settings tab shows the same value.
+            config.lastExportPath = mainWindow.urlToLocalFile(selectedFolder.toString())
+        }
+    }
+
     FileDialog {
         id: importVideoFileDialog
         title: qsTr("Import Video")
@@ -966,7 +978,34 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 20
             spacing: 20
-            
+
+            // Destination: the base directory exports land in. Changing it
+            // here writes config.lastExportPath, which the exporters read at
+            // export time — the per-dive sub-folder/file naming is unchanged.
+            GroupBox {
+                title: qsTr("Destination")
+                Layout.fillWidth: true
+
+                RowLayout {
+                    anchors.fill: parent
+
+                    TextField {
+                        Layout.fillWidth: true
+                        text: config ? config.lastExportPath : ""
+                        readOnly: true
+
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: qsTr("Each export creates an automatically named sub-folder or file inside this directory.")
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: exportDestinationDialog.open()
+                    }
+                }
+            }
+
             // Export type selection
             GroupBox {
                 title: qsTr("Export Format")

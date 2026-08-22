@@ -1,4 +1,5 @@
 #include "include/export/video_export.h"
+#include "include/core/config.h"
 #include <QDateTime>
 #include <QStandardPaths>
 #include <QRegularExpression>
@@ -213,9 +214,10 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
     emit statusUpdate(tr("Generating frames..."));
     
     // Create the export directory if it doesn't exist
-    QDir dir(m_exportPath);
+    QDir dir(Config::instance()->lastExportPath());
     if (!dir.exists() && !dir.mkpath(".")) {
-        emit exportError(tr("Failed to create export directory: %1").arg(m_exportPath));
+        emit exportError(tr("Failed to create export directory: %1")
+                             .arg(Config::instance()->lastExportPath()));
         m_busy = false;
         emit busyChanged();
         return false;
@@ -943,8 +945,9 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
     // Add extension
     baseName += "." + extension;
 
-    // Create full path - make sure the directory exists before returning the file path
-    QString dirPath = m_exportPath;
+    // Create full path under the user's configured base export directory -
+    // make sure the directory exists before returning the file path
+    QString dirPath = Config::instance()->lastExportPath();
     QDir dir(dirPath);
     if (!dir.exists()) {
         dir.mkpath(".");

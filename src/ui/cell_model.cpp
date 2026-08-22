@@ -235,10 +235,14 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
     }
 
     case Unabara::CellType::Time: {
-        int totalSeconds = static_cast<int>(m_timePoint);
+        // Use the data point's timestamp with unpadded minutes, exactly like
+        // OverlayGenerator::generateCellDisplayText — the C++ render is the
+        // export ground truth, and the Edit canvas must show the same text
+        // (they historically diverged: "00:00" here vs "0:10" in exports).
+        int totalSeconds = static_cast<int>(dataPoint.timestamp);
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
-        QString value = QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+        QString value = QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
         return format("DIVE TIME", value);
     }
 

@@ -4,6 +4,7 @@
         <file alias="main.qml">src/ui/qml/main.qml</file>
         <file alias="TimelineView.qml">src/ui/qml/TimelineView.qml</file>
         <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
+        <file alias="OverlayCanvas.qml">src/ui/qml/OverlayCanvas.qml</file>
         <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>

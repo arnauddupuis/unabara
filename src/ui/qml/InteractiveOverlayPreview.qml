@@ -364,8 +364,8 @@ Item {
                         cellType: model.cellType
                         cellVisible: model.visible
                         cellFont: {
-                            var scaleX = root.generator && root.generator.templateWidth > 0
-                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0
+                                ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
                             var f = model.font
                             // 1.8 matches the C++ getScaledFontSize scale factor in renderCellBasedOverlay
                             var scaledSize = f.pointSize * 1.8 * scaleX
@@ -382,8 +382,8 @@ Item {
                         // Scale pixel size to current container size
                         // calculatedSize is in pixels, scale proportionally to fit container
                         cellCalculatedSize: {
-                            var scaleX = root.generator.templateWidth > 0 ? cellContainer.width / root.generator.templateWidth : 1.0
-                            var scaleY = root.generator.templateHeight > 0 ? cellContainer.height / root.generator.templateHeight : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0 ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
+                            var scaleY = interactivePreview.generator && interactivePreview.generator.templateHeight > 0 ? cellContainer.height / interactivePreview.generator.templateHeight : 1.0
                             return Qt.size(
                                 model.calculatedSize.width * scaleX,
                                 model.calculatedSize.height * scaleY
@@ -399,8 +399,8 @@ Item {
                         shadowColor: model.shadowColor
                         shadowOpacity: model.shadowOpacity
                         shadowPx: {
-                            var scaleX = root.generator && root.generator.templateWidth > 0
-                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0
+                                ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
                             // 1.8 matches the C++ shadow scale in renderCellBasedOverlay
                             return Math.max(1, model.shadowSize * 1.8 * scaleX)
                         }

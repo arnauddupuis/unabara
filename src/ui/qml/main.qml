@@ -283,6 +283,12 @@ ApplicationWindow {
         updateChecker.checkForUpdates()
     }
     
+    // Shared cell model: drives both the canvas editor (tab 0) and the
+    // overlay editor sidebar. Owned here so one refresh serves both.
+    CellModel {
+        id: overlayCellModel
+    }
+
     // Main UI layout
     header: ToolBar {
         RowLayout {
@@ -402,167 +408,50 @@ ApplicationWindow {
                     Layout.fillHeight: true
                     currentIndex: contentTabs.currentIndex
 
-                    // Tab 1: Overlay (existing flow — preview + editor)
+                    // Tab 1: Overlay — unified canvas (Edit/Render modes) + editor sidebar
                     SplitView {
                         id: mainContentArea
                         orientation: Qt.Horizontal
 
-            // Main preview area
-            Item {
-                id: previewArea
-                SplitView.fillWidth: true
-                SplitView.minimumWidth: 400
-
-                // Overlay preview
-                Rectangle {
-                    id: overlayPreview
-                    anchors.centerIn: parent
-                    width: parent.width * 0.8
-                    height: parent.height * 0.8
-                    color: palette.dark
-                    visible: mainWindow.hasActiveDive
-
-                    Image {
-                        id: previewImage
-                        anchors.fill: parent
-                        fillMode: Image.PreserveAspectFit
-                        cache: false
-                        asynchronous: true
-                    
-                    // Add a timer to handle the update with proper delay
-                    Timer {
-                        id: updateTimer
-                        interval: 100  // Short delay to ensure property changes are processed
-                        repeat: false
-                        onTriggered: {
-                            // Force complete source refresh with two-step approach
-                            previewImage.source = ""
-                            Qt.callLater(function() {
-                                previewImage.source = "image://overlay/preview/" + Date.now() // Use current time for unique URL
-                                console.log("Preview source updated: " + previewImage.source)
-                            })
-                        }
-                    }
-                    
-                    // This would be updated when the timeline position changes or settings change
-                    property var updatePreview: function() {
-                        if (mainWindow.hasActiveDive && timelineView.visible) {
-                            // Use timer to delay update slightly
-                            updateTimer.restart()
-                        }
-                    }
-                    
-                    Component.onCompleted: {
-                        // Set initial source with a short delay
-                        Qt.callLater(function() {
-                            source = "image://overlay/preview/" + Date.now()
-                        })
-                    }
-                    
-                    // Monitor changes to overlay generator properties
-                    Connections {
-                        target: overlayGenerator
-
-                        function onShowDepthChanged() { previewImage.updatePreview() }
-                        function onShowTemperatureChanged() { previewImage.updatePreview() }
-                        function onShowTimeChanged() { previewImage.updatePreview() }
-                        function onShowNDLChanged() { previewImage.updatePreview() }
-                        function onShowPressureChanged() { previewImage.updatePreview() }
-                        function onTemplateChanged() { previewImage.updatePreview() }
-                        function onFontChanged() { previewImage.updatePreview() }
-                        function onLabelColorChanged() { previewImage.updatePreview() }
-                        function onValueColorChanged() { previewImage.updatePreview() }
-                        function onBackgroundOpacityChanged() { previewImage.updatePreview() }
-                        function onShadowChanged() { previewImage.updatePreview() }
-                        function onShowLabelChanged() { previewImage.updatePreview() }
-                        // Per-cell edits (font, color, showLabel, shadow on a selected
-                        // cell) only emit cellsChanged — refresh the preview for those too
-                        function onCellsChanged() { previewImage.updatePreview() }
-                    }
-                    
-                    // Monitor changes to config properties (unit system only)
-                    Connections {
-                        target: config
-
-                        function onUnitSystemChanged() { previewImage.updatePreview() }
-                    }
-
-                    // Monitor changes to overlay generator CCR properties
-                    Connections {
-                        target: overlayGenerator
-
-                        function onShowPO2Cell1Changed() { previewImage.updatePreview() }
-                        function onShowPO2Cell2Changed() { previewImage.updatePreview() }
-                        function onShowPO2Cell3Changed() { previewImage.updatePreview() }
-                        function onShowCompositePO2Changed() { previewImage.updatePreview() }
-                    }
-                    
-                    // Add status changes monitoring
-                    onStatusChanged: {
-                        if (status === Image.Error) {
-                            console.error("Error loading preview image")
-                        } else if (status === Image.Ready) {
-                            console.log("Preview image loaded successfully")
-                        }
-                    }
-                }
-            }
-            
-                // Placeholder when no dive is loaded
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width * 0.6
-                    height: parent.height * 0.4
-                    color: palette.window
-                    radius: 10
-                    visible: !mainWindow.hasActiveDive
-
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: 20
-
-                        Label {
-                            text: qsTr("No Dive Data Loaded")
-                            font.pixelSize: 24
-                            Layout.alignment: Qt.AlignHCenter
+                        OverlayCanvas {
+                            id: overlayCanvas
+                            SplitView.fillWidth: true
+                            SplitView.minimumWidth: 400
+                            generator: overlayGenerator
+                            dive: mainWindow.currentDive
+                            timeline: timelineView.timeline
+                            cellModel: overlayCellModel
+                            tabActive: contentTabs.currentIndex === 0
+                            onImportRequested: importDiveLogFileDialog.open()
                         }
 
-                        Button {
-                            text: qsTr("Import Dive Log")
-                            Layout.alignment: Qt.AlignHCenter
-                            onClicked: importDiveLogFileDialog.open()
+                        // Overlay Editor Panel
+                        Rectangle {
+                            id: overlayEditorPanel
+                            SplitView.preferredWidth: 420
+                            SplitView.minimumWidth: 300
+                            visible: true  // Start with overlay editor visible
+                            color: palette.window
+                            border.color: palette.mid
+                            border.width: 1
+
+                            ScrollView {
+                                anchors.fill: parent
+                                anchors.margins: 5
+                                clip: true
+                                contentWidth: overlayEditorPanel.width - 10
+                                contentHeight: overlayEditor.implicitHeight
+
+                                OverlayEditor {
+                                    id: overlayEditor
+                                    width: overlayEditorPanel.width - 10
+                                    generator: overlayGenerator
+                                    timeline: timelineView.timeline
+                                    dive: mainWindow.currentDive
+                                    cellModel: overlayCellModel
+                                }
+                            }
                         }
-                    }
-                }
-            }
-
-            // Overlay Editor Panel
-            Rectangle {
-                id: overlayEditorPanel
-                SplitView.preferredWidth: 750
-                SplitView.minimumWidth: 300
-                // Removed maximumWidth to allow free resizing
-                visible: true  // Start with overlay editor visible
-                color: palette.window
-                border.color: palette.mid
-                border.width: 1
-
-                ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: 5
-                    clip: true
-                    contentWidth: overlayEditorPanel.width - 10
-                    contentHeight: overlayEditor.implicitHeight
-
-                    OverlayEditor {
-                        id: overlayEditor
-                        width: overlayEditorPanel.width - 10
-                        generator: overlayGenerator
-                        timeline: timelineView.timeline
-                        dive: mainWindow.currentDive
-                    }
-                }
-            }
                     } // end Tab 1 SplitView (mainContentArea)
 
                     // Tab 2: Dive Profile — preview (depth curve + indicator) + editor sidebar
@@ -797,14 +686,6 @@ ApplicationWindow {
                 visible: mainWindow.hasActiveDive
                 videoSyncMode: contentTabs.currentIndex === 2 && timeline.videoPath !== ""
 
-                onCurrentTimeChanged: {
-                    // The overlay tab's preview is the only consumer here; skip the
-                    // work when it isn't the active tab (currentTime also moves
-                    // during video playback on the Video Preview tab).
-                    if (contentTabs.currentIndex === 0 && previewImage.status === Image.Ready) {
-                        previewImage.updatePreview()
-                    }
-                }
                 
                 // Function to set video duration
                 function setVideoDuration(duration) {

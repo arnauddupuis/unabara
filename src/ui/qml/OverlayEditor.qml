@@ -11,6 +11,8 @@ Item {
     property var generator
     property var timeline: null
     property var dive: null
+    // Shared cell model owned by main.qml (also drives the canvas editor)
+    property var cellModel: null
     property bool hasSelection: root.generator ? root.generator.selectedCellId !== "" : false
     property string selectedCellId: root.generator ? root.generator.selectedCellId : ""
 
@@ -31,22 +33,6 @@ Item {
     property bool currentHasCustomShadow: getSelectedCellHasCustomShadow()
 
     implicitHeight: mainColumn.implicitHeight
-
-    // Get cell properties from the repeater
-    function getCellProperty(cellId, propertyName) {
-        if (!cellId) return null
-
-        // Access the cell from the preview's repeater
-        if (interactivePreview && interactivePreview.cellRepeater) {
-            for (var i = 0; i < interactivePreview.cellRepeater.count; i++) {
-                var cell = interactivePreview.cellRepeater.itemAt(i)
-                if (cell && cell.cellId === cellId) {
-                    return cell[propertyName]
-                }
-            }
-        }
-        return null
-    }
 
     // Get the effective font (selected cell or global) - reads unscaled font from generator
     function getCurrentFont() {
@@ -81,24 +67,18 @@ Item {
     }
 
     function getSelectedCellHasCustomFont() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomFont")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomFont(selectedCellId)
     }
 
     function getSelectedCellHasCustomLabelColor() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomLabelColor")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomLabelColor(selectedCellId)
     }
 
     function getSelectedCellHasCustomValueColor() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomValueColor")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomValueColor(selectedCellId)
     }
 
     // Get the effective showLabel (selected cell or global)
@@ -113,10 +93,8 @@ Item {
     }
 
     function getSelectedCellHasCustomShowLabel() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomShowLabel")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomShowLabel(selectedCellId)
     }
 
     // Get the effective shadow settings (selected cell or global)
@@ -171,10 +149,8 @@ Item {
     }
 
     function getSelectedCellHasCustomShadow() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomShadow")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomShadow(selectedCellId)
     }
 
     // Update reactive properties when selection or cells change
@@ -246,11 +222,6 @@ Item {
         currentHasCustomShadow = getSelectedCellHasCustomShadow()
     }
 
-    // Cell model for interactive preview
-    CellModel {
-        id: cellModel
-    }
-
     ColumnLayout {
         id: mainColumn
         width: parent.width
@@ -297,190 +268,6 @@ Item {
             }
         }
 
-        // Interactive overlay preview
-        Item {
-            id: previewContainer
-            Layout.fillWidth: true
-            Layout.preferredHeight: width * 0.5625  // 16:9 aspect ratio
-
-            function updateCellModel() {
-                console.log(">>> updateCellModel called")
-                if (root.generator && root.dive && root.timeline) {
-                    console.log("Updating cell model with current time: ", root.timeline.currentTime)
-                    cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
-                }
-            }
-
-            InteractiveOverlayPreview {
-                id: interactivePreview
-                anchors.fill: parent
-                generator: root.generator
-                dive: root.dive
-                timePoint: root.timeline ? root.timeline.currentTime : 0.0
-                cellModel: cellModel
-
-                // Sync preview selection when generator selection changes externally
-                // (e.g., from Deselect button or other UI)
-                Connections {
-                    target: root.generator
-                    function onSelectedCellIdChanged() {
-                        if (root.generator) {
-                            interactivePreview.selectedCellId = root.generator.selectedCellId
-                        }
-                    }
-                }
-
-                onCellSelected: function(cellId) {
-                    console.log("Cell selected:", cellId)
-                    // Update generator's selected cell
-                    if (root.generator) {
-                        root.generator.selectedCellId = cellId
-                    }
-                }
-
-                onCellDeselected: {
-                    console.log("Cell deselected")
-                    // Clear generator's selected cell
-                    if (root.generator) {
-                        root.generator.selectedCellId = ""
-                    }
-                }
-
-                onCellPositionChanged: function(cellId, newPosition) {
-                    console.log("Cell position changed:", cellId, "to", newPosition)
-                    // Update generator with new position
-                    if (root.generator) {
-                        root.generator.setCellPosition(cellId, newPosition)
-                        // Update cell model to reflect the change
-                        previewContainer.updateCellModel()
-                    }
-                }
-            }
-
-            // Update cell model when properties change
-            Connections {
-                target: root
-
-                function onGeneratorChanged() { previewContainer.updateCellModel() }
-                function onDiveChanged() {
-                    // Only initialize default layout if no cells exist yet
-                    // (don't wipe a loaded template)
-                    if (root.generator && root.dive && root.generator.cellCount() === 0) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
-                    // Hide tank pressure cells that exceed the dive's actual tank count
-                    if (root.generator && root.dive) {
-                        root.generator.adjustTankCellVisibility(root.dive)
-                    }
-                    previewContainer.updateCellModel()
-                }
-                function onTimelineChanged() { previewContainer.updateCellModel() }
-            }
-
-            Connections {
-                target: root.timeline
-                enabled: root.timeline !== null
-
-                function onCurrentTimeChanged() { previewContainer.updateCellModel() }
-            }
-
-            Connections {
-                target: root.generator
-                enabled: root.generator !== null
-
-                function onCellsChanged() { previewContainer.updateCellModel() }
-                function onCellLayoutChanged() { previewContainer.updateCellModel() }
-                function onFontChanged() {
-                    previewContainer.updateCellModel()
-                }
-                function onLabelColorChanged() {
-                    previewContainer.updateCellModel()
-                }
-                function onValueColorChanged() {
-                    previewContainer.updateCellModel()
-                }
-
-                // Toggle cell visibility without destroying the layout.
-                // setCellTypeVisible creates a default cell when the current
-                // template has none for that data type.
-                function onShowDepthChanged() {
-                    root.generator.setCellTypeVisible("depth", root.generator.showDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTemperatureChanged() {
-                    root.generator.setCellTypeVisible("temperature", root.generator.showTemperature)
-                    previewContainer.updateCellModel()
-                }
-                function onShowNDLChanged() {
-                    root.generator.setCellTypeVisible("ndl", root.generator.showNDL)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPressureChanged() {
-                    root.generator.setPressureCellsVisible(root.generator.showPressure, root.dive)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTimeChanged() {
-                    root.generator.setCellTypeVisible("time", root.generator.showTime)
-                    previewContainer.updateCellModel()
-                }
-                function onShowCNSChanged() {
-                    root.generator.setCellTypeVisible("cns", root.generator.showCNS)
-                    previewContainer.updateCellModel()
-                }
-                function onShowMeanDepthChanged() {
-                    root.generator.setCellTypeVisible("mean_depth", root.generator.showMeanDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowMaxDepthChanged() {
-                    root.generator.setCellTypeVisible("max_depth", root.generator.showMaxDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowGasChanged() {
-                    root.generator.setCellTypeVisible("gas", root.generator.showGas)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTTSChanged() {
-                    root.generator.setCellTypeVisible("tts", root.generator.showTTS)
-                    previewContainer.updateCellModel()
-                }
-                function onShowStopDepthChanged() {
-                    root.generator.setCellTypeVisible("stop_depth", root.generator.showStopDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowStopTimeChanged() {
-                    root.generator.setCellTypeVisible("stop_time", root.generator.showStopTime)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell1Changed() {
-                    root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell2Changed() {
-                    root.generator.setCellTypeVisible("po2_cell2", root.generator.showPO2Cell2)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell3Changed() {
-                    root.generator.setCellTypeVisible("po2_cell3", root.generator.showPO2Cell3)
-                    previewContainer.updateCellModel()
-                }
-                function onShowCompositePO2Changed() {
-                    root.generator.setCellTypeVisible("composite_po2", root.generator.showCompositePO2)
-                    previewContainer.updateCellModel()
-                }
-            }
-
-            Connections {
-                target: config
-                enabled: config !== null
-
-                function onUnitSystemChanged() { previewContainer.updateCellModel() }
-            }
-
-            Component.onCompleted: {
-                Qt.callLater(previewContainer.updateCellModel)
-            }
-        }
-        
         // Template Management
         GroupBox {
             title: qsTr("Template Management")
@@ -686,53 +473,6 @@ Item {
                             if (root.generator && root.dive) {
                                 root.generator.initializeDefaultCellLayout(root.dive)
                             }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Grid Settings
-        GroupBox {
-            title: qsTr("Grid Settings")
-            Layout.fillWidth: true
-
-            GridLayout {
-                anchors.fill: parent
-                columns: 2
-
-                Label { text: qsTr("Snap to Grid:") }
-                CheckBox {
-                    id: snapToGridCheckBox
-                    checked: generator ? generator.snapToGrid : false
-                    onCheckedChanged: {
-                        if (generator) {
-                            generator.snapToGrid = checked
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Grid Spacing (px):") }
-                SpinBox {
-                    id: gridSpacingSpinBox
-                    from: 5
-                    to: 100
-                    stepSize: 5
-                    value: generator ? generator.gridSpacing : 10
-                    onValueModified: {
-                        if (generator) {
-                            generator.gridSpacing = value
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Show Grid:") }
-                CheckBox {
-                    id: showGridCheckBox
-                    checked: generator ? generator.showGrid : false
-                    onCheckedChanged: {
-                        if (generator) {
-                            generator.showGrid = checked
                         }
                     }
                 }

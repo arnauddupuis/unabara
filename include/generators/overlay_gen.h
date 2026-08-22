@@ -183,6 +183,11 @@ public:
     Q_INVOKABLE void setCellValueColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomFont(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomLabelColor(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomValueColor(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomShowLabel(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomShadow(const QString& cellId) const;
     Q_INVOKABLE bool getCellShadowEnabled(const QString& cellId) const;
     Q_INVOKABLE int getCellShadowType(const QString& cellId) const;
     Q_INVOKABLE QColor getCellShadowColor(const QString& cellId) const;
@@ -213,6 +218,12 @@ public:
     Q_INVOKABLE QString getTemplatePath(int index);
     Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
     Q_INVOKABLE void refreshTemplateList();
+
+    // Hit-test for the Render-mode preview: returns the id of the topmost
+    // visible cell whose rendered rect (same metrics as
+    // renderCellBasedOverlay) contains the normalized position, or "" if none.
+    Q_INVOKABLE QString cellIdAt(DiveData* dive, double timePoint,
+                                 const QPointF& normalizedPos) const;
 
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);

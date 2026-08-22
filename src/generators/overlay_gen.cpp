@@ -885,6 +885,36 @@ bool OverlayGenerator::getCellShowLabel(const QString& cellId) const
     return m_showLabel;
 }
 
+bool OverlayGenerator::getCellHasCustomFont(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    return cell && cell->hasCustomFont();
+}
+
+bool OverlayGenerator::getCellHasCustomLabelColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    return cell && cell->hasCustomLabelColor();
+}
+
+bool OverlayGenerator::getCellHasCustomValueColor(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    return cell && cell->hasCustomValueColor();
+}
+
+bool OverlayGenerator::getCellHasCustomShowLabel(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    return cell && cell->hasCustomShowLabel();
+}
+
+bool OverlayGenerator::getCellHasCustomShadow(const QString& cellId) const
+{
+    const auto* cell = getCellData(cellId);
+    return cell && cell->hasCustomShadow();
+}
+
 bool OverlayGenerator::getCellShadowEnabled(const QString& cellId) const
 {
     const auto* cell = getCellData(cellId);
@@ -2051,6 +2081,47 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
             painter.restore();
         }
     }
+}
+
+QString OverlayGenerator::cellIdAt(DiveData* dive, double timePoint,
+                                   const QPointF& normalizedPos) const
+{
+    if (!dive || m_cells.isEmpty() || m_templateWidth <= 0 || m_templateHeight <= 0)
+        return QString();
+
+    const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
+    const double px = normalizedPos.x() * m_templateWidth;
+    const double py = normalizedPos.y() * m_templateHeight;
+
+    // Cells are painted in list order, so later cells sit on top — scan
+    // back-to-front to return the topmost hit. The rect must match
+    // renderCellBasedOverlay: scaled font, measured text, +8 padding.
+    for (int i = m_cells.size() - 1; i >= 0; --i) {
+        const auto& cell = m_cells.at(i);
+        if (!cell.visible())
+            continue;
+
+        const QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
+        QFont renderFont = effectiveFont;
+        renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
+
+        const QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
+                                                            cell.tankIndex(), dive,
+                                                            cell.showLabel());
+
+        const QFontMetrics fm(renderFont);
+        const QRect textBounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
+                                                 Qt::AlignHCenter | Qt::TextWordWrap,
+                                                 displayText);
+
+        const QRectF cellRect(cell.position().x() * m_templateWidth,
+                              cell.position().y() * m_templateHeight,
+                              textBounds.width() + 8,
+                              textBounds.height() + 8);
+        if (cellRect.contains(px, py))
+            return cell.cellId();
+    }
+    return QString();
 }
 
 // Frozen legacy path: only reachable with an empty cell list, which cannot

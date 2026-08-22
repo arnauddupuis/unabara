@@ -792,12 +792,34 @@ ApplicationWindow {
             } // end ColumnLayout
         } // end tabContainer Item
 
-        // Timeline area
+        // Timeline area. Collapse state lives on the TimelineView (its header
+        // chevron); this pane follows it so the SplitView actually gives the
+        // space back. Session-only by design — never persisted, never
+        // triggered programmatically.
         Rectangle {
             id: timelineArea
             SplitView.preferredHeight: 200
-            SplitView.minimumHeight: 150
+            SplitView.minimumHeight: timelineView.collapsed ? collapsedHeight : 150
+            SplitView.maximumHeight: timelineView.collapsed ? collapsedHeight : Infinity
             color: palette.mid
+
+            readonly property int collapsedHeight: 32
+            property real expandedHeight: 200
+
+            Connections {
+                target: timelineView
+                function onCollapsedChanged() {
+                    // SplitView writes preferredHeight when the user drags the
+                    // handle, so restore it imperatively (same pattern as the
+                    // editor sidebars).
+                    if (timelineView.collapsed) {
+                        timelineArea.expandedHeight = timelineArea.height
+                        timelineArea.SplitView.preferredHeight = timelineArea.collapsedHeight
+                    } else {
+                        timelineArea.SplitView.preferredHeight = timelineArea.expandedHeight
+                    }
+                }
+            }
 
             TimelineView {
                 id: timelineView

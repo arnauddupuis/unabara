@@ -227,267 +227,77 @@ Item {
         width: parent.width
         spacing: 20
 
-        // Editing mode indicator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            color: root.hasSelection ? Qt.rgba(0, 0.5, 0, 0.15) : palette.mid
-            border.color: root.hasSelection ? "lime" : palette.mid
-            border.width: 2
-            radius: 4
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 12
-
-                Label {
-                    text: root.hasSelection ? "✓ Cell Selected:" : "⊞ Editing All Cells"
-                    font.bold: true
-                    color: root.hasSelection ? "lime" : palette.windowText
-                }
-
-                Label {
-                    text: root.hasSelection ? root.selectedCellId : ""
-                    font.family: "monospace"
-                    color: palette.windowText
-                    visible: root.hasSelection
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Button {
-                    text: "Deselect"
-                    visible: root.hasSelection
-                    onClicked: {
-                        if (root.generator) {
-                            root.generator.selectedCellId = ""
-                        }
-                    }
-                }
-            }
-        }
-
-        // Template Management
-        GroupBox {
-            title: qsTr("Template Management")
+        // Cells list — replaces the old Display Options / CCR checkbox walls
+        CollapsibleSection {
+            title: qsTr("Cells")
             Layout.fillWidth: true
 
-            GridLayout {
-                anchors.fill: parent
-                columns: 2
-
-                // Background Image
-                Label { text: qsTr("Background Image:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Label {
-                        id: bgImageLabel
-                        Layout.fillWidth: true
-                        text: {
-                            if (!generator || !generator.templatePath) return qsTr("None")
-                            var path = generator.templatePath
-                            // Extract filename from path
-                            var parts = path.split("/")
-                            return parts[parts.length - 1]
-                        }
-                        elide: Text.ElideMiddle
-                    }
-
-                    Button {
-                        text: qsTr("Change...")
-                        onClicked: backgroundImageDialog.open()
-                    }
-                }
-
-                // Template selector
-                Label { text: qsTr("Template:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    ComboBox {
-                        id: templateSelector
-                        Layout.fillWidth: true
-                        model: root.generator ? root.generator.getAvailableTemplates() : []
-
-                        Component.onCompleted: {
-                            if (config && config.activeTemplatePath && root.generator) {
-                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
-                                if (idx >= 0) {
-                                    currentIndex = idx
-                                }
-                            }
-                        }
-
-                        onActivated: function(index) {
-                            if (root.generator) {
-                                var path = root.generator.getTemplatePath(index)
-                                if (path) {
-                                    root.generator.loadTemplateFromFile(path)
-                                    if (root.dive && root.timeline) {
-                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Template directory
-                Label { text: qsTr("Template Directory:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    TextField {
-                        id: templateDirField
-                        Layout.fillWidth: true
-                        text: config ? config.templateDirectory : ""
-                        readOnly: true
-                    }
-
-                    Button {
-                        text: qsTr("Browse...")
-                        onClicked: templateDirDialog.open()
-                    }
-                }
-
-                // Background Opacity
-                Label { text: qsTr("Background Opacity:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Slider {
-                        id: opacitySlider
-                        Layout.fillWidth: true
-                        from: 0.0
-                        to: 1.0
-                        stepSize: 0.01
-                        value: generator ? generator.backgroundOpacity : 1.0
-
-                        onValueChanged: {
-                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
-                                generator.backgroundOpacity = value
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: Math.round(opacitySlider.value * 100) + "%"
-                        Layout.preferredWidth: 40
-                    }
-                }
-
-                // Profile color scheme carried by the template (optional).
-                // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
-                Label { text: qsTr("Primary Color:") }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-
-                    Button {
-                        id: primaryColorButton
-                        Layout.fillWidth: true
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            color: generator && generator.hasPrimaryColor
-                                   ? generator.primaryColor : "transparent"
-                            border.color: "#808080"
-                            border.width: generator && generator.hasPrimaryColor ? 0 : 1
-
-                            Label {
-                                anchors.centerIn: parent
-                                text: qsTr("not set")
-                                opacity: 0.6
-                                visible: !(generator && generator.hasPrimaryColor)
-                            }
-                        }
-
-                        onClicked: primaryColorDialog.open()
-                    }
-
-                    Button {
-                        text: "×"
-                        Layout.preferredWidth: 40
-                        enabled: generator && (generator.hasPrimaryColor || generator.hasSecondaryColor)
-                        opacity: enabled ? 1.0 : 0.3
-                        ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Remove the color scheme from this template")
-                        onClicked: {
-                            if (generator) generator.clearColorScheme()
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Secondary Color:") }
-                Button {
-                    id: secondaryColorButton
-                    Layout.fillWidth: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        color: generator && generator.hasSecondaryColor
-                               ? generator.secondaryColor : "transparent"
-                        border.color: "#808080"
-                        border.width: generator && generator.hasSecondaryColor ? 0 : 1
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: qsTr("not set")
-                            opacity: 0.6
-                            visible: !(generator && generator.hasSecondaryColor)
-                        }
-                    }
-
-                    onClicked: secondaryColorDialog.open()
-                }
-
-                // Action buttons
-                RowLayout {
-                    Layout.columnSpan: 2
-                    Layout.fillWidth: true
-                    spacing: 10
-
-                    Button {
-                        text: qsTr("Save Template...")
-                        Layout.fillWidth: true
-                        icon.name: "document-save"
-                        onClicked: saveTemplateDialog.open()
-                    }
-
-                    Button {
-                        text: qsTr("Load Template...")
-                        Layout.fillWidth: true
-                        icon.name: "document-open"
-                        onClicked: loadTemplateDialog.open()
-                    }
-
-                    Button {
-                        text: qsTr("Reset Layout")
-                        Layout.fillWidth: true
-                        icon.name: "edit-undo"
-                        onClicked: {
-                            if (root.generator && root.dive) {
-                                root.generator.initializeDefaultCellLayout(root.dive)
-                            }
-                        }
-                    }
-                }
+            CellsPanel {
+                Layout.fillWidth: true
+                generator: root.generator
+                dive: root.dive
+                cellModel: root.cellModel
             }
         }
 
         // Text settings
-        GroupBox {
-            title: root.hasSelection ?
-                qsTr("Text Settings - Cell: ") + root.selectedCellId :
-                qsTr("Text Settings - All Cells")
+        CollapsibleSection {
+            title: qsTr("Text")
             Layout.fillWidth: true
-            
+
+            // Editing scope: the controls below target either every cell or a
+            // single selected cell. The switcher makes the target explicit at
+            // the point of editing and stays in sync with canvas selection.
+            RowLayout {
+                Layout.fillWidth: true
+
+                Label {
+                    text: qsTr("Editing:")
+                    font.bold: true
+                }
+
+                ComboBox {
+                    id: scopeCombo
+                    Layout.fillWidth: true
+
+                    property var ids: []
+
+                    function rebuild() {
+                        ids = root.cellModel ? root.cellModel.visibleCellIds() : []
+                        model = [qsTr("All cells")].concat(ids)
+                        syncIndex()
+                    }
+
+                    function syncIndex() {
+                        var sel = root.generator ? root.generator.selectedCellId : ""
+                        var idx = sel === "" ? 0 : ids.indexOf(sel) + 1
+                        currentIndex = idx > 0 ? idx : 0
+                    }
+
+                    Component.onCompleted: rebuild()
+
+                    onActivated: {
+                        if (root.generator)
+                            root.generator.selectedCellId =
+                                    currentIndex <= 0 ? "" : ids[currentIndex - 1]
+                    }
+
+                    Connections {
+                        target: root.cellModel
+                        enabled: root.cellModel !== null
+                        function onModelUpdated() { scopeCombo.rebuild() }
+                    }
+
+                    Connections {
+                        target: root.generator
+                        enabled: root.generator !== null
+                        function onSelectedCellIdChanged() { scopeCombo.syncIndex() }
+                    }
+                }
+            }
+
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
 
                 Label { text: qsTr("Font:") }
@@ -815,196 +625,211 @@ Item {
             }
         }
         
-        // Display options
-        GroupBox {
-            title: qsTr("Display Options")
-            Layout.fillWidth: true
-            
-            ColumnLayout {
-                anchors.fill: parent
-                
-                CheckBox {
-                    id: showDepthCheckbox
-                    text: qsTr("Show Depth")
-                    checked: generator ? generator.showDepth : true
-                    onCheckedChanged: {
-                        if (generator && generator.showDepth !== checked) {
-                            generator.showDepth = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showTempCheckbox
-                    text: qsTr("Show Temperature")
-                    checked: generator ? generator.showTemperature : true
-                    onCheckedChanged: {
-                        if (generator && generator.showTemperature !== checked) {
-                            generator.showTemperature = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showTimeCheckbox
-                    text: qsTr("Show Time")
-                    checked: generator ? generator.showTime : true
-                    onCheckedChanged: {
-                        if (generator && generator.showTime !== checked) {
-                            generator.showTime = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showNDLCheckbox
-                    text: qsTr("Show No Decompression Limit")
-                    checked: generator ? generator.showNDL : true
-                    onCheckedChanged: {
-                        if (generator && generator.showNDL !== checked) {
-                            generator.showNDL = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showTTSCheckbox
-                    text: qsTr("Show Time To Surface")
-                    checked: generator ? generator.showTTS : false
-                    onCheckedChanged: {
-                        if (generator && generator.showTTS !== checked) {
-                            generator.showTTS = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showStopDepthCheckbox
-                    text: qsTr("Show Deco Stop Depth")
-                    checked: generator ? generator.showStopDepth : true
-                    onCheckedChanged: {
-                        if (generator && generator.showStopDepth !== checked) {
-                            generator.showStopDepth = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showStopTimeCheckbox
-                    text: qsTr("Show Deco Stop Time")
-                    checked: generator ? generator.showStopTime : true
-                    onCheckedChanged: {
-                        if (generator && generator.showStopTime !== checked) {
-                            generator.showStopTime = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showPressureCheckbox
-                    text: qsTr("Show Tank Pressure")
-                    checked: generator ? generator.showPressure : true
-                    onCheckedChanged: {
-                        if (generator && generator.showPressure !== checked) {
-                            generator.showPressure = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showCNSCheckbox
-                    text: qsTr("Show CNS")
-                    checked: generator ? generator.showCNS : false
-                    onCheckedChanged: {
-                        if (generator && generator.showCNS !== checked) {
-                            generator.showCNS = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showMeanDepthCheckbox
-                    text: qsTr("Show Mean Depth")
-                    checked: generator ? generator.showMeanDepth : false
-                    onCheckedChanged: {
-                        if (generator && generator.showMeanDepth !== checked) {
-                            generator.showMeanDepth = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showMaxDepthCheckbox
-                    text: qsTr("Show Max Depth")
-                    checked: generator ? generator.showMaxDepth : false
-                    onCheckedChanged: {
-                        if (generator && generator.showMaxDepth !== checked) {
-                            generator.showMaxDepth = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showGasCheckbox
-                    text: qsTr("Show Gas Mix")
-                    checked: generator ? generator.showGas : false
-                    onCheckedChanged: {
-                        if (generator && generator.showGas !== checked) {
-                            generator.showGas = checked
-                        }
-                    }
-                }
-            }
-        }
-
-        // CCR Settings
-        GroupBox {
-            title: qsTr("CCR Settings")
+        // Template Management
+        CollapsibleSection {
+            title: qsTr("Template")
             Layout.fillWidth: true
 
-            ColumnLayout {
-                anchors.fill: parent
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
 
-                CheckBox {
-                    id: showPO2Cell1Checkbox
-                    text: qsTr("Show Cell 1 PO2")
-                    checked: generator ? generator.showPO2Cell1 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell1 !== checked) {
-                            generator.showPO2Cell1 = checked
+                // Background Image
+                Label { text: qsTr("Background Image:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Label {
+                        id: bgImageLabel
+                        Layout.fillWidth: true
+                        text: {
+                            if (!generator || !generator.templatePath) return qsTr("None")
+                            var path = generator.templatePath
+                            // Extract filename from path
+                            var parts = path.split("/")
+                            return parts[parts.length - 1]
+                        }
+                        elide: Text.ElideMiddle
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: backgroundImageDialog.open()
+                    }
+                }
+
+                // Template selector
+                Label { text: qsTr("Template:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    ComboBox {
+                        id: templateSelector
+                        Layout.fillWidth: true
+                        model: root.generator ? root.generator.getAvailableTemplates() : []
+
+                        Component.onCompleted: {
+                            if (config && config.activeTemplatePath && root.generator) {
+                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
+                                if (idx >= 0) {
+                                    currentIndex = idx
+                                }
+                            }
+                        }
+
+                        onActivated: function(index) {
+                            if (root.generator) {
+                                var path = root.generator.getTemplatePath(index)
+                                if (path) {
+                                    root.generator.loadTemplateFromFile(path)
+                                    if (root.dive && root.timeline) {
+                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
-                CheckBox {
-                    id: showPO2Cell2Checkbox
-                    text: qsTr("Show Cell 2 PO2")
-                    checked: generator ? generator.showPO2Cell2 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell2 !== checked) {
-                            generator.showPO2Cell2 = checked
+                // Template directory
+                Label { text: qsTr("Template Directory:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    TextField {
+                        id: templateDirField
+                        Layout.fillWidth: true
+                        text: config ? config.templateDirectory : ""
+                        readOnly: true
+                    }
+
+                    Button {
+                        text: qsTr("Browse...")
+                        onClicked: templateDirDialog.open()
+                    }
+                }
+
+                // Background Opacity
+                Label { text: qsTr("Background Opacity:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Slider {
+                        id: opacitySlider
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.01
+                        value: generator ? generator.backgroundOpacity : 1.0
+
+                        onValueChanged: {
+                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
+                                generator.backgroundOpacity = value
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(opacitySlider.value * 100) + "%"
+                        Layout.preferredWidth: 40
+                    }
+                }
+
+                // Profile color scheme carried by the template (optional).
+                // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
+                Label { text: qsTr("Primary Color:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        id: primaryColorButton
+                        Layout.fillWidth: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            color: generator && generator.hasPrimaryColor
+                                   ? generator.primaryColor : "transparent"
+                            border.color: "#808080"
+                            border.width: generator && generator.hasPrimaryColor ? 0 : 1
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: qsTr("not set")
+                                opacity: 0.6
+                                visible: !(generator && generator.hasPrimaryColor)
+                            }
+                        }
+
+                        onClicked: primaryColorDialog.open()
+                    }
+
+                    Button {
+                        text: "×"
+                        Layout.preferredWidth: 40
+                        enabled: generator && (generator.hasPrimaryColor || generator.hasSecondaryColor)
+                        opacity: enabled ? 1.0 : 0.3
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Remove the color scheme from this template")
+                        onClicked: {
+                            if (generator) generator.clearColorScheme()
                         }
                     }
                 }
 
-                CheckBox {
-                    id: showPO2Cell3Checkbox
-                    text: qsTr("Show Cell 3 PO2")
-                    checked: generator ? generator.showPO2Cell3 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell3 !== checked) {
-                            generator.showPO2Cell3 = checked
+                Label { text: qsTr("Secondary Color:") }
+                Button {
+                    id: secondaryColorButton
+                    Layout.fillWidth: true
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: generator && generator.hasSecondaryColor
+                               ? generator.secondaryColor : "transparent"
+                        border.color: "#808080"
+                        border.width: generator && generator.hasSecondaryColor ? 0 : 1
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: qsTr("not set")
+                            opacity: 0.6
+                            visible: !(generator && generator.hasSecondaryColor)
                         }
                     }
+
+                    onClicked: secondaryColorDialog.open()
                 }
 
-                CheckBox {
-                    id: showCompositePO2Checkbox
-                    text: qsTr("Show Composite PO2")
-                    checked: generator ? generator.showCompositePO2 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showCompositePO2 !== checked) {
-                            generator.showCompositePO2 = checked
+                // Action buttons
+                RowLayout {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        text: qsTr("Save Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-save"
+                        onClicked: saveTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Load Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-open"
+                        onClicked: loadTemplateDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Reset Layout")
+                        Layout.fillWidth: true
+                        icon.name: "edit-undo"
+                        onClicked: {
+                            if (root.generator && root.dive) {
+                                root.generator.initializeDefaultCellLayout(root.dive)
+                            }
                         }
                     }
                 }

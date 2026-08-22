@@ -142,6 +142,16 @@ void CellModel::updateFromGenerator(OverlayGenerator* generator, DiveData* dive,
     emit modelUpdated();
 }
 
+QStringList CellModel::visibleCellIds() const
+{
+    QStringList ids;
+    for (const auto& cell : m_cells) {
+        if (cell.visible())
+            ids << cell.cellId();
+    }
+    return ids;
+}
+
 void CellModel::updateCellPosition(const QString& cellId, const QPointF& position)
 {
     if (!m_generator) {

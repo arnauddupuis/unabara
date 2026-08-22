@@ -317,17 +317,33 @@ ApplicationWindow {
             ToolButton {
                 // Exports whichever overlay the currently active tab represents.
                 // Tab 0 = dive computer overlay, Tab 1 = dive profile. Tab 2
-                // (video preview placeholder) has nothing to export yet, so
-                // the button is disabled there.
+                // (video preview) opens the dialog with a content chooser and
+                // defaults the range to the imported video. Only the Settings
+                // tab has nothing to export.
                 text: {
                     if (contentTabs.currentIndex === 1) return qsTr("Export Profile")
+                    if (contentTabs.currentIndex === 2) return qsTr("Export...")
                     return qsTr("Export Overlay")
                 }
                 icon.name: "document-save"
-                enabled: mainWindow.hasActiveDive
-                         && (contentTabs.currentIndex === 0 || contentTabs.currentIndex === 1)
+                enabled: mainWindow.hasActiveDive && contentTabs.currentIndex !== 3
+                ToolTip.visible: hovered && contentTabs.currentIndex === 2
+                ToolTip.delay: 500
+                ToolTip.text: qsTr("Overlays export with transparency — composite them over your footage in your video editor.")
                 onClicked: {
-                    if (contentTabs.currentIndex === 1) {
+                    exportImagesDialog.chooseContent = contentTabs.currentIndex === 2
+                    if (contentTabs.currentIndex === 2) {
+                        // The dialog offers the dive-computer/profile choice;
+                        // start from the dive computer overlay. Set the
+                        // parameters explicitly too — the radio's change
+                        // handler doesn't fire when it is already checked.
+                        exportContentComputer.checked = true
+                        exportImagesDialog.targetGenerator = overlayGenerator
+                        exportImagesDialog.contentType = "dive_computer"
+                        exportImagesDialog.title = qsTr("Export Overlay for Video")
+                        if (exportVideoRangeOnly.enabled)
+                            exportVideoRangeOnly.checked = true
+                    } else if (contentTabs.currentIndex === 1) {
                         exportImagesDialog.targetGenerator = profileGenerator
                         exportImagesDialog.contentType = "dive_profile"
                         exportImagesDialog.title = qsTr("Export Dive Profile")
@@ -931,6 +947,12 @@ ApplicationWindow {
         //     different overlays for the same dive don't collide.
         property var targetGenerator: overlayGenerator
         property string contentType: "dive_computer"
+        //   chooseContent: true when invoked from the Video Preview tab, where
+        //     no single overlay is implied — the dialog then shows a
+        //     "What to Export" radio group that drives the two properties
+        //     above. False for the per-tab invocations, which set them
+        //     directly.
+        property bool chooseContent: false
 
         // Use implicitHeight instead of fixed height to adapt to content
         implicitHeight: contentColumn.implicitHeight + 140 // Add padding for dialog margins
@@ -1106,6 +1128,51 @@ ApplicationWindow {
                     Button {
                         text: qsTr("Change...")
                         onClicked: exportDestinationDialog.open()
+                    }
+                }
+            }
+
+            // Which overlay to export — only offered from the Video Preview
+            // tab. The change handlers are gated on chooseContent so a stale
+            // radio state can't clobber the parameters set by the tab-0/1
+            // Export buttons.
+            GroupBox {
+                title: qsTr("What to Export")
+                Layout.fillWidth: true
+                visible: exportImagesDialog.chooseContent
+
+                ColumnLayout {
+                    anchors.fill: parent
+
+                    RadioButton {
+                        id: exportContentComputer
+                        text: qsTr("Dive computer overlay")
+                        checked: true
+                        onCheckedChanged: {
+                            if (checked && exportImagesDialog.chooseContent) {
+                                exportImagesDialog.targetGenerator = overlayGenerator
+                                exportImagesDialog.contentType = "dive_computer"
+                            }
+                        }
+                    }
+
+                    RadioButton {
+                        id: exportContentProfile
+                        text: qsTr("Dive profile")
+                        onCheckedChanged: {
+                            if (checked && exportImagesDialog.chooseContent) {
+                                exportImagesDialog.targetGenerator = profileGenerator
+                                exportImagesDialog.contentType = "dive_profile"
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: palette.placeholderText
+                        text: qsTr("Overlays export with transparency — composite them over your footage in your video editor. Direct composited export is planned for v0.4.")
                     }
                 }
             }

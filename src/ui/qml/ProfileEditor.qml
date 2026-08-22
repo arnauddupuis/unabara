@@ -422,20 +422,7 @@ Item {
                                                                overlayGenerator.secondaryColor)
                 }
 
-                Label { text: qsTr("On template load:") }
-                ComboBox {
-                    id: colorSchemePolicyCombo
-                    Layout.fillWidth: true
-                    model: [qsTr("Ask"), qsTr("Always apply"), qsTr("Never apply")]
-                    property var policies: ["ask", "always", "never"]
-                    currentIndex: {
-                        var idx = policies.indexOf(config ? config.profileColorSchemePolicy : "ask")
-                        return idx >= 0 ? idx : 0
-                    }
-                    onActivated: {
-                        if (config) config.profileColorSchemePolicy = policies[currentIndex]
-                    }
-                }
+                // The on-template-load policy is configured on the Settings tab.
             }
         }
 

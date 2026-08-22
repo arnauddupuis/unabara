@@ -397,6 +397,21 @@ void Config::setProfileColorSchemePolicy(const QString &policy)
     }
 }
 
+// Update check at startup
+bool Config::checkUpdatesOnStartup() const
+{
+    return m_checkUpdatesOnStartup;
+}
+
+void Config::setCheckUpdatesOnStartup(bool check)
+{
+    if (m_checkUpdatesOnStartup != check) {
+        m_checkUpdatesOnStartup = check;
+        saveConfig();
+        emit checkUpdatesOnStartupChanged();
+    }
+}
+
 // CCR settings implementation
 bool Config::showPO2Cell1() const
 {
@@ -754,6 +769,9 @@ void Config::loadConfig()
     m_profileGridLineWidth = m_settings.value("profile/gridLineWidth", 1).toInt();
     m_profileGridShowLabels = m_settings.value("profile/gridShowLabels", true).toBool();
     m_profileColorSchemePolicy = m_settings.value("profile/colorSchemePolicy", "ask").toString();
+    // NOTE: not under a "general" group — QSettings escapes that reserved
+    // section name in ini files ("%General") and the value doesn't round-trip.
+    m_checkUpdatesOnStartup = m_settings.value("app/checkUpdatesOnStartup", true).toBool();
 
     // Load per-video overlay layouts
     {
@@ -889,6 +907,7 @@ void Config::saveConfig()
     m_settings.setValue("profile/gridLineWidth", m_profileGridLineWidth);
     m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
     m_settings.setValue("profile/colorSchemePolicy", m_profileColorSchemePolicy);
+    m_settings.setValue("app/checkUpdatesOnStartup", m_checkUpdatesOnStartup);
 
     // Save per-video overlay layouts
     {

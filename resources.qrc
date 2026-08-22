@@ -7,6 +7,7 @@
         <file alias="OverlayCanvas.qml">src/ui/qml/OverlayCanvas.qml</file>
         <file alias="CollapsibleSection.qml">src/ui/qml/CollapsibleSection.qml</file>
         <file alias="CellsPanel.qml">src/ui/qml/CellsPanel.qml</file>
+        <file alias="SettingsPanel.qml">src/ui/qml/SettingsPanel.qml</file>
         <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>

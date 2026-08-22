@@ -57,6 +57,9 @@ class Config : public QObject
     // "ask" (default), "always" (apply silently), "never"
     Q_PROPERTY(QString profileColorSchemePolicy READ profileColorSchemePolicy WRITE setProfileColorSchemePolicy NOTIFY profileColorSchemePolicyChanged)
 
+    // Whether to query GitHub for a newer version at application startup
+    Q_PROPERTY(bool checkUpdatesOnStartup READ checkUpdatesOnStartup WRITE setCheckUpdatesOnStartup NOTIFY checkUpdatesOnStartupChanged)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
@@ -164,6 +167,10 @@ public:
     QString profileColorSchemePolicy() const;
     void setProfileColorSchemePolicy(const QString &policy);
 
+    // Update check at startup
+    bool checkUpdatesOnStartup() const;
+    void setCheckUpdatesOnStartup(bool check);
+
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -269,6 +276,7 @@ signals:
     void templateDirectoryChanged();
     void activeTemplatePathChanged();
     void profileColorSchemePolicyChanged();
+    void checkUpdatesOnStartupChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -336,6 +344,7 @@ private:
     QString m_templateDirectory;
     QString m_activeTemplatePath;
     QString m_profileColorSchemePolicy;
+    bool m_checkUpdatesOnStartup;
     
     // CCR settings
     bool m_showPO2Cell1;

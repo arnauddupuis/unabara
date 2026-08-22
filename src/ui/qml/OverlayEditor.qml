@@ -688,24 +688,23 @@ Item {
                                 }
                             }
                         }
-                    }
-                }
 
-                // Template directory
-                Label { text: qsTr("Template Directory:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    TextField {
-                        id: templateDirField
-                        Layout.fillWidth: true
-                        text: config ? config.templateDirectory : ""
-                        readOnly: true
-                    }
-
-                    Button {
-                        text: qsTr("Browse...")
-                        onClicked: templateDirDialog.open()
+                        // The template directory is edited on the Settings
+                        // tab — refresh the list (and keep the active
+                        // template selected) when it changes.
+                        Connections {
+                            target: config
+                            enabled: config !== null
+                            function onTemplateDirectoryChanged() {
+                                if (!root.generator)
+                                    return
+                                root.generator.refreshTemplateList()
+                                templateSelector.model = root.generator.getAvailableTemplates()
+                                var idx = root.generator.indexOfTemplatePath(
+                                            config.activeTemplatePath)
+                                templateSelector.currentIndex = idx >= 0 ? idx : -1
+                            }
+                        }
                     }
                 }
 
@@ -836,38 +835,8 @@ Item {
             }
         }
 
-        // Units Settings
-        GroupBox {
-            title: qsTr("Units")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-
-                RadioButton {
-                    id: metricUnitsRadio
-                    text: qsTr("Metric (m, °C, bar)")
-                    checked: config ? config.unitSystem === Units.Metric : true
-                    onCheckedChanged: {
-                        if (checked && config && config.unitSystem !== Units.Metric) {
-                            config.unitSystem = Units.Metric
-                        }
-                    }
-                }
-
-                RadioButton {
-                    id: imperialUnitsRadio
-                    text: qsTr("Imperial (ft, °F, psi)")
-                    checked: config ? config.unitSystem === Units.Imperial : false
-                    onCheckedChanged: {
-                        if (checked && config && config.unitSystem !== Units.Imperial) {
-                            config.unitSystem = Units.Imperial
-                        }
-                    }
-                }
-            }
-        }
     }
+
     
     // Dialogs
     FileDialog {
@@ -878,22 +847,6 @@ Item {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 generator.templatePath = localPath
-            }
-        }
-    }
-
-    FolderDialog {
-        id: templateDirDialog
-        title: qsTr("Select Template Directory")
-        onAccepted: {
-            if (config) {
-                var localPath = mainWindow.urlToLocalFile(selectedFolder.toString())
-
-                config.templateDirectory = localPath
-                if (generator) {
-                    generator.refreshTemplateList()
-                    templateSelector.model = generator.getAvailableTemplates()
-                }
             }
         }
     }

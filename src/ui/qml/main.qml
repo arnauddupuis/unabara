@@ -279,8 +279,10 @@ ApplicationWindow {
             messageDialog.open()
         }
 
-        // Check for updates
-        updateChecker.checkForUpdates()
+        // Check for updates (user-controllable from the Settings tab)
+        if (config.checkUpdatesOnStartup) {
+            updateChecker.checkForUpdates()
+        }
     }
     
     // Shared cell model: drives both the canvas editor (tab 0) and the
@@ -322,7 +324,8 @@ ApplicationWindow {
                     return qsTr("Export Overlay")
                 }
                 icon.name: "document-save"
-                enabled: mainWindow.hasActiveDive && contentTabs.currentIndex !== 2
+                enabled: mainWindow.hasActiveDive
+                         && (contentTabs.currentIndex === 0 || contentTabs.currentIndex === 1)
                 onClicked: {
                     if (contentTabs.currentIndex === 1) {
                         exportImagesDialog.targetGenerator = profileGenerator
@@ -401,6 +404,7 @@ ApplicationWindow {
                     TabButton { text: qsTr("Dive Computer Overlay") }
                     TabButton { text: qsTr("Dive Profile") }
                     TabButton { text: qsTr("Video Preview") }
+                    TabButton { text: qsTr("Settings") }
                 }
 
                 StackLayout {
@@ -669,6 +673,9 @@ ApplicationWindow {
                             timelineView.timeline.currentTime = t
                         }
                     }
+
+                    // Tab 3: application settings
+                    SettingsPanel {}
                 } // end StackLayout
             } // end ColumnLayout
         } // end tabContainer Item
@@ -1039,7 +1046,7 @@ ApplicationWindow {
                     
                     SpinBox {
                         id: frameRateSpinBox
-                        value: 10
+                        value: config ? Math.round(config.frameRate) : 10
                         from: 1
                         to: 60
                         

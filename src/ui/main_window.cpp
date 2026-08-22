@@ -5,6 +5,8 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QStandardPaths>
+#include <QDesktopServices>
+#include <QFileInfo>
 
 MainWindow::MainWindow(QObject *parent)
     : QObject(parent)
@@ -78,6 +80,16 @@ QString MainWindow::urlToLocalFile(const QString &urlString)
         return url.toLocalFile();
     }
     return urlString;
+}
+
+void MainWindow::revealInFileManager(const QString &path)
+{
+    // Opens the directory containing `path` (or `path` itself if it is a
+    // directory) in the platform file manager. QUrl::fromLocalFile handles
+    // the Windows drive-letter form correctly, unlike "file://" + path.
+    QFileInfo info(path);
+    QString dir = info.isDir() ? info.absoluteFilePath() : info.absolutePath();
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
 }
 
 void MainWindow::onDiveImported(DiveData* dive)

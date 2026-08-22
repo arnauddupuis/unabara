@@ -46,9 +46,10 @@ ApplicationWindow {
         onExportFinished: function(success, path) {
             exportProgressDialog.close()
             if (success) {
-                messageDialog.title = qsTr("Export Completed")
-                messageDialog.message = qsTr("Images exported successfully to:\n") + path
-                messageDialog.open()
+                toast.show(qsTr("Image sequence exported to %1").arg(path.split("/").pop()), {
+                    actionText: qsTr("Open folder"),
+                    onAction: function() { mainWindow.revealInFileManager(path) }
+                })
             }
         }
         
@@ -79,9 +80,10 @@ ApplicationWindow {
         onExportFinished: function(success, path) {
             videoExportProgressDialog.close()
             if (success) {
-                messageDialog.title = qsTr("Export Completed")
-                messageDialog.message = qsTr("Video exported successfully to:\n") + path
-                messageDialog.open()
+                toast.show(qsTr("Video exported to %1").arg(path.split("/").pop()), {
+                    actionText: qsTr("Open folder"),
+                    onAction: function() { mainWindow.revealInFileManager(path) }
+                })
             }
         }
         
@@ -273,10 +275,8 @@ ApplicationWindow {
     Component.onCompleted: {
         // Check if FFmpeg is available and show a notification if not
         if (!videoExporter.isFFmpegAvailable()) {
-            messageDialog.title = qsTr("FFmpeg Not Found")
-            messageDialog.message = qsTr("FFmpeg was not found on your system. The video export feature will be disabled.\n\n" +
-                               "To enable video export, please install FFmpeg and restart the application.")
-            messageDialog.open()
+            toast.show(qsTr("FFmpeg was not found — video export is disabled. Install FFmpeg and restart Unabara to enable it."),
+                       { duration: 12000 })
         }
 
         // Check for updates (user-controllable from the Settings tab)
@@ -340,14 +340,6 @@ ApplicationWindow {
                 }
             }
             
-            ToolButton {
-                text: qsTr("Overlay Editor")
-                icon.name: "configure"
-                checkable: true
-                checked: overlayEditorPanel.visible
-                onClicked: overlayEditorPanel.visible = !overlayEditorPanel.visible
-            }
-
             ToolButton {
                 text: qsTr("Edit")
                 icon.name: "edit-undo"
@@ -429,30 +421,85 @@ ApplicationWindow {
                             onImportRequested: importDiveLogFileDialog.open()
                         }
 
-                        // Overlay Editor Panel
+                        // Overlay Editor Panel. Collapsible from its own
+                        // header (replaces the old toolbar-wide toggle);
+                        // collapsed it shrinks to a slim strip so the expand
+                        // chevron stays discoverable.
                         Rectangle {
                             id: overlayEditorPanel
                             SplitView.preferredWidth: 420
-                            SplitView.minimumWidth: 300
-                            visible: true  // Start with overlay editor visible
+                            SplitView.minimumWidth: collapsed ? collapsedWidth : 300
+                            SplitView.maximumWidth: collapsed ? collapsedWidth : Infinity
                             color: palette.window
                             border.color: palette.mid
                             border.width: 1
 
-                            ScrollView {
-                                anchors.fill: parent
-                                anchors.margins: 5
-                                clip: true
-                                contentWidth: overlayEditorPanel.width - 10
-                                contentHeight: overlayEditor.implicitHeight
+                            property bool collapsed: false
+                            readonly property int collapsedWidth: 40
+                            property real expandedWidth: 420
+                            onCollapsedChanged: {
+                                // SplitView writes preferredWidth when the user
+                                // drags the handle, so restore it imperatively.
+                                if (collapsed) {
+                                    expandedWidth = width
+                                    overlayEditorPanel.SplitView.preferredWidth = collapsedWidth
+                                } else {
+                                    overlayEditorPanel.SplitView.preferredWidth = expandedWidth
+                                }
+                            }
 
-                                OverlayEditor {
-                                    id: overlayEditor
-                                    width: overlayEditorPanel.width - 10
-                                    generator: overlayGenerator
-                                    timeline: timelineView.timeline
-                                    dive: mainWindow.currentDive
-                                    cellModel: overlayCellModel
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                spacing: 0
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    ToolButton {
+                                        text: overlayEditorPanel.collapsed ? "«" : "»"
+                                        onClicked: overlayEditorPanel.collapsed = !overlayEditorPanel.collapsed
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: overlayEditorPanel.collapsed
+                                                      ? qsTr("Show the overlay editor")
+                                                      : qsTr("Hide the overlay editor")
+                                    }
+
+                                    Label {
+                                        text: qsTr("Overlay Editor")
+                                        font.bold: true
+                                        visible: !overlayEditorPanel.collapsed
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                ScrollView {
+                                    id: overlayEditorScroll
+                                    visible: !overlayEditorPanel.collapsed
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.margins: 4
+                                    clip: true
+                                    contentWidth: availableWidth
+                                    contentHeight: overlayEditor.implicitHeight
+
+                                    OverlayEditor {
+                                        id: overlayEditor
+                                        width: overlayEditorScroll.availableWidth
+                                        generator: overlayGenerator
+                                        timeline: timelineView.timeline
+                                        dive: mainWindow.currentDive
+                                        cellModel: overlayCellModel
+                                    }
+                                }
+
+                                // Keeps the header pinned to the top while the
+                                // ScrollView is hidden (a lone layout child
+                                // gets vertically centered otherwise).
+                                Item {
+                                    visible: overlayEditorPanel.collapsed
+                                    Layout.fillHeight: true
                                 }
                             }
                         }
@@ -630,26 +677,75 @@ ApplicationWindow {
                             }
                         }
 
-                        // Editor sidebar
+                        // Editor sidebar — same collapse behavior as the
+                        // overlay editor panel on tab 0.
                         Rectangle {
                             id: profileEditorPanel
                             SplitView.preferredWidth: 400
-                            SplitView.minimumWidth: 280
+                            SplitView.minimumWidth: collapsed ? collapsedWidth : 280
+                            SplitView.maximumWidth: collapsed ? collapsedWidth : Infinity
                             color: palette.window
                             border.color: palette.mid
                             border.width: 1
 
-                            ScrollView {
-                                anchors.fill: parent
-                                anchors.margins: 5
-                                clip: true
-                                contentWidth: profileEditorPanel.width - 10
-                                contentHeight: profileEditor.implicitHeight
+                            property bool collapsed: false
+                            readonly property int collapsedWidth: 40
+                            property real expandedWidth: 400
+                            onCollapsedChanged: {
+                                if (collapsed) {
+                                    expandedWidth = width
+                                    profileEditorPanel.SplitView.preferredWidth = collapsedWidth
+                                } else {
+                                    profileEditorPanel.SplitView.preferredWidth = expandedWidth
+                                }
+                            }
 
-                                ProfileEditor {
-                                    id: profileEditor
-                                    width: profileEditorPanel.width - 10
-                                    generator: profileGenerator
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                spacing: 0
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    ToolButton {
+                                        text: profileEditorPanel.collapsed ? "«" : "»"
+                                        onClicked: profileEditorPanel.collapsed = !profileEditorPanel.collapsed
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: profileEditorPanel.collapsed
+                                                      ? qsTr("Show the profile editor")
+                                                      : qsTr("Hide the profile editor")
+                                    }
+
+                                    Label {
+                                        text: qsTr("Profile Editor")
+                                        font.bold: true
+                                        visible: !profileEditorPanel.collapsed
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                ScrollView {
+                                    id: profileEditorScroll
+                                    visible: !profileEditorPanel.collapsed
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.margins: 4
+                                    clip: true
+                                    contentWidth: availableWidth
+                                    contentHeight: profileEditor.implicitHeight
+
+                                    ProfileEditor {
+                                        id: profileEditor
+                                        width: profileEditorScroll.availableWidth
+                                        generator: profileGenerator
+                                    }
+                                }
+
+                                Item {
+                                    visible: profileEditorPanel.collapsed
+                                    Layout.fillHeight: true
                                 }
                             }
                         }
@@ -711,6 +807,14 @@ ApplicationWindow {
         }
     }
     
+    // Non-blocking notifications. Informational messages (export done, video
+    // imported, FFmpeg missing) surface here; errors and decisions stay modal.
+    ToastNotification {
+        id: toast
+        anchors.fill: parent
+        z: 1000
+    }
+
     // Dialogs
     FileDialog {
         id: importDiveLogFileDialog
@@ -805,10 +909,10 @@ ApplicationWindow {
             // metadataPlayer.play();  // Start playback to initialize metadata
             metadataTimer.start();
             
-            // Show message about successful import
-            messageDialog.title = qsTr("Video Imported");
-            messageDialog.message = qsTr("Video imported successfully. You can now adjust its position on the timeline by dragging the orange rectangle.\n\nYou can also use the Video Preview tab to improve the synchronization of the video with the dive time line.");
-            messageDialog.open();
+            // Notify without interrupting: the user's next step is on the
+            // timeline or the Video Preview tab, not in a dialog.
+            toast.show(qsTr("Video imported — drag the orange band on the timeline, or use the Video Preview tab, to sync it with the dive."),
+                       { duration: 8000 });
         }
     }
     

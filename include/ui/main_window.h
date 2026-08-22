@@ -34,6 +34,7 @@ public:
     
     // Helper functions
     Q_INVOKABLE QString urlToLocalFile(const QString &urlString);
+    Q_INVOKABLE void revealInFileManager(const QString &path);
 
     
 public slots:

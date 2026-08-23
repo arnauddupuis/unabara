@@ -31,6 +31,10 @@ Item {
     property int currentShadowSize: getCurrentShadowSize()
     property real currentShadowOpacity: getCurrentShadowOpacity()
     property bool currentHasCustomShadow: getSelectedCellHasCustomShadow()
+    // v1.2 cell geometry (per-cell only — no global default)
+    property int currentHAlign: getCurrentHAlign()
+    property int currentVAlign: getCurrentVAlign()
+    property bool currentAutoSize: getCurrentAutoSize()
 
     implicitHeight: mainColumn.implicitHeight
 
@@ -153,6 +157,21 @@ Item {
         return generator.getCellHasCustomShadow(selectedCellId)
     }
 
+    function getCurrentHAlign() {
+        if (!hasSelection || !selectedCellId || !generator) return 0
+        return generator.getCellHAlign(selectedCellId)
+    }
+
+    function getCurrentVAlign() {
+        if (!hasSelection || !selectedCellId || !generator) return 0
+        return generator.getCellVAlign(selectedCellId)
+    }
+
+    function getCurrentAutoSize() {
+        if (!hasSelection || !selectedCellId || !generator) return true
+        return !generator.getCellHasFixedSize(selectedCellId)
+    }
+
     // Update reactive properties when selection or cells change
     onSelectedCellIdChanged: {
         console.log("Selection changed to:", selectedCellId)
@@ -164,6 +183,11 @@ Item {
         function onCellsChanged() {
             console.log(">>> onCellsChanged triggered")
             console.log("Cells changed, updating properties")
+            updateCurrentProperties()
+        }
+
+        // Geometry edits (alignment, resize, auto-size) ride this signal
+        function onCellLayoutChanged() {
             updateCurrentProperties()
         }
 
@@ -220,6 +244,9 @@ Item {
         currentShadowSize = getCurrentShadowSize()
         currentShadowOpacity = getCurrentShadowOpacity()
         currentHasCustomShadow = getSelectedCellHasCustomShadow()
+        currentHAlign = getCurrentHAlign()
+        currentVAlign = getCurrentVAlign()
+        currentAutoSize = getCurrentAutoSize()
     }
 
     ColumnLayout {
@@ -631,6 +658,113 @@ Item {
             }
         }
         
+        // Cell layout (v1.2 geometry) — per-cell only: the anchor alignment
+        // and the auto/fixed size have no global default by design.
+        CollapsibleSection {
+            title: qsTr("Layout")
+            Layout.fillWidth: true
+            expanded: false
+            settingsKey: "overlay_layout"
+
+            Label {
+                Layout.fillWidth: true
+                text: root.hasSelection
+                      ? qsTr("Cell: %1").arg(root.selectedCellId)
+                      : qsTr("Select a cell to edit its layout.")
+                opacity: root.hasSelection ? 1.0 : 0.6
+                elide: Text.ElideRight
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                enabled: root.hasSelection
+
+                // Alignment picks which edge/center of the cell box pins to
+                // its position — e.g. a right-aligned cell keeps its right
+                // edge fixed as the value's digits change. The setters pass
+                // dive + time so the cell doesn't move when alignment changes.
+                Label { text: qsTr("Horizontal:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: [qsTr("Left"), qsTr("Center"), qsTr("Right")]
+                        delegate: Button {
+                            text: modelData
+                            Layout.fillWidth: true
+                            highlighted: root.currentHAlign === index
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: [
+                                qsTr("Anchor the left edge — the box grows rightward as content changes"),
+                                qsTr("Anchor the center — the box grows evenly in both directions"),
+                                qsTr("Anchor the right edge — the box grows leftward as content changes")
+                            ][index]
+                            onClicked: {
+                                if (root.generator && root.selectedCellId)
+                                    root.generator.setCellHAlign(
+                                        root.selectedCellId, index, root.dive,
+                                        root.timeline ? root.timeline.currentTime : 0.0)
+                            }
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Vertical:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: [qsTr("Top"), qsTr("Middle"), qsTr("Bottom")]
+                        delegate: Button {
+                            text: modelData
+                            Layout.fillWidth: true
+                            highlighted: root.currentVAlign === index
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: [
+                                qsTr("Anchor the top edge"),
+                                qsTr("Anchor the vertical center"),
+                                qsTr("Anchor the bottom edge")
+                            ][index]
+                            onClicked: {
+                                if (root.generator && root.selectedCellId)
+                                    root.generator.setCellVAlign(
+                                        root.selectedCellId, index, root.dive,
+                                        root.timeline ? root.timeline.currentTime : 0.0)
+                            }
+                        }
+                    }
+                }
+
+                Label { text: qsTr("Size:") }
+                CheckBox {
+                    id: autoSizeCheckBox
+                    Layout.fillWidth: true
+                    text: qsTr("Auto size (fit content)")
+                    checked: root.currentAutoSize
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 500
+                    ToolTip.text: qsTr("Unchecking freezes the current box size; drag the handles on the canvas to adjust it")
+                    Connections {
+                        target: root
+                        function onCurrentAutoSizeChanged() {
+                            autoSizeCheckBox.checked = root.currentAutoSize
+                        }
+                    }
+                    onClicked: {
+                        if (root.generator && root.selectedCellId)
+                            root.generator.setCellAutoSize(
+                                root.selectedCellId, checked, root.dive,
+                                root.timeline ? root.timeline.currentTime : 0.0)
+                    }
+                }
+            }
+        }
+
         // Template Management
         CollapsibleSection {
             title: qsTr("Template")

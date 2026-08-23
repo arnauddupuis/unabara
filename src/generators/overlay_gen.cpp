@@ -805,6 +805,105 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
     }
 }
 
+int OverlayGenerator::getCellHAlign(const QString& cellId) const
+{
+    const Unabara::CellData* cell = getCellData(cellId);
+    return cell ? static_cast<int>(cell->hAlign())
+                : static_cast<int>(Unabara::GeometryDefaults::hAlign);
+}
+
+int OverlayGenerator::getCellVAlign(const QString& cellId) const
+{
+    const Unabara::CellData* cell = getCellData(cellId);
+    return cell ? static_cast<int>(cell->vAlign())
+                : static_cast<int>(Unabara::GeometryDefaults::vAlign);
+}
+
+bool OverlayGenerator::getCellHasFixedSize(const QString& cellId) const
+{
+    const Unabara::CellData* cell = getCellData(cellId);
+    return cell && cell->hasFixedSize();
+}
+
+void OverlayGenerator::setCellHAlign(const QString& cellId, int align,
+                                     DiveData* dive, double timePoint)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (!cell) {
+        qWarning() << "setCellHAlign: Cell not found:" << cellId;
+        return;
+    }
+    const auto newAlign = static_cast<Unabara::HAlign>(qBound(0, align, 2));
+    if (cell->hAlign() == newAlign)
+        return;
+
+    // Pin the new anchor edge onto the current on-screen box so the cell
+    // stays put; only the growth direction changes
+    if (dive && m_templateWidth > 0) {
+        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        double ax = box.x();
+        if (newAlign == Unabara::HAlign::Center) ax = box.x() + box.width() / 2.0;
+        else if (newAlign == Unabara::HAlign::Right) ax = box.x() + box.width();
+        QPointF pos = cell->position();
+        pos.setX(ax / m_templateWidth);
+        cell->setPosition(pos);
+    }
+    cell->setHAlign(newAlign);
+    emit cellLayoutChanged();
+}
+
+void OverlayGenerator::setCellVAlign(const QString& cellId, int align,
+                                     DiveData* dive, double timePoint)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (!cell) {
+        qWarning() << "setCellVAlign: Cell not found:" << cellId;
+        return;
+    }
+    const auto newAlign = static_cast<Unabara::VAlign>(qBound(0, align, 2));
+    if (cell->vAlign() == newAlign)
+        return;
+
+    if (dive && m_templateHeight > 0) {
+        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        double ay = box.y();
+        if (newAlign == Unabara::VAlign::Middle) ay = box.y() + box.height() / 2.0;
+        else if (newAlign == Unabara::VAlign::Bottom) ay = box.y() + box.height();
+        QPointF pos = cell->position();
+        pos.setY(ay / m_templateHeight);
+        cell->setPosition(pos);
+    }
+    cell->setVAlign(newAlign);
+    emit cellLayoutChanged();
+}
+
+void OverlayGenerator::setCellAutoSize(const QString& cellId, bool autoSize,
+                                       DiveData* dive, double timePoint)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (!cell) {
+        qWarning() << "setCellAutoSize: Cell not found:" << cellId;
+        return;
+    }
+    if (autoSize == !cell->hasFixedSize())
+        return;
+
+    if (autoSize) {
+        // The box snaps to its content size around the anchor point
+        cell->clearFixedSize();
+    } else {
+        // Freeze the current measured box as the fixed size (no visual change)
+        if (!dive || m_templateWidth <= 0 || m_templateHeight <= 0) {
+            qWarning() << "setCellAutoSize: need a dive to measure" << cellId;
+            return;
+        }
+        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        cell->setFixedSize(QSizeF(box.width() / m_templateWidth,
+                                  box.height() / m_templateHeight));
+    }
+    emit cellLayoutChanged();
+}
+
 void OverlayGenerator::setCellFixedSize(const QString& cellId, const QSizeF& size)
 {
     Unabara::CellData* cell = getCellData(cellId);
@@ -2161,6 +2260,22 @@ OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
     return { box, QRectF(qFloor(tx), qFloor(ty), textBounds.width(), textBounds.height()) };
 }
 
+QRectF OverlayGenerator::cellBoxFor(const Unabara::CellData& cell, DiveData* dive,
+                                    double timePoint) const
+{
+    const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
+    const QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
+    QFont renderFont = effectiveFont;
+    renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
+
+    const QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
+                                                        cell.tankIndex(), dive,
+                                                        cell.showLabel());
+    const QFontMetrics fm(renderFont);
+    return cellGeometry(cell, fm, displayText,
+                        m_templateWidth, m_templateHeight).box;
+}
+
 QVector<QPair<QString, QRectF>> OverlayGenerator::cellRects(DiveData* dive,
                                                             double timePoint) const
 {
@@ -2168,22 +2283,10 @@ QVector<QPair<QString, QRectF>> OverlayGenerator::cellRects(DiveData* dive,
     if (!dive || m_templateWidth <= 0 || m_templateHeight <= 0)
         return rects;
 
-    const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
     for (const auto& cell : m_cells) {
         if (!cell.visible())
             continue;
-
-        const QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
-        QFont renderFont = effectiveFont;
-        renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
-
-        const QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
-                                                            cell.tankIndex(), dive,
-                                                            cell.showLabel());
-        const QFontMetrics fm(renderFont);
-        rects.append({cell.cellId(),
-                      cellGeometry(cell, fm, displayText,
-                                   m_templateWidth, m_templateHeight).box});
+        rects.append({cell.cellId(), cellBoxFor(cell, dive, timePoint)});
     }
     return rects;
 }

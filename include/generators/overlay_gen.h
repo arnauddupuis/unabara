@@ -178,6 +178,23 @@ public:
     // Normalized fixed size; an invalid/empty size reverts the cell to
     // auto-sizing from its content (v1.2 geometry)
     Q_INVOKABLE void setCellFixedSize(const QString& cellId, const QSizeF& size);
+
+    // v1.2 cell geometry (alignment values use the Unabara::HAlign/VAlign
+    // enum order: 0 = left/top, 1 = center/middle, 2 = right/bottom)
+    Q_INVOKABLE int getCellHAlign(const QString& cellId) const;
+    Q_INVOKABLE int getCellVAlign(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasFixedSize(const QString& cellId) const;
+    // Change the anchor edge. When a dive is provided, the stored position is
+    // re-derived from the cell's current on-screen box so changing alignment
+    // never moves the cell — it only changes which edge stays fixed later.
+    Q_INVOKABLE void setCellHAlign(const QString& cellId, int align,
+                                   DiveData* dive = nullptr, double timePoint = 0.0);
+    Q_INVOKABLE void setCellVAlign(const QString& cellId, int align,
+                                   DiveData* dive = nullptr, double timePoint = 0.0);
+    // true reverts to auto-sizing; false freezes the current measured box as
+    // the fixed size (needs the dive to measure — the box doesn't change)
+    Q_INVOKABLE void setCellAutoSize(const QString& cellId, bool autoSize,
+                                     DiveData* dive = nullptr, double timePoint = 0.0);
     Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
     Q_INVOKABLE QColor getCellLabelColor(const QString& cellId) const;
     Q_INVOKABLE QColor getCellValueColor(const QString& cellId) const;
@@ -365,6 +382,11 @@ private:
 
     // Seed a cell's label/value colors from the globals (isCustom = false)
     void seedCellColors(Unabara::CellData& cell) const;
+
+    // One cell's anchor-resolved box at template resolution (shared by
+    // cellRects and the alignment/auto-size re-anchoring setters)
+    QRectF cellBoxFor(const Unabara::CellData& cell, DiveData* dive,
+                      double timePoint) const;
 
     // Helper methods for drawing
     int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;

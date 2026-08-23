@@ -24,9 +24,13 @@ Item {
         anchors.fill: parent
         spacing: 20
 
+        // All sections but the last start collapsed so new users see at a
+        // glance that the inspector holds more than fits the first screen.
         CollapsibleSection {
             title: qsTr("Background")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_background"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -74,6 +78,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Depth Curve")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_depth_curve"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -116,6 +122,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Deco Zone")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_deco_zone"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -163,6 +171,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Indicator")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_indicator"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -233,6 +243,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Output Resolution")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_output_resolution"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -271,6 +283,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Grid")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_grid"
 
             GridLayout {
                 Layout.fillWidth: true
@@ -408,6 +422,7 @@ Item {
         CollapsibleSection {
             title: qsTr("Template Colors")
             Layout.fillWidth: true
+            settingsKey: "profile_template_colors"
 
             GridLayout {
                 Layout.fillWidth: true

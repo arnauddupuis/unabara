@@ -20,9 +20,32 @@ Column {
     property string title: ""
     property bool expanded: true
 
+    // Optional persistence: give the section a stable settingsKey (e.g.
+    // "overlay_template", no '/') and its expand/collapse state is restored
+    // from Config on creation and saved on every toggle. The declared
+    // `expanded` value acts as the first-run default.
+    property string settingsKey: ""
+
     default property alias contentData: contentColumn.data
 
     spacing: 0
+
+    // Persistence must stay off until the restore has run: applying the
+    // instantiating document's initial `expanded:` value fires
+    // onExpandedChanged during object creation (with settingsKey already
+    // set), which would overwrite the stored state with the default.
+    property bool _stateRestored: false
+
+    Component.onCompleted: {
+        if (settingsKey !== "")
+            expanded = config.sectionExpanded(settingsKey, expanded)
+        _stateRestored = true
+    }
+
+    onExpandedChanged: {
+        if (_stateRestored && settingsKey !== "")
+            config.setSectionExpanded(settingsKey, expanded)
+    }
 
     Rectangle {
         id: header

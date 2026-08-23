@@ -251,6 +251,14 @@ public:
     Q_INVOKABLE void setVideoOverlayLayout(const QString &videoPath,
                                            const QVariantMap &layout);
 
+    // Inspector section expand/collapse persistence, keyed by a stable
+    // section id (e.g. "overlay_template"). `defaultExpanded` is returned
+    // for a section that was never toggled, so each QML section declares
+    // its own first-run default. Keys must not contain '/' (QSettings
+    // treats it as a group separator).
+    Q_INVOKABLE bool sectionExpanded(const QString &key, bool defaultExpanded) const;
+    Q_INVOKABLE void setSectionExpanded(const QString &key, bool expanded);
+
 signals:
     void lastImportPathChanged();
     void lastExportPathChanged();
@@ -378,6 +386,7 @@ private:
 
     // Per-video overlay layouts, keyed by absolute video path.
     QHash<QString, VideoOverlayLayout> m_videoOverlayLayouts;
+    QHash<QString, bool> m_sectionExpanded;
     // Layout to seed a new video that has no saved entry yet.
     VideoOverlayLayout m_lastUsedVideoOverlayLayout;
 

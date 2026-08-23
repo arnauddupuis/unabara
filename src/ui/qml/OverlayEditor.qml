@@ -228,9 +228,13 @@ Item {
         spacing: 20
 
         // Cells list — replaces the old Display Options / CCR checkbox walls
+        // All sections but the last start collapsed so new users see at a
+        // glance that the inspector holds more than fits the first screen.
         CollapsibleSection {
             title: qsTr("Cells")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "overlay_cells"
 
             CellsPanel {
                 Layout.fillWidth: true
@@ -244,6 +248,8 @@ Item {
         CollapsibleSection {
             title: qsTr("Text")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "overlay_text"
 
             // Editing scope: the controls below target either every cell or a
             // single selected cell. The switcher makes the target explicit at
@@ -629,6 +635,7 @@ Item {
         CollapsibleSection {
             title: qsTr("Template")
             Layout.fillWidth: true
+            settingsKey: "overlay_template"
 
             GridLayout {
                 Layout.fillWidth: true

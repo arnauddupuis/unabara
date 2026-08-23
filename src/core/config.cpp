@@ -802,6 +802,16 @@ void Config::loadConfig()
         }
     }
 
+    // Load inspector section expand/collapse states
+    {
+        m_sectionExpanded.clear();
+        m_settings.beginGroup("ui/sections");
+        const QStringList sectionKeys = m_settings.childKeys();
+        for (const QString &key : sectionKeys)
+            m_sectionExpanded.insert(key, m_settings.value(key).toBool());
+        m_settings.endGroup();
+    }
+
     // Load camera pairings from JSON
     m_cameraPairings.clear();
     QString pairingsJson = m_settings.value("video/cameraPairings", "[]").toString();
@@ -927,6 +937,16 @@ void Config::saveConfig()
                             QString::fromUtf8(QJsonDocument(lastObj).toJson(QJsonDocument::Compact)));
     }
 
+    // Save inspector section expand/collapse states
+    {
+        m_settings.beginGroup("ui/sections");
+        for (auto it = m_sectionExpanded.constBegin();
+             it != m_sectionExpanded.constEnd(); ++it) {
+            m_settings.setValue(it.key(), it.value());
+        }
+        m_settings.endGroup();
+    }
+
     // Save camera pairings as compact JSON
     QJsonArray pairingsArray;
     for (auto it = m_cameraPairings.constBegin(); it != m_cameraPairings.constEnd(); ++it) {
@@ -991,4 +1011,21 @@ void Config::setVideoOverlayLayout(const QString &videoPath, const QVariantMap &
     m_lastUsedVideoOverlayLayout = parsed;
     saveConfig();
     emit videoOverlayLayoutChanged(videoPath);
+}
+
+// ---- Inspector section expand/collapse states ----------------------------
+
+bool Config::sectionExpanded(const QString &key, bool defaultExpanded) const
+{
+    return m_sectionExpanded.value(key, defaultExpanded);
+}
+
+void Config::setSectionExpanded(const QString &key, bool expanded)
+{
+    if (key.isEmpty())
+        return;
+    // In-memory only; persisted by the saveConfig() hook at app exit like
+    // the rest of the settings (collapse toggles are too frequent to sync
+    // to disk on every click).
+    m_sectionExpanded.insert(key, expanded);
 }

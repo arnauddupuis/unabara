@@ -16,6 +16,7 @@
                 "pointSize": 24,
                 "weight": 600
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -24,8 +25,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.226316,
-                "y": 0.082407
+                "x": 0.539474,
+                "y": 0.152778
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -34,6 +35,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -51,6 +53,7 @@
                 "pointSize": 16,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -59,8 +62,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.284211,
-                "y": 0.238889
+                "x": 0.539474,
+                "y": 0.282407
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -69,6 +72,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -86,6 +90,7 @@
                 "pointSize": 16,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -94,8 +99,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.365789,
-                "y": 0.340741
+                "x": 0.539474,
+                "y": 0.384259
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -104,6 +109,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -121,6 +127,7 @@
                 "pointSize": 16,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -129,8 +136,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.365789,
-                "y": 0.442593
+                "x": 0.539474,
+                "y": 0.486111
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -139,6 +146,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -156,6 +164,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -164,8 +173,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.165789,
-                "y": 0.551852
+                "x": 0.310526,
+                "y": 0.587963
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -174,6 +183,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -191,6 +201,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -199,8 +210,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.647368,
-                "y": 0.551852
+                "x": 0.768421,
+                "y": 0.587963
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -209,6 +220,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -226,6 +238,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -234,8 +247,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.165789,
-                "y": 0.653704
+                "x": 0.310526,
+                "y": 0.689815
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -244,6 +257,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -261,6 +275,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -269,8 +284,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.623684,
-                "y": 0.653704
+                "x": 0.768421,
+                "y": 0.689815
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -279,6 +294,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -296,6 +312,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -304,8 +321,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.189474,
-                "y": 0.755556
+                "x": 0.310526,
+                "y": 0.791667
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -314,6 +331,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -331,6 +349,7 @@
                 "pointSize": 13,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -339,8 +358,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.689474,
-                "y": 0.755556
+                "x": 0.768421,
+                "y": 0.791667
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -349,6 +368,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -366,6 +386,7 @@
                 "pointSize": 12,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -374,8 +395,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.113158,
-                "y": 0.860185
+                "x": 0.305263,
+                "y": 0.898148
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -385,6 +406,7 @@
             "showLabel": true,
             "tankIndex": 0,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -402,6 +424,7 @@
                 "pointSize": 12,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -410,8 +433,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.557895,
-                "y": 0.860185
+                "x": 0.752632,
+                "y": 0.898148
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -421,6 +444,7 @@
             "showLabel": true,
             "tankIndex": 1,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         }
@@ -443,5 +467,5 @@
     "defaultTextColor": "#ffffffff",
     "defaultValueColor": "#ffffffff",
     "templateName": "HUD_Data_Rail_Amber",
-    "version": "1.1"
+    "version": "1.2"
 }

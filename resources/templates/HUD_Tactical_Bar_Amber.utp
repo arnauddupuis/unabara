@@ -16,6 +16,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -24,8 +25,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.169271,
-                "y": 0.235714
+                "x": 0.223958,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -34,6 +35,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -51,6 +53,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -59,8 +62,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.361979,
-                "y": 0.235714
+                "x": 0.442708,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -69,6 +72,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -86,6 +90,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -94,8 +99,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.606771,
-                "y": 0.235714
+                "x": 0.661458,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -104,6 +109,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -121,6 +127,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -129,8 +136,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.825521,
-                "y": 0.235714
+                "x": 0.880208,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -139,6 +146,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -156,6 +164,7 @@
                 "pointSize": 16,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -164,8 +173,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.028125,
-                "y": 0.207143
+                "x": 0.0625,
+                "y": 0.375
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -174,6 +183,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": false
         },
@@ -191,6 +201,7 @@
                 "pointSize": 16,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -199,8 +210,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.033333,
-                "y": 0.528571
+                "x": 0.0625,
+                "y": 0.696429
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -209,6 +220,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": false
         }
@@ -231,5 +243,5 @@
     "defaultTextColor": "#ffffffff",
     "defaultValueColor": "#ffffffff",
     "templateName": "HUD_Tactical_Bar_Amber",
-    "version": "1.1"
+    "version": "1.2"
 }

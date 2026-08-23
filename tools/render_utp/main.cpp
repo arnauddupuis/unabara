@@ -8,6 +8,7 @@
 // Usage:
 //   render_utp <template.utp|:/templates/X.utp> <out.png> [--time <seconds>]
 //   render_utp --measure <fontFamily> <pointSize> <text>   ("\n" splits lines)
+//   render_utp --rects <template.utp> [--time <seconds>]   (anchor-resolved cell boxes)
 //
 // Build with -DUNABARA_BUILD_TOOLS=ON. Runs offscreen; no display needed.
 
@@ -126,8 +127,9 @@ int main(int argc, char* argv[])
         fprintf(stderr,
                 "Usage:\n"
                 "  %s <template.utp> <out.png> [--time <seconds>]\n"
-                "  %s --measure <fontFamily> <pointSize> <text>\n",
-                argv[0], argv[0]);
+                "  %s --measure <fontFamily> <pointSize> <text>\n"
+                "  %s --rects <template.utp> [--time <seconds>]\n",
+                argv[0], argv[0], argv[0]);
         return 2;
     }
 
@@ -135,6 +137,24 @@ int main(int argc, char* argv[])
     const int timeIdx = args.indexOf(QStringLiteral("--time"));
     if (timeIdx > 0 && timeIdx + 1 < args.size())
         timePoint = args[timeIdx + 1].toDouble();
+
+    // Anchor-resolved cell boxes (v1.2 geometry: alignment + optional fixed
+    // size applied), in paint order, at template resolution.
+    if (args[1] == QStringLiteral("--rects")) {
+        OverlayGenerator generator;
+        if (!generator.loadTemplateFromFile(args[2])) {
+            fprintf(stderr, "Failed to load template: %s\n", qPrintable(args[2]));
+            return 1;
+        }
+        DiveData* dive = makeSyntheticDive();
+        const auto rects = generator.cellRects(dive, timePoint);
+        for (const auto& r : rects) {
+            printf("cell=%s x=%.1f y=%.1f w=%.1f h=%.1f\n",
+                   qPrintable(r.first), r.second.x(), r.second.y(),
+                   r.second.width(), r.second.height());
+        }
+        return 0;
+    }
 
     OverlayGenerator generator;
     if (!generator.loadTemplateFromFile(args[1])) {

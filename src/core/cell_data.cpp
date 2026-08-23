@@ -23,6 +23,8 @@ CellData::CellData()
     , m_shadowOpacity(ShadowDefaults::opacity)
     , m_hasCustomShadow(false)
     , m_tankIndex(-1)
+    , m_hAlign(GeometryDefaults::hAlign)
+    , m_vAlign(GeometryDefaults::vAlign)
 {
 }
 
@@ -47,6 +49,8 @@ CellData::CellData(const QString& cellId, CellType cellType)
     , m_shadowOpacity(ShadowDefaults::opacity)
     , m_hasCustomShadow(false)
     , m_tankIndex(-1)
+    , m_hAlign(GeometryDefaults::hAlign)
+    , m_vAlign(GeometryDefaults::vAlign)
 {
 }
 
@@ -159,6 +163,17 @@ QJsonObject CellData::toJson() const
     json["showLabel"] = m_showLabel;
     json["hasCustomShowLabel"] = m_hasCustomShowLabel;
 
+    // v1.2 geometry: anchor alignment always written; the fixed size only
+    // when set, so "absent = auto-size" survives a load/save round-trip
+    json["hAlign"] = hAlignToString(m_hAlign);
+    json["vAlign"] = vAlignToString(m_vAlign);
+    if (hasFixedSize()) {
+        QJsonObject fixedJson;
+        fixedJson["width"] = m_fixedSize.width();
+        fixedJson["height"] = m_fixedSize.height();
+        json["size"] = fixedJson;
+    }
+
     json["shadowEnabled"] = m_shadowEnabled;
     json["shadowType"] = shadowTypeToString(m_shadowType);
     json["shadowColor"] = m_shadowColor.name(QColor::HexArgb);
@@ -240,6 +255,19 @@ CellData CellData::fromJson(const QJsonObject& json)
     cell.m_shadowOpacity = json["shadowOpacity"].toDouble(ShadowDefaults::opacity);
     cell.m_hasCustomShadow = json["hasCustomShadow"].toBool(false);
 
+    // v1.2 geometry (absent in older files → GeometryDefaults / auto-size,
+    // which reproduce the pre-1.2 rendering exactly)
+    cell.m_hAlign = hAlignFromString(json["hAlign"].toString());
+    cell.m_vAlign = vAlignFromString(json["vAlign"].toString());
+    if (json.contains("size")) {
+        QJsonObject fixedJson = json["size"].toObject();
+        const QSizeF fixed(fixedJson["width"].toDouble(),
+                           fixedJson["height"].toDouble());
+        if (fixed.width() > 0.0 && fixed.height() > 0.0) {
+            cell.m_fixedSize = fixed;
+        }
+    }
+
     return cell;
 }
 
@@ -301,6 +329,38 @@ ShadowType CellData::shadowTypeFromString(const QString& str)
     if (str == "blurred") return ShadowType::Blurred;
     if (str == "outline") return ShadowType::Outline;
     return ShadowType::Offset;
+}
+
+QString CellData::hAlignToString(HAlign align)
+{
+    switch (align) {
+        case HAlign::Center: return "center";
+        case HAlign::Right: return "right";
+        default: return "left";
+    }
+}
+
+HAlign CellData::hAlignFromString(const QString& str)
+{
+    if (str == "center") return HAlign::Center;
+    if (str == "right") return HAlign::Right;
+    return HAlign::Left;
+}
+
+QString CellData::vAlignToString(VAlign align)
+{
+    switch (align) {
+        case VAlign::Middle: return "middle";
+        case VAlign::Bottom: return "bottom";
+        default: return "top";
+    }
+}
+
+VAlign CellData::vAlignFromString(const QString& str)
+{
+    if (str == "middle") return VAlign::Middle;
+    if (str == "bottom") return VAlign::Bottom;
+    return VAlign::Top;
 }
 
 } // namespace Unabara

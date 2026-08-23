@@ -11,6 +11,8 @@
 using Unabara::CellData;
 using Unabara::CellType;
 using Unabara::ShadowType;
+using Unabara::HAlign;
+using Unabara::VAlign;
 
 class CellDataTest : public QObject
 {
@@ -138,6 +140,66 @@ private slots:
         QCOMPARE(inherited.valueColor(), QColor(Qt::white));
         QVERIFY(!inherited.hasCustomLabelColor());
         QVERIFY(!inherited.hasCustomValueColor());
+    }
+
+    void alignStringRoundTrip()
+    {
+        const QList<HAlign> hAll = {HAlign::Left, HAlign::Center, HAlign::Right};
+        for (HAlign a : hAll) {
+            QCOMPARE(CellData::hAlignFromString(CellData::hAlignToString(a)), a);
+        }
+        const QList<VAlign> vAll = {VAlign::Top, VAlign::Middle, VAlign::Bottom};
+        for (VAlign a : vAll) {
+            QCOMPARE(CellData::vAlignFromString(CellData::vAlignToString(a)), a);
+        }
+        // Unknown or absent strings degrade to the legacy anchor
+        QCOMPARE(CellData::hAlignFromString(QStringLiteral("diagonal")), HAlign::Left);
+        QCOMPARE(CellData::hAlignFromString(QString()), HAlign::Left);
+        QCOMPARE(CellData::vAlignFromString(QString()), VAlign::Top);
+    }
+
+    void geometryRoundTripPreservesAlignmentAndSize()
+    {
+        CellData cell(QStringLiteral("depth"), CellType::Depth);
+        cell.setHAlign(HAlign::Right);
+        cell.setVAlign(VAlign::Bottom);
+        cell.setFixedSize(QSizeF(0.25, 0.1));
+
+        const CellData restored = CellData::fromJson(cell.toJson());
+        QCOMPARE(restored.hAlign(), HAlign::Right);
+        QCOMPARE(restored.vAlign(), VAlign::Bottom);
+        QVERIFY(restored.hasFixedSize());
+        QCOMPARE(restored.fixedSize(), QSizeF(0.25, 0.1));
+    }
+
+    void geometryDefaultsSurviveMissingKeys()
+    {
+        // Pre-1.2 cell JSON has no geometry keys: it must load with the legacy
+        // top-left anchor and auto-size, and clearing a fixed size must make
+        // the "size" key disappear again on save
+        QJsonObject json;
+        json[QStringLiteral("cellId")] = QStringLiteral("depth");
+        json[QStringLiteral("cellType")] = QStringLiteral("Depth");
+
+        const CellData restored = CellData::fromJson(json);
+        QCOMPARE(restored.hAlign(), HAlign::Left);
+        QCOMPARE(restored.vAlign(), VAlign::Top);
+        QVERIFY(!restored.hasFixedSize());
+        QVERIFY(!restored.toJson().contains(QStringLiteral("size")));
+
+        CellData cell(QStringLiteral("time"), CellType::Time);
+        cell.setFixedSize(QSizeF(0.2, 0.2));
+        cell.clearFixedSize();
+        QVERIFY(!cell.hasFixedSize());
+        QVERIFY(!cell.toJson().contains(QStringLiteral("size")));
+
+        // A degenerate stored size (zero/negative) is treated as auto-size
+        QJsonObject degenerate = json;
+        QJsonObject sizeJson;
+        sizeJson[QStringLiteral("width")] = 0.0;
+        sizeJson[QStringLiteral("height")] = 0.3;
+        degenerate[QStringLiteral("size")] = sizeJson;
+        QVERIFY(!CellData::fromJson(degenerate).hasFixedSize());
     }
 
     void downgradeCompatFieldsWritten()

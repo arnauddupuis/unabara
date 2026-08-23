@@ -10,7 +10,8 @@
 namespace Unabara {
 
 // 1.1 added the optional defaultPrimaryColor/defaultSecondaryColor scheme keys
-const QString OverlayTemplate::TEMPLATE_VERSION = "1.1";
+// 1.2 added per-cell geometry: hAlign/vAlign anchoring and an optional fixed size
+const QString OverlayTemplate::TEMPLATE_VERSION = "1.2";
 
 OverlayTemplate::OverlayTemplate()
     : m_templateName("Untitled Template")

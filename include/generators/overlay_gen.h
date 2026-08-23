@@ -225,6 +225,22 @@ public:
     Q_INVOKABLE QString cellIdAt(DiveData* dive, double timePoint,
                                  const QPointF& normalizedPos) const;
 
+    // Anchor-resolved cell geometry at template resolution (v1.2): the outer
+    // box (background/hit-test rect, padding included) and the inner rect the
+    // text block is drawn into. Single source of truth for renderCellBasedOverlay,
+    // cellIdAt and the tooling.
+    struct CellGeometry {
+        QRectF box;
+        QRectF textRect;
+    };
+    CellGeometry cellGeometry(const Unabara::CellData& cell, const QFontMetrics& fm,
+                              const QString& displayText,
+                              double width, double height) const;
+
+    // All visible cells' resolved boxes for a time point, in paint order
+    // (used by render_utp --rects; template resolution pixels)
+    QVector<QPair<QString, QRectF>> cellRects(DiveData* dive, double timePoint) const;
+
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);
 

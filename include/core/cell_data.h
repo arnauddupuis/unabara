@@ -43,6 +43,39 @@ enum class ShadowType {
 };
 
 /**
+ * @brief Horizontal anchor/alignment of a cell (v1.2 geometry)
+ *
+ * Picks which edge/center of the cell box pins to the cell's normalized
+ * position. Left is the legacy behavior (position = top-left corner).
+ */
+enum class HAlign {
+    Left,
+    Center,
+    Right
+};
+
+/**
+ * @brief Vertical anchor/alignment of a cell (v1.2 geometry)
+ */
+enum class VAlign {
+    Top,
+    Middle,
+    Bottom
+};
+
+/**
+ * @brief Default cell geometry shared by CellData, OverlayGenerator and the QML preview
+ *
+ * Absent keys in a .utp file mean these values, which reproduce the pre-1.2
+ * rendering exactly: box anchored by its top-left corner, auto-sized from
+ * the measured text.
+ */
+namespace GeometryDefaults {
+    constexpr HAlign hAlign = HAlign::Left;
+    constexpr VAlign vAlign = VAlign::Top;
+}
+
+/**
  * @brief Default shadow values shared by CellData, OverlayGenerator and OverlayTemplate
  *
  * The "no hasCustom flag = inherit global" model only works when all three
@@ -98,6 +131,11 @@ public:
     int shadowSize() const { return m_shadowSize; }
     double shadowOpacity() const { return m_shadowOpacity; }
     bool hasCustomShadow() const { return m_hasCustomShadow; }
+    HAlign hAlign() const { return m_hAlign; }
+    VAlign vAlign() const { return m_vAlign; }
+    QSizeF fixedSize() const { return m_fixedSize; }
+    // An invalid/empty size means auto-size from content (legacy behavior)
+    bool hasFixedSize() const { return m_fixedSize.width() > 0.0 && m_fixedSize.height() > 0.0; }
 
     // Setters
     void setCellId(const QString& id) { m_cellId = id; }
@@ -115,6 +153,10 @@ public:
     void setShadowOpacity(double opacity, bool isCustom = true);
     void setCalculatedSize(const QSizeF& size) { m_calculatedSize = size; }
     void setTankIndex(int index) { m_tankIndex = index; }
+    void setHAlign(HAlign align) { m_hAlign = align; }
+    void setVAlign(VAlign align) { m_vAlign = align; }
+    void setFixedSize(const QSizeF& size) { m_fixedSize = size; }
+    void clearFixedSize() { m_fixedSize = QSizeF(); }
 
     // Reset custom properties to inherit from global
     void resetFont() { m_hasCustomFont = false; }
@@ -130,6 +172,10 @@ public:
     static CellType cellTypeFromString(const QString& str);
     static QString shadowTypeToString(ShadowType type);
     static ShadowType shadowTypeFromString(const QString& str);
+    static QString hAlignToString(HAlign align);
+    static HAlign hAlignFromString(const QString& str);
+    static QString vAlignToString(VAlign align);
+    static VAlign vAlignFromString(const QString& str);
 
 private:
     QString m_cellId;              // Unique identifier (e.g., "depth", "tank_0")
@@ -152,6 +198,9 @@ private:
     double m_shadowOpacity;        // Shadow opacity (0.0-1.0)
     bool m_hasCustomShadow;        // True if any shadow setting differs from global default
     int m_tankIndex;               // For pressure cells: which tank (0-based), -1 for N/A
+    HAlign m_hAlign;               // Which horizontal edge/center of the box pins to position
+    VAlign m_vAlign;               // Which vertical edge/center of the box pins to position
+    QSizeF m_fixedSize;            // Normalized fixed size; invalid/empty = auto-size from content
 };
 
 } // namespace Unabara

@@ -1994,28 +1994,23 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         QFont renderFont = effectiveFont;
         renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
 
-        // Calculate text size using font metrics (like QML does)
         painter.setFont(renderFont);
         QFontMetrics fm(renderFont);
-        QRect textBounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
-                                           Qt::AlignHCenter | Qt::TextWordWrap, displayText);
+        const CellGeometry geo = cellGeometry(cell, fm, displayText, width, height);
+        const QRectF& cellRect = geo.textRect;
 
-        // Add padding (QML uses +8 for width and height)
-        int cellWidth = textBounds.width() + 8;
-        int cellHeight = textBounds.height() + 8;
-
-        // Convert normalized position (0-1) to pixel position
-        int pixelX = static_cast<int>(cell.position().x() * width);
-        int pixelY = static_cast<int>(cell.position().y() * height);
-
-        // Create cell rect for text
-        QRect cellRect(pixelX + 4, pixelY + 4, cellWidth - 8, cellHeight - 8);
+        // A fixed-size box may be smaller than its content: clip the whole
+        // cell to the box (the shadow paths draw with TextDontClip)
+        const bool clipToBox = cell.hasFixedSize();
+        if (clipToBox) {
+            painter.save();
+            painter.setClipRect(geo.box);
+        }
 
         // Draw semi-transparent background (like QML's "#80000000" Rectangle)
         // Only in editor mode, not for export/preview
         if (m_showCellBackgrounds) {
-            QRect bgRect(pixelX, pixelY, cellWidth, cellHeight);
-            painter.fillRect(bgRect, QColor(0, 0, 0, 128));
+            painter.fillRect(geo.box, QColor(0, 0, 0, 128));
         }
 
         // Draw the shadow first, if enabled (same 1.8 scale factor as fonts)
@@ -2039,20 +2034,25 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
                 break;
             }
             case Unabara::ShadowType::Blurred: {
-                // Render the text into its own image, blur it, composite offset
-                const int margin = spx * 3;  // room for the blur to spread
-                QImage shadowImg(cellWidth + 2 * margin, cellHeight + 2 * margin,
+                // Render the text into its own image, blur it, composite offset.
+                // margin matches the pre-1.2 code (3*spx around the box, whose
+                // padding added 4 more px) so legacy blurs stay pixel-identical.
+                const int margin = spx * 3 + 4;  // room for the blur to spread
+                const int textW = qRound(cellRect.width());
+                const int textH = qRound(cellRect.height());
+                QImage shadowImg(textW + 2 * margin, textH + 2 * margin,
                                  QImage::Format_ARGB32_Premultiplied);
                 shadowImg.fill(Qt::transparent);
                 {
                     QPainter sp(&shadowImg);
                     sp.setFont(renderFont);
                     sp.setPen(shadowColor);
-                    sp.drawText(QRect(margin + 4, margin + 4, cellWidth - 8, cellHeight - 8),
+                    sp.drawText(QRect(margin, margin, textW, textH),
                                 Qt::AlignHCenter | Qt::TextDontClip, displayText);
                 }
                 boxBlur(shadowImg, spx);
-                painter.drawImage(QPoint(pixelX - margin + spx, pixelY - margin + spx), shadowImg);
+                painter.drawImage(QPointF(cellRect.x() - margin + spx,
+                                          cellRect.y() - margin + spx), shadowImg);
                 break;
             }
             }
@@ -2067,37 +2067,94 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
             painter.setPen(effectiveValueColor);
             painter.drawText(cellRect, Qt::AlignHCenter, displayText);
         } else {
-            const QRect labelBand(cellRect.x(), cellRect.y(),
-                                  cellRect.width(), fm.lineSpacing());
+            // IntersectClip (not replace) so a fixed-size box clip stays active
+            const QRectF labelBand(cellRect.x(), cellRect.y(),
+                                   cellRect.width(), fm.lineSpacing());
             painter.save();
-            painter.setClipRect(labelBand);
+            painter.setClipRect(labelBand, Qt::IntersectClip);
             painter.setPen(effectiveLabelColor);
             painter.drawText(cellRect, Qt::AlignHCenter, displayText);
-            painter.setClipRect(QRect(labelBand.x(), labelBand.y() + labelBand.height(),
-                                      labelBand.width(),
-                                      cellRect.height() - labelBand.height()));
+            painter.restore();
+            painter.save();
+            painter.setClipRect(QRectF(labelBand.x(), labelBand.y() + labelBand.height(),
+                                       labelBand.width(),
+                                       cellRect.height() - labelBand.height()),
+                                Qt::IntersectClip);
             painter.setPen(effectiveValueColor);
             painter.drawText(cellRect, Qt::AlignHCenter, displayText);
+            painter.restore();
+        }
+
+        if (clipToBox) {
             painter.restore();
         }
     }
 }
 
-QString OverlayGenerator::cellIdAt(DiveData* dive, double timePoint,
-                                   const QPointF& normalizedPos) const
+OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
+    const Unabara::CellData& cell, const QFontMetrics& fm,
+    const QString& displayText, double width, double height) const
 {
-    if (!dive || m_cells.isEmpty() || m_templateWidth <= 0 || m_templateHeight <= 0)
-        return QString();
+    const QRect textBounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
+                                             Qt::AlignHCenter | Qt::TextWordWrap,
+                                             displayText);
+
+    // Box size: measured text + 8 px padding (auto), or the normalized fixed
+    // size scaled to template resolution when the cell carries one
+    double boxW = textBounds.width() + 8;
+    double boxH = textBounds.height() + 8;
+    if (cell.hasFixedSize()) {
+        boxW = cell.fixedSize().width() * width;
+        boxH = cell.fixedSize().height() * height;
+    }
+
+    // position is the anchor point; alignment picks which edge/center of the
+    // box pins to it. The legacy default (Left/Top) anchors the top-left
+    // corner, and qFloor matches the old static_cast<int> truncation, so
+    // pre-1.2 templates render pixel-identically.
+    double x = cell.position().x() * width;
+    double y = cell.position().y() * height;
+    switch (cell.hAlign()) {
+        case Unabara::HAlign::Center: x -= boxW / 2.0; break;
+        case Unabara::HAlign::Right:  x -= boxW;       break;
+        case Unabara::HAlign::Left:   break;
+    }
+    switch (cell.vAlign()) {
+        case Unabara::VAlign::Middle: y -= boxH / 2.0; break;
+        case Unabara::VAlign::Bottom: y -= boxH;       break;
+        case Unabara::VAlign::Top:    break;
+    }
+    const QRectF box(qFloor(x), qFloor(y), boxW, boxH);
+
+    // The text block keeps its measured size — the label/value lines stay
+    // centered relative to each other exactly as before — and the block as a
+    // whole is placed inside the box per alignment. For auto-sized boxes every
+    // branch degenerates to the legacy 4 px inset.
+    double tx = box.x() + 4;
+    switch (cell.hAlign()) {
+        case Unabara::HAlign::Center: tx = box.x() + (boxW - textBounds.width()) / 2.0; break;
+        case Unabara::HAlign::Right:  tx = box.x() + boxW - 4 - textBounds.width();     break;
+        case Unabara::HAlign::Left:   break;
+    }
+    double ty = box.y() + 4;
+    switch (cell.vAlign()) {
+        case Unabara::VAlign::Middle: ty = box.y() + (boxH - textBounds.height()) / 2.0; break;
+        case Unabara::VAlign::Bottom: ty = box.y() + boxH - 4 - textBounds.height();     break;
+        case Unabara::VAlign::Top:    break;
+    }
+
+    return { box, QRectF(qFloor(tx), qFloor(ty), textBounds.width(), textBounds.height()) };
+}
+
+QVector<QPair<QString, QRectF>> OverlayGenerator::cellRects(DiveData* dive,
+                                                            double timePoint) const
+{
+    QVector<QPair<QString, QRectF>> rects;
+    if (!dive || m_templateWidth <= 0 || m_templateHeight <= 0)
+        return rects;
 
     const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
-    const double px = normalizedPos.x() * m_templateWidth;
-    const double py = normalizedPos.y() * m_templateHeight;
-
-    // Cells are painted in list order, so later cells sit on top — scan
-    // back-to-front to return the topmost hit. The rect must match
-    // renderCellBasedOverlay: scaled font, measured text, +8 padding.
-    for (int i = m_cells.size() - 1; i >= 0; --i) {
-        const auto& cell = m_cells.at(i);
+    for (const auto& cell : m_cells) {
         if (!cell.visible())
             continue;
 
@@ -2108,18 +2165,30 @@ QString OverlayGenerator::cellIdAt(DiveData* dive, double timePoint,
         const QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
                                                             cell.tankIndex(), dive,
                                                             cell.showLabel());
-
         const QFontMetrics fm(renderFont);
-        const QRect textBounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
-                                                 Qt::AlignHCenter | Qt::TextWordWrap,
-                                                 displayText);
+        rects.append({cell.cellId(),
+                      cellGeometry(cell, fm, displayText,
+                                   m_templateWidth, m_templateHeight).box});
+    }
+    return rects;
+}
 
-        const QRectF cellRect(cell.position().x() * m_templateWidth,
-                              cell.position().y() * m_templateHeight,
-                              textBounds.width() + 8,
-                              textBounds.height() + 8);
-        if (cellRect.contains(px, py))
-            return cell.cellId();
+QString OverlayGenerator::cellIdAt(DiveData* dive, double timePoint,
+                                   const QPointF& normalizedPos) const
+{
+    if (!dive || m_cells.isEmpty())
+        return QString();
+
+    const double px = normalizedPos.x() * m_templateWidth;
+    const double py = normalizedPos.y() * m_templateHeight;
+
+    // Cells are painted in list order, so later cells sit on top — scan
+    // back-to-front to return the topmost hit. cellRects uses the same
+    // cellGeometry as renderCellBasedOverlay, so hits match the pixels.
+    const auto rects = cellRects(dive, timePoint);
+    for (int i = rects.size() - 1; i >= 0; --i) {
+        if (rects.at(i).second.contains(px, py))
+            return rects.at(i).first;
     }
     return QString();
 }

@@ -59,6 +59,11 @@ ApplicationWindow {
             messageDialog.message = errorMessage
             messageDialog.open()
         }
+
+        onExportCancelled: {
+            exportProgressDialog.close()
+            toast.show(qsTr("Export cancelled — partial frames removed."))
+        }
     }
     
     // Video exporter
@@ -92,6 +97,11 @@ ApplicationWindow {
             messageDialog.title = qsTr("Export Error")
             messageDialog.message = errorMessage
             messageDialog.open()
+        }
+
+        onExportCancelled: {
+            videoExportProgressDialog.close()
+            toast.show(qsTr("Export cancelled."))
         }
     }
 
@@ -1573,7 +1583,7 @@ ApplicationWindow {
         property int value: 0
         
         onRejected: {
-            // TODO: Implement export cancellation
+            imageExporter.cancelExport()
         }
         
         ColumnLayout {

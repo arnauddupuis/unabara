@@ -39,6 +39,12 @@ public:
     Q_INVOKABLE bool exportImageRange(DiveData* dive, QObject* generator,
                                       double startTime, double endTime);
 
+    // Request cancellation of a running export. The export loop runs on the
+    // GUI thread and pumps the event loop between frames, which is what
+    // delivers this call; the loop then stops, removes the frames written so
+    // far and emits exportCancelled().
+    Q_INVOKABLE void cancelExport();
+
     // Create default export directory. `contentType` (e.g. "dive_computer",
     // "dive_profile") is appended to the directory name so that exports of
     // different overlays for the same dive end up in distinct directories.
@@ -54,14 +60,17 @@ signals:
     void exportStarted();
     void exportFinished(bool success, const QString &path);
     void exportError(const QString &errorMessage);
-    
+    void exportCancelled();
+
 private:
     QString m_exportPath;
     double m_frameRate;
     int m_progress;
     bool m_busy;
-    
+    bool m_cancelRequested;
+
     // Helper methods
+    void removePartialFrames(int frameCount);
     QString generateUniqueDirectoryName(DiveData* dive,
                                         const QString &videoFilePath = QString(),
                                         const QString &contentType = QString());

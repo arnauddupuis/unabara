@@ -14,6 +14,7 @@ ImageExporter::ImageExporter(QObject *parent)
     , m_frameRate(10.0)  // Default 10 frames per second
     , m_progress(0)
     , m_busy(false)
+    , m_cancelRequested(false)
 {
     // Set default export path to Pictures/Unabara folder
     m_exportPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Unabara";
@@ -65,6 +66,7 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     }
 
     m_busy = true;
+    m_cancelRequested = false;
     emit busyChanged();
 
     // Create the export directory if it doesn't exist
@@ -122,6 +124,17 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
 
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
+
+        // The Cancel button's click is delivered by the processEvents() call
+        // above; cancelExport() runs there and sets the flag we poll here.
+        if (m_cancelRequested) {
+            gen->endExport();
+            removePartialFrames(processedFrames);
+            m_busy = false;
+            emit busyChanged();
+            emit exportCancelled();
+            return false;
+        }
     }
 
     gen->endExport();
@@ -135,6 +148,29 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     emit exportFinished(true, m_exportPath);
 
     return true;
+}
+
+void ImageExporter::cancelExport()
+{
+    if (m_busy) {
+        m_cancelRequested = true;
+    }
+}
+
+void ImageExporter::removePartialFrames(int frameCount)
+{
+    // Remove exactly the frames this run wrote (they are numbered
+    // sequentially from 0), then the export directory itself — but only via
+    // rmdir, which fails on a non-empty directory, so a pre-existing
+    // user-chosen directory holding other files is left alone.
+    QDir dir(m_exportPath);
+    for (int i = 0; i < frameCount; ++i) {
+        dir.remove(QString("frame_%1.png").arg(i, 6, 10, QChar('0')));
+    }
+    const QString name = dir.dirName();
+    if (dir.cdUp()) {
+        dir.rmdir(name);
+    }
 }
 
 QString ImageExporter::createDefaultExportDir(DiveData* dive,

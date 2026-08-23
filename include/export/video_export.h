@@ -56,6 +56,12 @@ public:
     // ProfileGenerator work transparently from QML.
     Q_INVOKABLE bool exportVideo(DiveData* dive, QObject* generator,
                                 double startTime, double endTime);
+
+    // Request cancellation of a running export, whichever phase it is in.
+    // Frame generation: the loop polls a flag (its processEvents() is what
+    // delivers this call) and unwinds. Encoding: FFmpeg is terminated and
+    // onFFmpegFinished() completes the cancellation. Either way the partial
+    // output is removed and exportCancelled() is emitted — not exportError().
     Q_INVOKABLE void cancelExport();
 
     // Helper methods
@@ -85,6 +91,7 @@ signals:
     void exportStarted();
     void exportFinished(bool success, const QString &path);
     void exportError(const QString &errorMessage);
+    void exportCancelled();
     void statusUpdate(const QString &message);
     void customResolutionChanged();
     
@@ -100,6 +107,7 @@ private:
     QString m_videoCodec;
     int m_progress;
     bool m_busy;
+    bool m_cancelRequested;
     QSize m_customResolution;
     QString m_lastOutputPath;
     QString m_pendingOutputPath;

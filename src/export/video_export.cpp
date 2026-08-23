@@ -4,6 +4,7 @@
 #include <QStandardPaths>
 #include <QRegularExpression>
 #include <QCoreApplication>
+#include <QFile>
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
@@ -17,6 +18,7 @@ VideoExporter::VideoExporter(QObject *parent)
     , m_videoCodec("vp9") // Default VP9 codec (supports transparency for compositing)
     , m_progress(0)
     , m_busy(false)
+    , m_cancelRequested(false)
     , m_ffmpegProcess(nullptr)
 {
     // Set default export path to Videos/Unabara folder
@@ -207,8 +209,9 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
     }
     
     m_busy = true;
+    m_cancelRequested = false;
     emit busyChanged();
-    
+
     // Notify that export has started
     emit exportStarted();
     emit statusUpdate(tr("Generating frames..."));
@@ -252,6 +255,12 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         cleanupTempFiles();
         m_busy = false;
         emit busyChanged();
+        // generateFrames() already emitted exportError() for real failures;
+        // a cancellation gets its own signal (the UI shows it as a toast,
+        // not an error dialog).
+        if (m_cancelRequested) {
+            emit exportCancelled();
+        }
         return false;
     }
     
@@ -271,24 +280,25 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
 
 void VideoExporter::cancelExport()
 {
-    if (m_busy && m_ffmpegProcess) {
-        // Terminate the FFmpeg process gracefully first
-        m_ffmpegProcess->terminate();
-        
-        // Wait a bit for graceful termination
-        if (!m_ffmpegProcess->waitForFinished(3000)) {
-            // If it doesn't terminate gracefully, force kill it
-            m_ffmpegProcess->kill();
-        }
-        
-        emit exportError(tr("Export cancelled by user"));
-        
-        // Clean up any temporary files
-        cleanupTempFiles();
-        
-        m_busy = false;
-        emit busyChanged();
+    if (!m_busy || m_cancelRequested) {
+        return;
     }
+    m_cancelRequested = true;
+
+    if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
+        // Encoding phase: stop FFmpeg. waitForFinished() delivers the
+        // finished() signal synchronously, so onFFmpegFinished() runs here
+        // and completes the cancellation (partial-file removal, temp
+        // cleanup, exportCancelled()).
+        m_ffmpegProcess->terminate();
+        if (!m_ffmpegProcess->waitForFinished(3000)) {
+            m_ffmpegProcess->kill();
+            m_ffmpegProcess->waitForFinished(1000);
+        }
+    }
+    // Frame-generation phase: nothing more to do here — this call was
+    // delivered by the generation loop's processEvents(), and the loop
+    // polls m_cancelRequested and unwinds through exportVideo().
 }
 
 void VideoExporter::cleanupTempFiles()
@@ -363,6 +373,13 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
 
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
+
+        // A Cancel click is delivered by the processEvents() call above;
+        // cancelExport() sets the flag we poll here.
+        if (m_cancelRequested) {
+            generator->endExport();
+            return false;
+        }
     }
 
     generator->endExport();
@@ -547,9 +564,23 @@ void VideoExporter::processFFmpegOutput()
 void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     m_progressTimer->stop();
-    
+
+    if (m_cancelRequested) {
+        // Cancelled mid-encode: the exit status only reflects the kill we
+        // sent, so don't report it as an FFmpeg error. Discard the
+        // partially-written output file — a truncated video is useless.
+        if (!m_lastOutputPath.isEmpty()) {
+            QFile::remove(m_lastOutputPath);
+        }
+        cleanupTempFiles();
+        m_busy = false;
+        emit busyChanged();
+        emit exportCancelled();
+        return;
+    }
+
     bool success = false;
-    
+
     if (exitStatus == QProcess::CrashExit) {
         qWarning().noquote() << "FFmpeg crashed. Captured output tail:\n" << m_ffmpegOutputTail;
         emit exportError(tr("FFmpeg process crashed"));

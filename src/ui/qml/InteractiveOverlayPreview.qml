@@ -27,6 +27,8 @@ Item {
     // Counter-based drag detection (QML bindings can't track dependencies in loops)
     property int draggingCellCount: 0  // Incremented/decremented by cell delegates
     property bool anyDragging: draggingCellCount > 0
+    property int resizingCellCount: 0  // Same, for resize-handle drags
+    property bool anyResizing: resizingCellCount > 0
 
     // Signals
     signal cellSelected(string cellId)
@@ -76,16 +78,20 @@ Item {
         overlappingCells = overlaps
     }
 
-    // Function to detect alignment between the dragging cell and other cells
+    // Function to detect alignment between the active (dragging or resizing)
+    // cell and other cells. During a resize only the moving edges produce
+    // guides (the opposite edge is pinned, and centers shift at half speed).
     function detectAlignments() {
         var guides = []
 
-        // Find the dragging cell
+        // Find the active cell
         var draggingCell = null
+        var resizeMode = false
         for (var i = 0; i < cellRepeater.count; i++) {
             var cell = cellRepeater.itemAt(i)
-            if (cell && cell.dragging) {
+            if (cell && (cell.dragging || cell.resizing)) {
                 draggingCell = cell
+                resizeMode = cell.resizing
                 break
             }
         }
@@ -108,7 +114,7 @@ Item {
             if (!other || !other.cellVisible || other === draggingCell) continue
 
             // Top edge alignment
-            if (Math.abs(dc.y - other.y) < threshold) {
+            if ((!resizeMode || dc.resizeYe < 0) && Math.abs(dc.y - other.y) < threshold) {
                 guides.push({
                     type: "horizontal",
                     y: other.y,
@@ -118,7 +124,7 @@ Item {
             }
 
             // Bottom edge alignment
-            if (Math.abs((dc.y + dc.height) - (other.y + other.height)) < threshold) {
+            if ((!resizeMode || dc.resizeYe > 0) && Math.abs((dc.y + dc.height) - (other.y + other.height)) < threshold) {
                 guides.push({
                     type: "horizontal",
                     y: other.y + other.height,
@@ -128,7 +134,7 @@ Item {
             }
 
             // Left edge alignment
-            if (Math.abs(dc.x - other.x) < threshold) {
+            if ((!resizeMode || dc.resizeXe < 0) && Math.abs(dc.x - other.x) < threshold) {
                 guides.push({
                     type: "vertical",
                     x: other.x,
@@ -138,7 +144,7 @@ Item {
             }
 
             // Right edge alignment
-            if (Math.abs((dc.x + dc.width) - (other.x + other.width)) < threshold) {
+            if ((!resizeMode || dc.resizeXe > 0) && Math.abs((dc.x + dc.width) - (other.x + other.width)) < threshold) {
                 guides.push({
                     type: "vertical",
                     x: other.x + other.width,
@@ -150,7 +156,7 @@ Item {
             // Center-X alignment (vertical centers aligned)
             var dcCenterX = dc.x + dc.width / 2
             var otherCenterX = other.x + other.width / 2
-            if (Math.abs(dcCenterX - otherCenterX) < threshold) {
+            if (!resizeMode && Math.abs(dcCenterX - otherCenterX) < threshold) {
                 guides.push({
                     type: "vertical-center",
                     x: otherCenterX,
@@ -162,7 +168,7 @@ Item {
             // Center-Y alignment (horizontal centers aligned)
             var dcCenterY = dc.y + dc.height / 2
             var otherCenterY = other.y + other.height / 2
-            if (Math.abs(dcCenterY - otherCenterY) < threshold) {
+            if (!resizeMode && Math.abs(dcCenterY - otherCenterY) < threshold) {
                 guides.push({
                     type: "horizontal-center",
                     y: otherCenterY,
@@ -312,7 +318,8 @@ Item {
                 Canvas {
                     id: alignmentCanvas
                     anchors.fill: parent
-                    visible: interactivePreview.anyDragging && interactivePreview.alignmentGuides.length > 0
+                    visible: (interactivePreview.anyDragging || interactivePreview.anyResizing)
+                             && interactivePreview.alignmentGuides.length > 0
                     z: 0.5  // Between grid and cells
 
                     // Repaint when visibility changes
@@ -444,8 +451,14 @@ Item {
                             Qt.callLater(interactivePreview.detectOverlaps)
                             Qt.callLater(interactivePreview.detectAlignments)
                         }
-                        onWidthChanged: Qt.callLater(interactivePreview.detectOverlaps)
-                        onHeightChanged: Qt.callLater(interactivePreview.detectOverlaps)
+                        onWidthChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
+                        onHeightChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
 
                         // Track drag state for grid visibility
                         onDraggingChanged: {
@@ -457,11 +470,25 @@ Item {
                             }
                         }
 
-                        // Ensure counter is decremented if delegate is destroyed mid-drag
+                        // Track resize state the same way (drives the
+                        // alignment-guide canvas during handle drags)
+                        onResizingChanged: {
+                            if (resizing) {
+                                interactivePreview.resizingCellCount++
+                            } else {
+                                interactivePreview.resizingCellCount--
+                                interactivePreview.alignmentGuides = []
+                            }
+                        }
+
+                        // Ensure counters are decremented if delegate is destroyed mid-drag
                         // (e.g., when updateCellModel() recreates delegates during a drag)
                         Component.onDestruction: {
                             if (dragging) {
                                 interactivePreview.draggingCellCount--
+                            }
+                            if (resizing) {
+                                interactivePreview.resizingCellCount--
                             }
                         }
 

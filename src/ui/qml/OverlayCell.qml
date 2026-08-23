@@ -45,6 +45,8 @@ Rectangle {
     property bool hasFixedSize: false
     property size fixedSizePx: Qt.size(0, 0)  // fixed size pre-scaled to container px
     property bool resizing: false         // true while a resize handle is dragged
+    property int resizeXe: 0              // moving edges during resize: -1 left, 1 right
+    property int resizeYe: 0              // -1 top, 1 bottom (0 = edge not moving)
 
     // The box position the delegate binds x/y to is the anchor point minus the
     // alignment offset; these helpers convert box edge <-> anchor both ways.
@@ -319,6 +321,8 @@ Rectangle {
                     pressPos = mapToItem(cellRoot.parent, mouse.x, mouse.y)
                     pressRect = Qt.rect(cellRoot.x, cellRoot.y,
                                         cellRoot.width, cellRoot.height)
+                    cellRoot.resizeXe = xe
+                    cellRoot.resizeYe = ye
                     cellRoot.resizing = true
                 }
 
@@ -347,7 +351,38 @@ Rectangle {
                 }
 
                 onReleased: {
+                    // Snap the moving edges to the grid (release-time, like the
+                    // position drag); the fixed opposite edge is never touched
+                    var left = cellRoot.x
+                    var top = cellRoot.y
+                    var right = left + cellRoot.width
+                    var bottom = top + cellRoot.height
+
+                    if (cellRoot.generator && cellRoot.generator.snapToGrid) {
+                        var container = cellRoot.parent
+                        var generator = cellRoot.generator
+                        var scaleX = generator.templateWidth > 0 ? container.width / generator.templateWidth : 1.0
+                        var scaleY = generator.templateHeight > 0 ? container.height / generator.templateHeight : 1.0
+                        var spacingX = generator.gridSpacing * scaleX
+                        var spacingY = generator.gridSpacing * scaleY
+                        var minSize = 20
+
+                        if (spacingX >= 1 && spacingY >= 1) {
+                            if (xe < 0) left = Math.max(0, Math.min(Math.round(left / spacingX) * spacingX, right - minSize))
+                            if (xe > 0) right = Math.min(container.width, Math.max(Math.round(right / spacingX) * spacingX, left + minSize))
+                            if (ye < 0) top = Math.max(0, Math.min(Math.round(top / spacingY) * spacingY, bottom - minSize))
+                            if (ye > 0) bottom = Math.min(container.height, Math.max(Math.round(bottom / spacingY) * spacingY, top + minSize))
+
+                            cellRoot.x = left
+                            cellRoot.y = top
+                            cellRoot.width = right - left
+                            cellRoot.height = bottom - top
+                        }
+                    }
+
                     cellRoot.resizing = false
+                    cellRoot.resizeXe = 0
+                    cellRoot.resizeYe = 0
                     cellRoot.geometryCommitted(Qt.rect(cellRoot.x, cellRoot.y,
                                                        cellRoot.width, cellRoot.height))
                 }

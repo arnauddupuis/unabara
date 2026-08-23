@@ -68,6 +68,14 @@ QVariant CellModel::data(const QModelIndex &index, int role) const
         return cell.shadowOpacity();
     case HasCustomShadowRole:
         return cell.hasCustomShadow();
+    case HAlignRole:
+        return static_cast<int>(cell.hAlign());
+    case VAlignRole:
+        return static_cast<int>(cell.vAlign());
+    case FixedSizeRole:
+        return cell.fixedSize();
+    case HasFixedSizeRole:
+        return cell.hasFixedSize();
     default:
         return QVariant();
     }
@@ -97,6 +105,10 @@ QHash<int, QByteArray> CellModel::roleNames() const
     roles[ShadowSizeRole] = "shadowSize";
     roles[ShadowOpacityRole] = "shadowOpacity";
     roles[HasCustomShadowRole] = "hasCustomShadow";
+    roles[HAlignRole] = "hAlign";
+    roles[VAlignRole] = "vAlign";
+    roles[FixedSizeRole] = "fixedSize";
+    roles[HasFixedSizeRole] = "hasFixedSize";
     return roles;
 }
 

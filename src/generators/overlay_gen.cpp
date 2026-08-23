@@ -805,6 +805,21 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
     }
 }
 
+void OverlayGenerator::setCellFixedSize(const QString& cellId, const QSizeF& size)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (cell) {
+        if (size.width() > 0.0 && size.height() > 0.0) {
+            cell->setFixedSize(size);
+        } else {
+            cell->clearFixedSize();
+        }
+        emit cellLayoutChanged();
+    } else {
+        qWarning() << "setCellFixedSize: Cell not found:" << cellId;
+    }
+}
+
 QFont OverlayGenerator::getCellFont(const QString& cellId) const
 {
     const auto* cell = getCellData(cellId);

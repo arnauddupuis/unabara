@@ -340,6 +340,17 @@ Item {
                             root.updateCellModel()
                         }
                     }
+
+                    // Resize commit: anchor and fixed size land together so
+                    // the box stays put whatever the cell's alignment is (the
+                    // undo stack's debounce coalesces the pair into one entry).
+                    onCellGeometryChanged: function(cellId, newPosition, newSize) {
+                        if (root.generator) {
+                            root.generator.setCellPosition(cellId, newPosition)
+                            root.generator.setCellFixedSize(cellId, newSize)
+                            root.updateCellModel()
+                        }
+                    }
                 }
 
                 // Render page: the C++ generator's exact output

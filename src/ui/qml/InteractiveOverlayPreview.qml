@@ -32,6 +32,8 @@ Item {
     signal cellSelected(string cellId)
     signal cellDeselected()
     signal cellPositionChanged(string cellId, point newPosition)
+    // Resize-handle commit: normalized anchor + normalized fixed size
+    signal cellGeometryChanged(string cellId, point newPosition, size newSize)
 
     // Function to check if two rectangles overlap
     function rectsOverlap(r1, r2) {
@@ -406,6 +408,15 @@ Item {
                         }
                         hasCustomShadow: model.hasCustomShadow
 
+                        // v1.2 geometry: anchor alignment + optional fixed size
+                        // (normalized in the model, scaled to container px here)
+                        hAlign: model.hAlign
+                        vAlign: model.vAlign
+                        hasFixedSize: model.hasFixedSize
+                        fixedSizePx: Qt.size(
+                            model.fixedSize.width * cellContainer.width,
+                            model.fixedSize.height * cellContainer.height)
+
                         // Selection state
                         selected: model.cellId === interactivePreview.selectedCellId
 
@@ -415,10 +426,14 @@ Item {
                         // Generator reference for snap-to-grid
                         generator: interactivePreview.generator
 
-                        // Position based on normalized coordinates
-                        // Convert normalized (0.0-1.0) to actual pixel position
+                        // Position: the model stores the ANCHOR point;
+                        // alignment decides which box edge/center pins to it
+                        // (left/top = legacy top-left corner). Mirrors
+                        // OverlayGenerator::cellGeometry().
                         x: model.position.x * cellContainer.width
+                           - (model.hAlign === 1 ? width / 2 : model.hAlign === 2 ? width : 0)
                         y: model.position.y * cellContainer.height
+                           - (model.vAlign === 1 ? height / 2 : model.vAlign === 2 ? height : 0)
 
                         // Trigger overlap and alignment detection when position or size changes
                         onXChanged: {
@@ -465,6 +480,23 @@ Item {
                         // Drag behavior
                         onPositionChanged: function(newPos) {
                             interactivePreview.cellPositionChanged(model.cellId, newPos)
+                        }
+
+                        // Resize-handle commit: convert the box rect (container
+                        // px) to a normalized anchor + normalized fixed size
+                        onGeometryCommitted: function(newRect) {
+                            var ax = newRect.x
+                                   + (model.hAlign === 1 ? newRect.width / 2
+                                    : model.hAlign === 2 ? newRect.width : 0)
+                            var ay = newRect.y
+                                   + (model.vAlign === 1 ? newRect.height / 2
+                                    : model.vAlign === 2 ? newRect.height : 0)
+                            interactivePreview.cellGeometryChanged(
+                                model.cellId,
+                                Qt.point(ax / cellContainer.width,
+                                         ay / cellContainer.height),
+                                Qt.size(newRect.width / cellContainer.width,
+                                        newRect.height / cellContainer.height))
                         }
                     }
                 }

@@ -175,6 +175,9 @@ public:
     QVector<Unabara::CellData> cells() const { return m_cells; }
     Q_INVOKABLE int cellCount() const { return m_cells.size(); }
     Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
+    // Normalized fixed size; an invalid/empty size reverts the cell to
+    // auto-sizing from its content (v1.2 geometry)
+    Q_INVOKABLE void setCellFixedSize(const QString& cellId, const QSizeF& size);
     Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
     Q_INVOKABLE QColor getCellLabelColor(const QString& cellId) const;
     Q_INVOKABLE QColor getCellValueColor(const QString& cellId) const;

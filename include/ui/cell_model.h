@@ -39,7 +39,11 @@ public:
         ShadowColorRole,
         ShadowSizeRole,
         ShadowOpacityRole,
-        HasCustomShadowRole
+        HasCustomShadowRole,
+        HAlignRole,
+        VAlignRole,
+        FixedSizeRole,
+        HasFixedSizeRole
     };
 
     explicit CellModel(QObject *parent = nullptr);

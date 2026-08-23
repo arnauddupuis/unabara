@@ -16,18 +16,20 @@ Item {
     // Set when one of the three color buttons is clicked; consumed by the dialog's onAccepted.
     property string colorTarget: ""
 
+    // Same section rhythm as OverlayEditor's inspector: no extra inner
+    // margin (the sidebar ScrollView already pads by 4) and 20px between
+    // sections.
     ColumnLayout {
         id: mainColumn
         anchors.fill: parent
-        anchors.margins: 10
-        spacing: 12
+        spacing: 20
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Background")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -69,12 +71,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Depth Curve")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -111,12 +113,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Deco Zone")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -158,12 +160,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Indicator")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -228,12 +230,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Output Resolution")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -266,12 +268,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Grid")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -403,12 +405,12 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Template Colors")
             Layout.fillWidth: true
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 columnSpacing: 10
                 rowSpacing: 8

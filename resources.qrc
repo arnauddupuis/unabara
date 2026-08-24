@@ -42,6 +42,11 @@
         <file alias="fonts/ShareTechMono-Regular.ttf">resources/fonts/ShareTechMono-Regular.ttf</file>
         <file alias="fonts/OFL-Orbitron.txt">resources/fonts/OFL-Orbitron.txt</file>
         <file alias="fonts/OFL-ShareTechMono.txt">resources/fonts/OFL-ShareTechMono.txt</file>
+        <file alias="fonts/DejaVuSans.ttf">resources/fonts/DejaVuSans.ttf</file>
+        <file alias="fonts/DejaVuSans-Bold.ttf">resources/fonts/DejaVuSans-Bold.ttf</file>
+        <file alias="fonts/DejaVuSans-Oblique.ttf">resources/fonts/DejaVuSans-Oblique.ttf</file>
+        <file alias="fonts/DejaVuSans-BoldOblique.ttf">resources/fonts/DejaVuSans-BoldOblique.ttf</file>
+        <file alias="fonts/LICENSE-DejaVu.txt">resources/fonts/LICENSE-DejaVu.txt</file>
         <file alias="images/unabara-icon.png">resources/images/unabara-icon.png</file>
         <file alias="images/DC_Faces/unabara_round_ocean.png">resources/images/DC_Faces/unabara_round_ocean.png</file>
         <file alias="images/DC_Faces/unabara_round_titanium.png">resources/images/DC_Faces/unabara_round_titanium.png</file>

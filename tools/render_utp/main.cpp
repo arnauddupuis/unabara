@@ -113,10 +113,15 @@ int main(int argc, char* argv[])
     app.setOrganizationName(QStringLiteral("UnabaraProject"));
     app.setApplicationName(QStringLiteral("UnabaraRenderTool"));
 
-    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf"}) {
+    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf",
+                                 ":/fonts/DejaVuSans.ttf", ":/fonts/DejaVuSans-Bold.ttf",
+                                 ":/fonts/DejaVuSans-Oblique.ttf", ":/fonts/DejaVuSans-BoldOblique.ttf"}) {
         if (QFontDatabase::addApplicationFont(QLatin1String(fontPath)) == -1)
             qWarning() << "Failed to register bundled font" << fontPath;
     }
+    // Same legacy-family mapping as the app (see src/main.cpp): templates
+    // saved by older versions say "Sans Serif", which only exists on Linux.
+    QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     const QStringList args = app.arguments();
 

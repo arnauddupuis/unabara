@@ -40,13 +40,24 @@ int main(int argc, char *argv[])
     app.setOrganizationName("UnabaraProject");
     app.setWindowIcon(QIcon(":/images/unabara-icon.png"));
 
-    // Bundled OFL fonts used by the HUD/Social template family. Must be
-    // registered before the OverlayGenerator is constructed — it loads the
-    // active template (which may reference these families) in its constructor.
-    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf"}) {
+    // Bundled fonts. Must be registered before the OverlayGenerator is
+    // constructed — it loads the active template (which may reference these
+    // families) in its constructor. Orbitron/Share Tech Mono (OFL) serve the
+    // HUD/Social template family; DejaVu Sans is the default overlay font —
+    // "Sans Serif" is a fontconfig alias that only exists on Linux, so the
+    // default must be a real bundled family to render identically everywhere.
+    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf",
+                                 ":/fonts/DejaVuSans.ttf", ":/fonts/DejaVuSans-Bold.ttf",
+                                 ":/fonts/DejaVuSans-Oblique.ttf", ":/fonts/DejaVuSans-BoldOblique.ttf"}) {
         if (QFontDatabase::addApplicationFont(QLatin1String(fontPath)) == -1)
             qWarning() << "Failed to register bundled font" << fontPath;
     }
+
+    // Templates and settings saved by earlier versions carry the family name
+    // "Sans Serif". On Linux fontconfig resolves it (so this substitution is
+    // never consulted); on macOS/Windows no such family exists and Qt would
+    // fall back to an arbitrary font — map it onto the bundled default instead.
+    QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
     

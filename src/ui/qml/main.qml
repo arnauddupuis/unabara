@@ -1316,12 +1316,16 @@ ApplicationWindow {
                         checked: true
                     }
 
+                    // The three range radios share this ColumnLayout, so
+                    // autoExclusive already keeps them mutually exclusive —
+                    // no manual enabled/checked cross-wiring (it locked the
+                    // visible-range option out whenever the video range was
+                    // pre-selected, e.g. exporting from the Video Preview tab).
                     RadioButton {
                         text: qsTr("Export only visible time range (%1)").arg(
                                   exportImagesDialog.formatRange(timelineView.visibleStartTime,
                                                                  timelineView.visibleEndTime))
                         id: exportRangeOnly
-                        enabled: !exportVideoRangeOnly.checked
                     }
 
                     RadioButton {
@@ -1333,12 +1337,6 @@ ApplicationWindow {
                               : qsTr("Export only video time range")
                         id: exportVideoRangeOnly
                         enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
-                        
-                        onCheckedChanged: {
-                            if (checked) {
-                                exportRangeOnly.checked = false;
-                            }
-                        }
                     }
                 }
             }

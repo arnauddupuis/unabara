@@ -75,8 +75,11 @@ Item {
                 anchors.rightMargin: 6
                 spacing: 2
 
+                // Same chevron glyphs as CollapsibleSection so the timeline
+                // reads as collapsible the way inspector sections do.
                 TimelineButton {
-                    text: root.collapsed ? "⌃" : "⌄"
+                    text: root.collapsed ? "▸" : "▾"
+                    font.bold: true
                     ToolTip.text: root.collapsed ? qsTr("Show the timeline")
                                                  : qsTr("Hide the timeline")
                     onClicked: root.collapsed = !root.collapsed

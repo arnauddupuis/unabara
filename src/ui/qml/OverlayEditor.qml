@@ -877,6 +877,13 @@ Item {
 
                 // Profile color scheme carried by the template (optional).
                 // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
+                Label {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    opacity: 0.7
+                    text: qsTr("Optional color scheme saved with the template: it can recolor the dive profile to match (curve and deco zone from the primary color, indicator and grid from the secondary).")
+                }
                 Label { text: qsTr("Primary Color:") }
                 RowLayout {
                     Layout.fillWidth: true
@@ -885,6 +892,8 @@ Item {
                     Button {
                         id: primaryColorButton
                         Layout.fillWidth: true
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Used for the profile curve and the deco zone")
 
                         Rectangle {
                             anchors.fill: parent
@@ -922,6 +931,8 @@ Item {
                 Button {
                     id: secondaryColorButton
                     Layout.fillWidth: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Used for the profile position indicator and the grid")
 
                     Rectangle {
                         anchors.fill: parent

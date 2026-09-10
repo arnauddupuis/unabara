@@ -479,25 +479,49 @@ ApplicationWindow {
                                 anchors.margins: 1
                                 spacing: 0
 
-                                RowLayout {
+                                // Clickable header bar — same affordance as the
+                                // inspector's collapsible sections (visible bar,
+                                // hover highlight, full-row hit area). The beta
+                                // panel found the bare chevron button invisible
+                                // while the section idiom was understood by all.
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    spacing: 4
+                                    Layout.preferredHeight: 32
+                                    radius: 4
+                                    color: overlayEditorHeaderMouse.containsMouse ? palette.midlight : palette.mid
 
-                                    ToolButton {
-                                        text: overlayEditorPanel.collapsed ? "«" : "»"
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Label {
+                                            text: overlayEditorPanel.collapsed ? "«" : "»"
+                                            font.bold: true
+                                        }
+
+                                        Label {
+                                            text: qsTr("Overlay Editor")
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            visible: !overlayEditorPanel.collapsed
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: overlayEditorHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
                                         onClicked: overlayEditorPanel.collapsed = !overlayEditorPanel.collapsed
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: overlayEditorPanel.collapsed
-                                                      ? qsTr("Show the overlay editor")
-                                                      : qsTr("Hide the overlay editor")
                                     }
 
-                                    Label {
-                                        text: qsTr("Overlay Editor")
-                                        font.bold: true
-                                        visible: !overlayEditorPanel.collapsed
-                                        Layout.fillWidth: true
-                                    }
+                                    ToolTip.visible: overlayEditorHeaderMouse.containsMouse
+                                    ToolTip.delay: 500
+                                    ToolTip.text: overlayEditorPanel.collapsed
+                                                  ? qsTr("Show the overlay editor")
+                                                  : qsTr("Hide the overlay editor")
                                 }
 
                                 ScrollView {
@@ -731,25 +755,46 @@ ApplicationWindow {
                                 anchors.margins: 1
                                 spacing: 0
 
-                                RowLayout {
+                                // Clickable header bar — see the overlay editor
+                                // panel header above for the rationale.
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    spacing: 4
+                                    Layout.preferredHeight: 32
+                                    radius: 4
+                                    color: profileEditorHeaderMouse.containsMouse ? palette.midlight : palette.mid
 
-                                    ToolButton {
-                                        text: profileEditorPanel.collapsed ? "«" : "»"
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Label {
+                                            text: profileEditorPanel.collapsed ? "«" : "»"
+                                            font.bold: true
+                                        }
+
+                                        Label {
+                                            text: qsTr("Profile Editor")
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            visible: !profileEditorPanel.collapsed
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: profileEditorHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
                                         onClicked: profileEditorPanel.collapsed = !profileEditorPanel.collapsed
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: profileEditorPanel.collapsed
-                                                      ? qsTr("Show the profile editor")
-                                                      : qsTr("Hide the profile editor")
                                     }
 
-                                    Label {
-                                        text: qsTr("Profile Editor")
-                                        font.bold: true
-                                        visible: !profileEditorPanel.collapsed
-                                        Layout.fillWidth: true
-                                    }
+                                    ToolTip.visible: profileEditorHeaderMouse.containsMouse
+                                    ToolTip.delay: 500
+                                    ToolTip.text: profileEditorPanel.collapsed
+                                                  ? qsTr("Show the profile editor")
+                                                  : qsTr("Hide the profile editor")
                                 }
 
                                 ScrollView {
@@ -985,6 +1030,21 @@ ApplicationWindow {
         //     above. False for the per-tab invocations, which set them
         //     directly.
         property bool chooseContent: false
+
+        // The range options show the actual times they cover ("12:30 – 28:00")
+        // so the link between the timeline state and the export is explicit
+        // (beta panel: nobody connected "visible time range" to the timeline).
+        function formatRangeTime(seconds) {
+            var s = Math.max(0, Math.round(seconds))
+            var h = Math.floor(s / 3600)
+            var m = Math.floor((s % 3600) / 60)
+            var ss = s % 60
+            var mmss = m + ":" + (ss < 10 ? "0" : "") + ss
+            return h > 0 ? h + ":" + (m < 10 ? "0" : "") + mmss : mmss
+        }
+        function formatRange(start, end) {
+            return formatRangeTime(start) + " – " + formatRangeTime(end)
+        }
 
         // Use implicitHeight instead of fixed height to adapt to content
         implicitHeight: contentColumn.implicitHeight + 140 // Add padding for dialog margins
@@ -1249,18 +1309,28 @@ ApplicationWindow {
                     
                     RadioButton {
                         id: exportFullDive
-                        text: qsTr("Export full dive")
+                        text: mainWindow.hasActiveDive
+                              ? qsTr("Export full dive (%1)").arg(
+                                    exportImagesDialog.formatRange(0, mainWindow.currentDive.durationSeconds))
+                              : qsTr("Export full dive")
                         checked: true
                     }
-                    
+
                     RadioButton {
-                        text: qsTr("Export only visible time range")
+                        text: qsTr("Export only visible time range (%1)").arg(
+                                  exportImagesDialog.formatRange(timelineView.visibleStartTime,
+                                                                 timelineView.visibleEndTime))
                         id: exportRangeOnly
                         enabled: !exportVideoRangeOnly.checked
                     }
-                    
+
                     RadioButton {
-                        text: qsTr("Export only video time range")
+                        text: enabled
+                              ? qsTr("Export only video time range (%1)").arg(
+                                    exportImagesDialog.formatRange(timelineView.timeline.videoOffset,
+                                                                   timelineView.timeline.videoOffset
+                                                                   + timelineView.timeline.videoDuration))
+                              : qsTr("Export only video time range")
                         id: exportVideoRangeOnly
                         enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
                         

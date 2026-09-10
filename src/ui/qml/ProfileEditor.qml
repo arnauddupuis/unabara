@@ -430,6 +430,19 @@ Item {
                 columnSpacing: 10
                 rowSpacing: 8
 
+                // Plain-sight caption, not a tooltip: the beta panel showed the
+                // feature is invisible, and a tooltip can't fire on a disabled
+                // button anyway.
+                Label {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    opacity: 0.7
+                    text: root.generator && overlayGenerator && overlayGenerator.hasColorScheme
+                          ? qsTr("Recolors the profile with the overlay template's scheme: curve and deco zone from its primary color, indicator and grid from its secondary color.")
+                          : qsTr("The current overlay template carries no color scheme. Set one in the overlay editor's Template Management section.")
+                }
+
                 Button {
                     text: qsTr("Apply Template Colors")
                     Layout.columnSpan: 2

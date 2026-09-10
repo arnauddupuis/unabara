@@ -241,11 +241,13 @@ Item {
             }
         }
 
-        // Transport bar
+        // Transport bar. Must stay on a theme-neutral surface: standard
+        // controls (checkboxes, labels) draw theme-colored text/indicators,
+        // which are unreadable on palette.dark in light mode.
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: 48
-            color: palette.dark
+            color: palette.window
 
             RowLayout {
                 anchors {

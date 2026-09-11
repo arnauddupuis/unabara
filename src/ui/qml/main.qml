@@ -17,6 +17,11 @@ ApplicationWindow {
     
     // URL of the currently loaded video file (file:// URL, set on video import)
     property url currentVideoUrl: ""
+    // Release notes that were unseen when this session started. Non-empty
+    // only on the first launch after an update; keeps the toolbar's
+    // "What's New" recall button alive for the whole session even though
+    // closing the dialog stamps the notes as seen.
+    property var whatsNewStartupNotes: []
     // UTC seconds since epoch from video file metadata; -1 if unavailable
     property double videoCreationTime: -1
 
@@ -302,6 +307,7 @@ ApplicationWindow {
         } else {
             var pendingNotes = whatsNew.pendingReleases(config.whatsNewSeenVersion)
             if (pendingNotes.length > 0) {
+                window.whatsNewStartupNotes = pendingNotes
                 whatsNewDialog.releases = pendingNotes
                 whatsNewDialog.open()
             }
@@ -399,6 +405,19 @@ ApplicationWindow {
                 }
             }
 
+            ToolButton {
+                // Session-only recall of the update notes: visible only on
+                // the first launch after an update, so a user who left the
+                // dialog via "Show me" can get back to it. The permanent
+                // entry point is on the Settings tab.
+                text: qsTr("What's New")
+                icon.name: "help-about"
+                visible: window.whatsNewStartupNotes.length > 0
+                onClicked: {
+                    whatsNewDialog.releases = window.whatsNewStartupNotes
+                    whatsNewDialog.open()
+                }
+            }
 
             Item { Layout.fillWidth: true }
             

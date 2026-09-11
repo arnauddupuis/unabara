@@ -16,6 +16,9 @@ import Unabara.Core 1.0
 Item {
     id: root
 
+    // Asks main.qml to open the What's New dialog with the full changelog.
+    signal showWhatsNew()
+
     // Reactive mirror of config.cameraPairingNames()
     property var cameraProfileNames: config ? config.cameraPairingNames() : []
 
@@ -81,6 +84,23 @@ Item {
                         onToggled: {
                             if (config)
                                 config.checkUpdatesOnStartup = checked
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Label {
+                            text: qsTr("Release notes for this and past versions.")
+                            opacity: 0.7
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Button {
+                            text: qsTr("Show What's New...")
+                            onClicked: root.showWhatsNew()
                         }
                     }
                 }

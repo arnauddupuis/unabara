@@ -60,6 +60,14 @@ class Config : public QObject
     // Whether to query GitHub for a newer version at application startup
     Q_PROPERTY(bool checkUpdatesOnStartup READ checkUpdatesOnStartup WRITE setCheckUpdatesOnStartup NOTIFY checkUpdatesOnStartupChanged)
 
+    // Last app version whose "What's New" notes the user has seen (empty =
+    // never). Compared against the running version at startup.
+    Q_PROPERTY(QString whatsNewSeenVersion READ whatsNewSeenVersion WRITE setWhatsNewSeenVersion NOTIFY whatsNewSeenVersionChanged)
+
+    // True when no settings file existed at startup: a brand-new install,
+    // which gets the first-run experience rather than an update diff.
+    Q_PROPERTY(bool firstRun READ firstRun CONSTANT)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
@@ -170,6 +178,11 @@ public:
     // Update check at startup
     bool checkUpdatesOnStartup() const;
     void setCheckUpdatesOnStartup(bool check);
+
+    // "What's New" tracking
+    QString whatsNewSeenVersion() const;
+    void setWhatsNewSeenVersion(const QString &version);
+    bool firstRun() const;
 
     // Export settings
     double frameRate() const;
@@ -285,6 +298,7 @@ signals:
     void activeTemplatePathChanged();
     void profileColorSchemePolicyChanged();
     void checkUpdatesOnStartupChanged();
+    void whatsNewSeenVersionChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -353,6 +367,8 @@ private:
     QString m_activeTemplatePath;
     QString m_profileColorSchemePolicy;
     bool m_checkUpdatesOnStartup;
+    QString m_whatsNewSeenVersion;
+    bool m_firstRun = false;
     
     // CCR settings
     bool m_showPO2Cell1;

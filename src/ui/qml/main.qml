@@ -293,6 +293,19 @@ ApplicationWindow {
         if (config.checkUpdatesOnStartup) {
             updateChecker.checkForUpdates()
         }
+
+        // "What's New": a brand-new install gets silently stamped (nothing
+        // to diff against — the whole app is new to them); an existing
+        // config sees the notes for versions newer than the last dismissal.
+        if (config.firstRun) {
+            config.whatsNewSeenVersion = appVersion
+        } else {
+            var pendingNotes = whatsNew.pendingReleases(config.whatsNewSeenVersion)
+            if (pendingNotes.length > 0) {
+                whatsNewDialog.releases = pendingNotes
+                whatsNewDialog.open()
+            }
+        }
     }
     
     // Shared cell model: drives both the canvas editor (tab 0) and the
@@ -842,7 +855,12 @@ ApplicationWindow {
                     }
 
                     // Tab 3: application settings
-                    SettingsPanel {}
+                    SettingsPanel {
+                        onShowWhatsNew: {
+                            whatsNewDialog.releases = whatsNew.allReleases()
+                            whatsNewDialog.open()
+                        }
+                    }
                 } // end StackLayout
             } // end ColumnLayout
         } // end tabContainer Item
@@ -1889,5 +1907,34 @@ ApplicationWindow {
                 }
             }
         }
+    }
+
+    WhatsNewDialog {
+        id: whatsNewDialog
+
+        // "Show me" closes the notes and lands the user in the area the
+        // entry talks about. Zone tours (planned) will hook in here.
+        onShowMeRequested: function(target) {
+            close()
+            switch (target) {
+            case "canvas":
+            case "timeline":
+                contentTabs.currentIndex = 0
+                break
+            case "profile":
+                contentTabs.currentIndex = 1
+                break
+            case "video":
+                contentTabs.currentIndex = 2
+                break
+            case "settings":
+                contentTabs.currentIndex = 3
+                break
+            }
+        }
+
+        // Any dismissal counts as "seen" for the running version — including
+        // manual opens from the Settings tab, where it's a no-op re-stamp.
+        onClosed: config.whatsNewSeenVersion = appVersion
     }
 }

@@ -57,6 +57,7 @@ set(PROJECT_SOURCES
     src/generators/frame_cache.cpp
     src/export/image_export.cpp
     src/core/update_checker.cpp
+    src/core/whatsnew.cpp
     src/export/video_export.cpp
     resources.qrc
 )
@@ -88,6 +89,7 @@ set(PROJECT_HEADERS
     include/generators/frame_cache.h
     include/export/image_export.h
     include/core/update_checker.h
+    include/core/whatsnew.h
     include/export/video_export.h
     "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
 )

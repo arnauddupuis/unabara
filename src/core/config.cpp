@@ -415,6 +415,27 @@ void Config::setCheckUpdatesOnStartup(bool check)
     }
 }
 
+QString Config::whatsNewSeenVersion() const
+{
+    return m_whatsNewSeenVersion;
+}
+
+void Config::setWhatsNewSeenVersion(const QString &version)
+{
+    if (m_whatsNewSeenVersion != version) {
+        m_whatsNewSeenVersion = version;
+        // Saved eagerly (like the update-check toggle): the stamp must
+        // survive even if the session ends without the exit-time saveConfig.
+        saveConfig();
+        emit whatsNewSeenVersionChanged();
+    }
+}
+
+bool Config::firstRun() const
+{
+    return m_firstRun;
+}
+
 // CCR settings implementation
 bool Config::showPO2Cell1() const
 {
@@ -653,6 +674,10 @@ void Config::setProfileGridShowLabels(bool show)
 
 void Config::loadConfig()
 {
+    // Must be sampled before anything is written: an empty settings store
+    // means a brand-new install (drives the first-run vs update-notes gate).
+    m_firstRun = m_settings.allKeys().isEmpty();
+
     // Load general settings
     m_lastImportPath = m_settings.value("paths/lastImport", 
                                         QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
@@ -775,6 +800,7 @@ void Config::loadConfig()
     // NOTE: not under a "general" group — QSettings escapes that reserved
     // section name in ini files ("%General") and the value doesn't round-trip.
     m_checkUpdatesOnStartup = m_settings.value("app/checkUpdatesOnStartup", true).toBool();
+    m_whatsNewSeenVersion = m_settings.value("app/whatsNewSeenVersion", QString()).toString();
 
     // Load per-video overlay layouts
     {
@@ -921,6 +947,7 @@ void Config::saveConfig()
     m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
     m_settings.setValue("profile/colorSchemePolicy", m_profileColorSchemePolicy);
     m_settings.setValue("app/checkUpdatesOnStartup", m_checkUpdatesOnStartup);
+    m_settings.setValue("app/whatsNewSeenVersion", m_whatsNewSeenVersion);
 
     // Save per-video overlay layouts
     {

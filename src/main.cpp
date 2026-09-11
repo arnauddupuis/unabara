@@ -26,6 +26,7 @@
 #include "include/core/config.h"
 #include "include/core/units.h"
 #include "include/core/update_checker.h"
+#include "include/core/whatsnew.h"
 
 // Global image provider
 OverlayImageProvider* g_imageProvider = nullptr;
@@ -229,6 +230,11 @@ int main(int argc, char *argv[])
     // Create update checker and expose to QML
     UpdateChecker updateChecker;
     engine.rootContext()->setContextProperty("updateChecker", &updateChecker);
+
+    // Release notes for the "What's New" dialog
+    WhatsNew whatsNew(QStringLiteral(UNABARA_VERSION_STR));
+    whatsNew.loadFromFile(QStringLiteral(":/whatsnew.json"));
+    engine.rootContext()->setContextProperty("whatsNew", &whatsNew);
     
     // Load the main QML file
     const QUrl url(QStringLiteral("qrc:/main.qml"));

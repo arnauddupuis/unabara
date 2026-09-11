@@ -20,11 +20,13 @@ add_library(unabara_testlib STATIC
     ${CMAKE_SOURCE_DIR}/include/core/dive_data.h
     ${CMAKE_SOURCE_DIR}/include/core/log_parser.h
     ${CMAKE_SOURCE_DIR}/include/core/units.h
+    ${CMAKE_SOURCE_DIR}/include/core/whatsnew.h
     ${CMAKE_SOURCE_DIR}/src/core/cell_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/overlay_template.cpp
     ${CMAKE_SOURCE_DIR}/src/core/dive_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/units.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/whatsnew.cpp
     ${CMAKE_SOURCE_DIR}/src/core/format_parsers/fit_decoder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/format_parsers/fit_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/format_parsers/subsurface_parser.cpp
@@ -40,7 +42,8 @@ function(unabara_add_test NAME)
     target_compile_definitions(${NAME} PRIVATE
         SYNTH_FIT_PATH="${SYNTH_FIT}"
         TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
-        TEMPLATES_DIR="${CMAKE_SOURCE_DIR}/resources/templates")
+        TEMPLATES_DIR="${CMAKE_SOURCE_DIR}/resources/templates"
+        WHATSNEW_JSON_PATH="${CMAKE_SOURCE_DIR}/resources/whatsnew.json")
     add_dependencies(${NAME} unabara_test_fixtures)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # QFont/QColor tests need a QGuiApplication; keep it headless
@@ -54,3 +57,4 @@ unabara_add_test(uddf_parser_test)
 unabara_add_test(core_utils_test)
 unabara_add_test(cell_data_test)
 unabara_add_test(overlay_template_test)
+unabara_add_test(whatsnew_test)

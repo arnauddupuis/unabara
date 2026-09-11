@@ -875,6 +875,7 @@ ApplicationWindow {
 
                     // Tab 3: application settings
                     SettingsPanel {
+                        id: settingsPanel
                         onShowWhatsNew: {
                             whatsNewDialog.releases = whatsNew.allReleases()
                             whatsNewDialog.open()
@@ -1931,23 +1932,31 @@ ApplicationWindow {
     WhatsNewDialog {
         id: whatsNewDialog
 
-        // "Show me" closes the notes and lands the user in the area the
-        // entry talks about. Zone tours (planned) will hook in here.
+        // "Show me" closes the notes, lands the user in the area the entry
+        // talks about, and pulses a highlight around it. Zone tours
+        // (planned) will hook in here.
         onShowMeRequested: function(target) {
             close()
             switch (target) {
             case "canvas":
+                contentTabs.currentIndex = 0
+                showMeFlash.flash(overlayCanvas)
+                break
             case "timeline":
                 contentTabs.currentIndex = 0
+                showMeFlash.flash(timelineView)
                 break
             case "profile":
                 contentTabs.currentIndex = 1
+                showMeFlash.flash(profileEditorPanel)
                 break
             case "video":
                 contentTabs.currentIndex = 2
+                showMeFlash.flash(videoSyncPlayer)
                 break
             case "settings":
                 contentTabs.currentIndex = 3
+                showMeFlash.flash(settingsPanel)
                 break
             }
         }
@@ -1955,5 +1964,61 @@ ApplicationWindow {
         // Any dismissal counts as "seen" for the running version — including
         // manual opens from the Settings tab, where it's a no-op re-stamp.
         onClosed: config.whatsNewSeenVersion = appVersion
+    }
+
+    // "Show me" target highlight: an Unabara-blue border pulsing slowly
+    // twice over ~2 seconds, then gone.
+    Rectangle {
+        id: showMeFlash
+        visible: false
+        opacity: 0
+        color: "transparent"
+        border.color: "#3498db"
+        border.width: 4
+        radius: 4
+        z: 1000
+
+        property Item target: null
+
+        function flash(item) {
+            target = item
+            // Measure only after the tab switch has propagated visibility
+            // and geometry.
+            Qt.callLater(begin)
+        }
+
+        function begin() {
+            if (!target || !target.visible)
+                return
+            var pos = target.mapToItem(showMeFlash.parent, 0, 0)
+            x = pos.x - 3
+            y = pos.y - 3
+            width = target.width + 6
+            height = target.height + 6
+            visible = true
+            flashAnimation.restart()
+        }
+
+        SequentialAnimation {
+            id: flashAnimation
+            loops: 2
+
+            NumberAnimation {
+                target: showMeFlash
+                property: "opacity"
+                from: 0.0; to: 1.0
+                duration: 500
+                easing.type: Easing.InOutQuad
+            }
+            NumberAnimation {
+                target: showMeFlash
+                property: "opacity"
+                from: 1.0; to: 0.0
+                duration: 500
+                easing.type: Easing.InOutQuad
+            }
+
+            onFinished: showMeFlash.visible = false
+        }
     }
 }

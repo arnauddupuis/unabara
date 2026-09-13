@@ -4,6 +4,11 @@
             "version": "0.3.0",
             "highlights": [
                 {
+                    "title": "FIT support",
+                    "description": "Unabara can now import and process .fit files from Garmin/Suunto computers.",
+                    "showMe": "import_button"
+                },
+                {
                     "title": "One canvas, two views",
                     "description": "The overlay tab is now a single large canvas. Edit mode is where you arrange things — drag cells, snap them to the grid, and resize them with the corner handles (the Layout section controls alignment and auto-size). Render mode shows the exact pixels your export will produce.",
                     "showMe": "canvas"

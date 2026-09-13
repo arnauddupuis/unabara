@@ -325,6 +325,7 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent
             ToolButton {
+                id: importButton
                 text: qsTr("Import")
                 icon.name: "document-open"
                 onClicked: importMenu.open()
@@ -1958,6 +1959,9 @@ ApplicationWindow {
                 contentTabs.currentIndex = 3
                 showMeFlash.flash(settingsPanel)
                 break
+            case "import_button":
+                showMeFlash.flash(importButton)   // toolbar is visible on every tab — no tab switch
+                break
             }
         }
 
@@ -1967,9 +1971,12 @@ ApplicationWindow {
     }
 
     // "Show me" target highlight: an Unabara-blue border pulsing slowly
-    // twice over ~2 seconds, then gone.
+    // twice over ~2 seconds, then gone. Lives in the window overlay layer
+    // (not the content item) so it can also draw over toolbar targets —
+    // the header stacks above regular content children.
     Rectangle {
         id: showMeFlash
+        parent: Overlay.overlay
         visible: false
         opacity: 0
         color: "transparent"

@@ -16,6 +16,10 @@ Item {
     property bool hasSelection: root.generator ? root.generator.selectedCellId !== "" : false
     property string selectedCellId: root.generator ? root.generator.selectedCellId : ""
 
+    // A template picked in the Template combo failed to load (corrupt or
+    // unreadable .utp). main.qml owns the error dialog.
+    signal templateLoadFailed(string path)
+
     // Reactive properties that update when selection or cells change
     property var currentFont: getCurrentFont()
     property var currentLabelColor: getCurrentLabelColor()
@@ -296,12 +300,25 @@ Item {
                     property var ids: []
 
                     function rebuild() {
-                        ids = root.cellModel ? root.cellModel.visibleCellIds() : []
-                        model = [qsTr("All cells")].concat(ids)
+                        var fresh = root.cellModel ? root.cellModel.visibleCellIds() : []
+                        // Reassigning the model resets currentIndex and
+                        // re-instantiates the popup's delegates; skip it when
+                        // the id list is unchanged (every timeline tick ends
+                        // up here via modelUpdated).
+                        var same = fresh.length === ids.length
+                        for (var i = 0; same && i < fresh.length; ++i)
+                            same = fresh[i] === ids[i]
+                        if (!same) {
+                            ids = fresh
+                            model = [qsTr("All cells")].concat(ids)
+                        }
                         syncIndex()
                     }
 
                     function syncIndex() {
+                        // The generator drops the selection itself when the
+                        // selected cell is hidden or removed, so a selected
+                        // id is always in the visible list here.
                         var sel = root.generator ? root.generator.selectedCellId : ""
                         var idx = sel === "" ? 0 : ids.indexOf(sel) + 1
                         currentIndex = idx > 0 ? idx : 0
@@ -678,7 +695,11 @@ Item {
             GridLayout {
                 Layout.fillWidth: true
                 columns: 2
-                enabled: root.hasSelection
+                // Needs a dive: the setters measure the cell's current box
+                // (text at the current time) to re-anchor it in place, and
+                // without one the alignment change would move the cell and
+                // the auto-size toggle would silently do nothing.
+                enabled: root.hasSelection && root.dive !== null
 
                 // Alignment picks which edge/center of the cell box pins to
                 // its position — e.g. a right-aligned cell keeps its right
@@ -760,6 +781,11 @@ Item {
                             root.generator.setCellAutoSize(
                                 root.selectedCellId, checked, root.dive,
                                 root.timeline ? root.timeline.currentTime : 0.0)
+                        // The click already flipped the box; if the setter
+                        // declined (no cell, nothing to measure) the model
+                        // did not change and no signal re-syncs us — so
+                        // always re-read the truth.
+                        checked = root.currentAutoSize
                     }
                 }
             }
@@ -819,15 +845,24 @@ Item {
                         }
 
                         onActivated: function(index) {
-                            if (root.generator) {
-                                var path = root.generator.getTemplatePath(index)
-                                if (path) {
-                                    root.generator.loadTemplateFromFile(path)
-                                    if (root.dive && root.timeline) {
-                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
-                                    }
-                                }
+                            if (!root.generator)
+                                return
+                            var path = root.generator.getTemplatePath(index)
+                            if (!path)
+                                return
+                            // The combo has already moved to the clicked
+                            // entry; a failed load (corrupt/unreadable .utp
+                            // — loadTemplateFromFile returns false silently)
+                            // must put it back on the template that is
+                            // actually rendering, and tell the user.
+                            if (!root.generator.loadTemplateFromFile(path)) {
+                                var active = config ? config.activeTemplatePath : ""
+                                var idx = active ? root.generator.indexOfTemplatePath(active) : -1
+                                currentIndex = idx >= 0 ? idx : 0
+                                root.templateLoadFailed(path)
                             }
+                            // No explicit cellModel refresh: templateChanged
+                            // already drives it through OverlayCanvas.
                         }
 
                         // The template directory is edited on the Settings

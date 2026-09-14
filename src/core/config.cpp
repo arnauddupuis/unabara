@@ -335,10 +335,15 @@ Units::UnitSystem Config::unitSystem() const
     return m_unitSystem;
 }
 
+// Settings-tab rule: everything edited on the Settings tab persists
+// immediately (like setLastExportPath / setTemplateDirectory /
+// setCheckUpdatesOnStartup), so a crash never loses a deliberate choice.
+// Editor-state setters (fonts, colors, toggles) still rely on the exit hook.
 void Config::setUnitSystem(Units::UnitSystem system)
 {
     if (m_unitSystem != system) {
         m_unitSystem = system;
+        saveConfig();
         emit unitSystemChanged();
     }
 }
@@ -347,6 +352,7 @@ void Config::setFrameRate(double fps)
 {
     if (m_frameRate != fps) {
         m_frameRate = fps;
+        saveConfig();
         emit frameRateChanged();
     }
 }

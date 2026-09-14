@@ -89,6 +89,10 @@ Column {
         height: section.expanded ? contentColumn.implicitHeight + 8 : 0
 
         Behavior on height {
+            // Off until the persisted state has been applied: a stored
+            // state that differs from the declared default would otherwise
+            // play a visible slide on every launch.
+            enabled: section._stateRestored
             NumberAnimation { duration: 150; easing.type: Easing.InOutQuad }
         }
 

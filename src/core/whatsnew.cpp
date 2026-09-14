@@ -101,9 +101,25 @@ int WhatsNew::compareVersions(const QString &a, const QString &b)
 {
     const QStringList as = a.split('.');
     const QStringList bs = b.split('.');
+    // Segments must be plain integers. A non-numeric segment ("0-rc1") is
+    // not something VERSION.md or whatsnew.json should ever carry, so make
+    // the assumption visible instead of silently treating it as 0. Empty
+    // segments stay silent: an empty *string* legitimately means "never
+    // seen a version" ("" splits to [""]), and warning about it would put
+    // noise in every comparison against that sentinel.
+    auto segment = [](const QStringList &parts, int i) {
+        if (i >= parts.size() || parts[i].isEmpty())
+            return 0;
+        bool ok = false;
+        const int v = parts[i].toInt(&ok);
+        if (!ok)
+            qWarning() << "WhatsNew: non-numeric version segment" << parts[i]
+                       << "in" << parts.join('.');
+        return ok ? v : 0;
+    };
     for (int i = 0; i < qMax(as.size(), bs.size()); ++i) {
-        const int av = (i < as.size()) ? as[i].toInt() : 0;
-        const int bv = (i < bs.size()) ? bs[i].toInt() : 0;
+        const int av = segment(as, i);
+        const int bv = segment(bs, i);
         if (av != bv)
             return av < bv ? -1 : 1;
     }

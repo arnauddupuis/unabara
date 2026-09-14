@@ -56,23 +56,37 @@ Item {
                         font.bold: true
                     }
 
+                    // A click assigns `checked` imperatively, which would
+                    // break a plain `checked:` binding; the explicit Binding
+                    // keeps the radios tracking config if anything else
+                    // ever changes the unit system.
                     RadioButton {
+                        id: metricRadio
                         text: qsTr("Metric (m, °C, bar)")
-                        checked: config ? config.unitSystem === Units.Metric : true
-                        onCheckedChanged: {
-                            if (checked && config && config.unitSystem !== Units.Metric) {
+                        Binding {
+                            target: metricRadio
+                            property: "checked"
+                            value: config ? config.unitSystem === Units.Metric : true
+                            restoreMode: Binding.RestoreNone
+                        }
+                        onClicked: {
+                            if (config)
                                 config.unitSystem = Units.Metric
-                            }
                         }
                     }
 
                     RadioButton {
+                        id: imperialRadio
                         text: qsTr("Imperial (ft, °F, psi)")
-                        checked: config ? config.unitSystem === Units.Imperial : false
-                        onCheckedChanged: {
-                            if (checked && config && config.unitSystem !== Units.Imperial) {
+                        Binding {
+                            target: imperialRadio
+                            property: "checked"
+                            value: config ? config.unitSystem === Units.Imperial : false
+                            restoreMode: Binding.RestoreNone
+                        }
+                        onClicked: {
+                            if (config)
                                 config.unitSystem = Units.Imperial
-                            }
                         }
                     }
 
@@ -260,8 +274,7 @@ Item {
     FolderDialog {
         id: exportDirDialog
         title: qsTr("Select Export Directory")
-        currentFolder: config && config.lastExportPath !== ""
-                       ? "file://" + config.lastExportPath : ""
+        currentFolder: config ? mainWindow.localFileToUrl(config.lastExportPath) : ""
         onAccepted: {
             if (config)
                 config.lastExportPath = mainWindow.urlToLocalFile(selectedFolder.toString())

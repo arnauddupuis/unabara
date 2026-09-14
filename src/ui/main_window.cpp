@@ -7,6 +7,7 @@
 #include <QStandardPaths>
 #include <QDesktopServices>
 #include <QFileInfo>
+#include <QDebug>
 
 MainWindow::MainWindow(QObject *parent)
     : QObject(parent)
@@ -82,11 +83,25 @@ QString MainWindow::urlToLocalFile(const QString &urlString)
     return urlString;
 }
 
+QUrl MainWindow::localFileToUrl(const QString &path)
+{
+    if (path.isEmpty()) {
+        return QUrl();
+    }
+    return QUrl::fromLocalFile(path);
+}
+
 void MainWindow::revealInFileManager(const QString &path)
 {
     // Opens the directory containing `path` (or `path` itself if it is a
     // directory) in the platform file manager. QUrl::fromLocalFile handles
     // the Windows drive-letter form correctly, unlike "file://" + path.
+    if (path.isEmpty()) {
+        // QFileInfo("").absolutePath() is the working directory — not
+        // something the user asked to see
+        qWarning() << "revealInFileManager: empty path";
+        return;
+    }
     QFileInfo info(path);
     QString dir = info.isDir() ? info.absoluteFilePath() : info.absolutePath();
     QDesktopServices::openUrl(QUrl::fromLocalFile(dir));

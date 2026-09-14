@@ -16,12 +16,11 @@ ImageExporter::ImageExporter(QObject *parent)
     , m_busy(false)
     , m_cancelRequested(false)
 {
-    // Set default export path to Pictures/Unabara folder
-    m_exportPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Unabara";
-    QDir dir;
-    if (!dir.exists(m_exportPath)) {
-        dir.mkpath(m_exportPath);
-    }
+    // m_exportPath is the directory frames are written to. main.qml points it
+    // at the per-dive sub-directory returned by createDefaultExportDir()
+    // before each export; the base directory lives in Config. No directory is
+    // created here — that happens when an export actually runs.
+    m_exportPath = Config::instance()->lastExportPath();
 }
 
 void ImageExporter::setExportPath(const QString &path)
@@ -87,7 +86,9 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
 
     // Calculate the number of frames to generate
     double timeStep = 1.0 / m_frameRate;
-    int totalFrames = qRound((endTime - startTime) * m_frameRate);
+    // The loop below always writes at least one frame (time == startTime),
+    // so never let a sub-frame range divide the progress by zero
+    int totalFrames = qMax(1, qRound((endTime - startTime) * m_frameRate));
     int processedFrames = 0;
 
     qDebug() << "Exporting images from" << startTime << "to" << endTime

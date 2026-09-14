@@ -10,8 +10,10 @@ import QtQuick.Layouts
  * anything that needs a decision stay modal — this is for notifications the
  * user may safely ignore.
  *
- * Fill the window's content item with this and give it a high z. It is
- * pointer-transparent everywhere except the toast box itself.
+ * Parent it to Overlay.overlay (so it paints above modal popups and their
+ * dim — a startup toast shown alongside a modal dialog would otherwise
+ * expire unseen behind it) and give it a high z. It is pointer-transparent
+ * everywhere except the toast box itself.
  *
  * Usage:
  *   toast.show(qsTr("Video imported"))
@@ -83,6 +85,15 @@ Item {
         opacity: visible ? 0.96 : 0
 
         Behavior on opacity { NumberAnimation { duration: 150 } }
+
+        // Swallow clicks on the toast itself; without this a click on the
+        // text falls through to whatever is underneath (timeline seek, a
+        // canvas cell). The buttons below sit above this area.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onWheel: function(wheel) { wheel.accepted = true }
+        }
 
         RowLayout {
             id: contentRow

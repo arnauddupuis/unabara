@@ -152,6 +152,17 @@ private slots:
         for (VAlign a : vAll) {
             QCOMPARE(CellData::vAlignFromString(CellData::vAlignToString(a)), a);
         }
+        // The wire strings are a file-format contract: build_templates.py
+        // writes them by hand for all 16 bundled templates, so a rename here
+        // would silently drop every bundled template to top-left anchoring
+        // while the round-trip above still passed.
+        QCOMPARE(CellData::hAlignToString(HAlign::Left), QStringLiteral("left"));
+        QCOMPARE(CellData::hAlignToString(HAlign::Center), QStringLiteral("center"));
+        QCOMPARE(CellData::hAlignToString(HAlign::Right), QStringLiteral("right"));
+        QCOMPARE(CellData::vAlignToString(VAlign::Top), QStringLiteral("top"));
+        QCOMPARE(CellData::vAlignToString(VAlign::Middle), QStringLiteral("middle"));
+        QCOMPARE(CellData::vAlignToString(VAlign::Bottom), QStringLiteral("bottom"));
+
         // Unknown or absent strings degrade to the legacy anchor
         QCOMPARE(CellData::hAlignFromString(QStringLiteral("diagonal")), HAlign::Left);
         QCOMPARE(CellData::hAlignFromString(QString()), HAlign::Left);
@@ -198,6 +209,10 @@ private slots:
         QJsonObject sizeJson;
         sizeJson[QStringLiteral("width")] = 0.0;
         sizeJson[QStringLiteral("height")] = 0.3;
+        degenerate[QStringLiteral("size")] = sizeJson;
+        QVERIFY(!CellData::fromJson(degenerate).hasFixedSize());
+        sizeJson[QStringLiteral("width")] = 0.2;
+        sizeJson[QStringLiteral("height")] = -0.1;
         degenerate[QStringLiteral("size")] = sizeJson;
         QVERIFY(!CellData::fromJson(degenerate).hasFixedSize());
     }

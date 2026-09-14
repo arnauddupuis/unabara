@@ -81,7 +81,35 @@ Rectangle {
     // renderer). Fixed: the template-defined box scaled to the container.
     width: hasFixedSize ? fixedSizePx.width : cellText.width + 8
     height: hasFixedSize ? fixedSizePx.height : cellText.height + 8
+    // Box position: the model stores the ANCHOR point; alignment decides
+    // which box edge/center pins to it (left/top = legacy top-left corner).
+    // Mirrors OverlayGenerator::cellGeometry().
+    x: cellPosition.x * (parent ? parent.width : 0) - anchorOffsetX()
+    y: cellPosition.y * (parent ? parent.height : 0) - anchorOffsetY()
     color: "transparent"
+
+    // MouseArea.drag and the resize handles assign x/y/width/height
+    // imperatively, which permanently breaks the declarative bindings above.
+    // The cell model is updated in place (no reset, so delegates are not
+    // recreated) — nothing else would heal them. Re-install the bindings once
+    // the new geometry has been committed to the model: they then evaluate
+    // straight to the committed box and keep tracking container resizes.
+    function restoreGeometryBindings() {
+        x = Qt.binding(function() {
+            return cellRoot.cellPosition.x * (cellRoot.parent ? cellRoot.parent.width : 0)
+                   - cellRoot.anchorOffsetX()
+        })
+        y = Qt.binding(function() {
+            return cellRoot.cellPosition.y * (cellRoot.parent ? cellRoot.parent.height : 0)
+                   - cellRoot.anchorOffsetY()
+        })
+        width = Qt.binding(function() {
+            return cellRoot.hasFixedSize ? cellRoot.fixedSizePx.width : cellText.width + 8
+        })
+        height = Qt.binding(function() {
+            return cellRoot.hasFixedSize ? cellRoot.fixedSizePx.height : cellText.height + 8
+        })
+    }
     border.color: selected ? "lime" : "transparent"
     border.width: selected ? 3 : 0
 
@@ -270,12 +298,11 @@ Rectangle {
                 var normalizedX = (clampedX + cellRoot.anchorOffsetX()) / containerWidth
                 var normalizedY = (clampedY + cellRoot.anchorOffsetY()) / containerHeight
 
-                // Emit position change signal
+                // Commit (the handler updates the model synchronously), then
+                // let the bindings place the box at the committed position —
+                // this also snaps it visually to the clamped/gridded spot.
                 cellRoot.positionChanged(Qt.point(normalizedX, normalizedY))
-
-                // Snap to clamped position for visual feedback
-                cellRoot.x = clampedX
-                cellRoot.y = clampedY
+                cellRoot.restoreGeometryBindings()
             }
         }
     }
@@ -385,6 +412,9 @@ Rectangle {
                     cellRoot.resizeYe = 0
                     cellRoot.geometryCommitted(Qt.rect(cellRoot.x, cellRoot.y,
                                                        cellRoot.width, cellRoot.height))
+                    // Model updated synchronously by the handler: the restored
+                    // bindings evaluate straight to the committed box.
+                    cellRoot.restoreGeometryBindings()
                 }
             }
         }

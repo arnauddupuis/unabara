@@ -27,12 +27,17 @@ ApplicationWindow {
 
     // Template-editor undo/redo.
     // StandardKey resolves the platform-native binding.
+    // Disabled while an export runs: Shortcut is not blocked by popup
+    // modality, and the image export loop pumps events, so an undo mid-export
+    // would change the layout partway through the frame sequence.
     Shortcut {
         sequences: [StandardKey.Undo]
+        enabled: !imageExporter.busy && !videoExporter.busy
         onActivated: undoManager.undo()
     }
     Shortcut {
         sequences: [StandardKey.Redo]
+        enabled: !imageExporter.busy && !videoExporter.busy
         onActivated: undoManager.redo()
     }
 
@@ -41,6 +46,12 @@ ApplicationWindow {
         id: imageExporter
         
         onExportStarted: {
+            // The generators are not thread-safe: playback keeps the image
+            // provider rendering on its worker thread while the export
+            // renders on the GUI thread (and the provider's cell-background
+            // toggle races beginExport()). Export is reachable from the
+            // Video Preview tab, so stop the player first.
+            videoSyncPlayer.pause()
             exportProgressDialog.open()
         }
         
@@ -76,6 +87,7 @@ ApplicationWindow {
         id: videoExporter
         
         onExportStarted: {
+            videoSyncPlayer.pause()  // see ImageExporter.onExportStarted
             videoExportProgressDialog.open()
         }
         
@@ -142,6 +154,48 @@ ApplicationWindow {
         }
     }
     
+    // Fallback for video imports whose metadata never arrives: after a grace
+    // period, settle the duration (and the timecode auto-sync) ourselves.
+    // Declared once here — the previous Qt.createQmlObject per import leaked
+    // a Timer and its closure every time a video was imported.
+    Timer {
+        id: videoMetadataFallbackTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            // If we get here, metadata loading probably failed
+            console.log("Metadata loading timed out, checking duration");
+            
+            // If duration hasn't been set, use a default
+            if (timelineView.timeline.videoDuration <= 0) {
+                console.log("Setting default video duration");
+                // Get the actual duration from metadata player if possible
+                if (metadataPlayer.duration > 0) {
+                    timelineView.setVideoDuration(metadataPlayer.duration / 1000);
+                } else {
+                    console.log("Using fallback 60 second duration");
+                    timelineView.setVideoDuration(60); // Default to 1 minute
+                }
+                // Auto-sync video offset from timecode if available
+                let synced = false
+                if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                    let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                    if (tc >= 0) {
+                        let ds = mainWindow.currentDive.startTime
+                        let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
+                        timelineView.timeline.videoOffset = tc - dsSecs
+                        synced = true
+                    }
+                }
+                if (!synced) {
+                    timelineView.timeline.videoOffset = 0.0
+                }
+            } else {
+                console.log("Duration already set to:", timelineView.timeline.videoDuration);
+            }
+        }
+    }
+
     // Hidden MediaPlayer to get video metadata
     MediaPlayer {
         id: metadataPlayer
@@ -571,6 +625,11 @@ ApplicationWindow {
                                         id: overlayEditor
                                         width: overlayEditorScroll.availableWidth
                                         generator: overlayGenerator
+                                        onTemplateLoadFailed: function(path) {
+                                            messageDialog.title = qsTr("Template Error")
+                                            messageDialog.message = qsTr("Could not load the template:\n%1\n\nThe file may be corrupt or unreadable. The previous template is still active.").arg(path)
+                                            messageDialog.open()
+                                        }
                                         timeline: timelineView.timeline
                                         dive: mainWindow.currentDive
                                         cellModel: overlayCellModel
@@ -943,6 +1002,10 @@ ApplicationWindow {
     // imported, FFmpeg missing) surface here; errors and decisions stay modal.
     ToastNotification {
         id: toast
+        // In the popup overlay, above modal dialogs and their dim — the
+        // startup FFmpeg toast and the What's New dialog open in the same
+        // tick, and in contentItem the toast would expire unseen behind it.
+        parent: Overlay.overlay
         anchors.fill: parent
         z: 1000
     }
@@ -972,8 +1035,7 @@ ApplicationWindow {
     FolderDialog {
         id: exportDestinationDialog
         title: qsTr("Select Export Directory")
-        currentFolder: config && config.lastExportPath !== ""
-                       ? "file://" + config.lastExportPath : ""
+        currentFolder: config ? mainWindow.localFileToUrl(config.lastExportPath) : ""
         onAccepted: {
             // Persisted immediately; the exporters read it at export time and
             // the Settings tab shows the same value.
@@ -997,49 +1059,10 @@ ApplicationWindow {
             // First set the video path in timeline
             timelineView.setVideoPath(filePath);
             
-            // Setup a fallback timer in case metadata loading fails
-            let metadataTimer = Qt.createQmlObject(
-                'import QtQuick; Timer { interval: 3000; repeat: false; }',
-                importVideoFileDialog
-            );
-            
-            metadataTimer.triggered.connect(function() {
-                // If we get here, metadata loading probably failed
-                console.log("Metadata loading timed out, checking duration");
-                
-                // If duration hasn't been set, use a default
-                if (timelineView.timeline.videoDuration <= 0) {
-                    console.log("Setting default video duration");
-                    // Get the actual duration from metadata player if possible
-                    if (metadataPlayer.duration > 0) {
-                        timelineView.setVideoDuration(metadataPlayer.duration / 1000);
-                    } else {
-                        console.log("Using fallback 60 second duration");
-                        timelineView.setVideoDuration(60); // Default to 1 minute
-                    }
-                    // Auto-sync video offset from timecode if available
-                    let synced = false
-                    if (mainWindow.currentDive && timelineView.videoPath !== "") {
-                        let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
-                        if (tc >= 0) {
-                            let ds = mainWindow.currentDive.startTime
-                            let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
-                            timelineView.timeline.videoOffset = tc - dsSecs
-                            synced = true
-                        }
-                    }
-                    if (!synced) {
-                        timelineView.timeline.videoOffset = 0.0
-                    }
-                } else {
-                    console.log("Duration already set to:", timelineView.timeline.videoDuration);
-                }
-            });
-            
             // Then use MediaPlayer to determine video duration
             metadataPlayer.source = selectedFile;
             // metadataPlayer.play();  // Start playback to initialize metadata
-            metadataTimer.start();
+            videoMetadataFallbackTimer.restart();
             
             // Notify without interrupting: the user's next step is on the
             // timeline or the Video Preview tab, not in a dialog.
@@ -1191,8 +1214,11 @@ ApplicationWindow {
                 }
             }
             onAccepted: {
-                handleExport();
+                // Close first: the image export runs synchronously inside
+                // handleExport(), and the progress dialog (and the success
+                // toast) would otherwise stack on this still-open modal.
                 exportImagesDialog.accept();
+                handleExport();
             }
             onRejected: exportImagesDialog.reject()
             padding: 10

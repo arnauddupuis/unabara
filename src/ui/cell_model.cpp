@@ -147,9 +147,28 @@ void CellModel::updateFromGenerator(OverlayGenerator* generator, DiveData* dive,
     m_dive = dive;
     m_timePoint = timePoint;
 
-    beginResetModel();
-    m_cells = generator->cells();
-    endResetModel();
+    const QVector<Unabara::CellData> fresh = generator->cells();
+
+    // Same cells in the same order — the common case (a timeline tick, a
+    // font/color edit, a drag commit) — is an in-place update. A model reset
+    // destroys and recreates every delegate, which is expensive for the
+    // canvas (shadow copies, blur effects, resize handles) and cancels an
+    // in-progress drag. Only a changed cell list needs the reset.
+    bool sameShape = fresh.size() == m_cells.size();
+    for (int i = 0; sameShape && i < fresh.size(); ++i) {
+        sameShape = fresh[i].cellId() == m_cells[i].cellId();
+    }
+
+    if (sameShape) {
+        m_cells = fresh;
+        if (!m_cells.isEmpty()) {
+            emit dataChanged(index(0), index(m_cells.size() - 1));
+        }
+    } else {
+        beginResetModel();
+        m_cells = fresh;
+        endResetModel();
+    }
 
     emit modelUpdated();
 }

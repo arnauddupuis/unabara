@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
+#include <QPointer>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -21,13 +22,11 @@ VideoExporter::VideoExporter(QObject *parent)
     , m_cancelRequested(false)
     , m_ffmpegProcess(nullptr)
 {
-    // Set default export path to Videos/Unabara folder
-    m_exportPath = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + "/Unabara";
-    QDir dir;
-    if (!dir.exists(m_exportPath)) {
-        dir.mkpath(m_exportPath);
-    }
-    
+    // Exports land under the user's configured base directory (read from
+    // Config at export time); this is only the property's initial value. No
+    // directory is created here — that happens when an export actually runs.
+    m_exportPath = Config::instance()->lastExportPath();
+
     // Create the temporary directory
     if (!m_tempDir.isValid()) {
         qWarning() << "Failed to create temporary directory for frame storage";
@@ -286,15 +285,19 @@ void VideoExporter::cancelExport()
     m_cancelRequested = true;
 
     if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
-        // Encoding phase: stop FFmpeg. waitForFinished() delivers the
-        // finished() signal synchronously, so onFFmpegFinished() runs here
-        // and completes the cancellation (partial-file removal, temp
-        // cleanup, exportCancelled()).
+        // Encoding phase: ask FFmpeg to stop and return immediately. The
+        // normal finished() delivery runs onFFmpegFinished(), which completes
+        // the cancellation (partial-file removal, temp cleanup,
+        // exportCancelled()). No blocking wait on the GUI thread, and no
+        // re-entering the UI from inside the Cancel button's handler. If
+        // FFmpeg ignores SIGTERM, escalate to kill() after a grace period.
         m_ffmpegProcess->terminate();
-        if (!m_ffmpegProcess->waitForFinished(3000)) {
-            m_ffmpegProcess->kill();
-            m_ffmpegProcess->waitForFinished(1000);
-        }
+        QPointer<QProcess> proc = m_ffmpegProcess;
+        QTimer::singleShot(3000, this, [proc]() {
+            if (proc && proc->state() != QProcess::NotRunning) {
+                proc->kill();
+            }
+        });
     }
     // Frame-generation phase: nothing more to do here — this call was
     // delivered by the generation loop's processEvents(), and the loop

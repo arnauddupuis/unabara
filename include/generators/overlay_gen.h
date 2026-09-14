@@ -383,10 +383,27 @@ private:
     // Seed a cell's label/value colors from the globals (isCustom = false)
     void seedCellColors(Unabara::CellData& cell) const;
 
+    // The font (already scaled to template pixels) and display text a cell
+    // renders with at a data point. Single source of truth for
+    // renderCellBasedOverlay and cellBoxFor: both must measure the same text
+    // with the same font, or hit-testing and re-anchoring drift from the pixels.
+    struct CellRenderInputs {
+        QFont renderFont;
+        QString displayText;
+    };
+    CellRenderInputs cellRenderInputs(const Unabara::CellData& cell,
+                                      const DiveDataPoint& dataPoint,
+                                      DiveData* dive) const;
+
     // One cell's anchor-resolved box at template resolution (shared by
     // cellRects and the alignment/auto-size re-anchoring setters)
-    QRectF cellBoxFor(const Unabara::CellData& cell, DiveData* dive,
-                      double timePoint) const;
+    QRectF cellBoxFor(const Unabara::CellData& cell, const DiveDataPoint& dataPoint,
+                      DiveData* dive) const;
+
+    // Clear the selection when the selected cell no longer exists or is no
+    // longer visible. Otherwise the inspector keeps editing an invisible or
+    // missing cell while the UI says "All cells".
+    void dropStaleSelection();
 
     // Helper methods for drawing
     int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;

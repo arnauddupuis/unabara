@@ -540,6 +540,15 @@ void OverlayGenerator::setSelectedCellId(const QString& cellId)
     }
 }
 
+void OverlayGenerator::dropStaleSelection()
+{
+    if (m_selectedCellId.isEmpty())
+        return;
+    const Unabara::CellData* cell = getCellData(m_selectedCellId);
+    if (!cell || !cell->visible())
+        setSelectedCellId(QString());
+}
+
 void OverlayGenerator::setSnapToGrid(bool enabled)
 {
     if (m_snapToGrid != enabled) {
@@ -840,7 +849,7 @@ void OverlayGenerator::setCellHAlign(const QString& cellId, int align,
     // Pin the new anchor edge onto the current on-screen box so the cell
     // stays put; only the growth direction changes
     if (dive && m_templateWidth > 0) {
-        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        const QRectF box = cellBoxFor(*cell, dive->dataAtTime(timePoint), dive);
         double ax = box.x();
         if (newAlign == Unabara::HAlign::Center) ax = box.x() + box.width() / 2.0;
         else if (newAlign == Unabara::HAlign::Right) ax = box.x() + box.width();
@@ -865,7 +874,7 @@ void OverlayGenerator::setCellVAlign(const QString& cellId, int align,
         return;
 
     if (dive && m_templateHeight > 0) {
-        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        const QRectF box = cellBoxFor(*cell, dive->dataAtTime(timePoint), dive);
         double ay = box.y();
         if (newAlign == Unabara::VAlign::Middle) ay = box.y() + box.height() / 2.0;
         else if (newAlign == Unabara::VAlign::Bottom) ay = box.y() + box.height();
@@ -897,7 +906,7 @@ void OverlayGenerator::setCellAutoSize(const QString& cellId, bool autoSize,
             qWarning() << "setCellAutoSize: need a dive to measure" << cellId;
             return;
         }
-        const QRectF box = cellBoxFor(*cell, dive, timePoint);
+        const QRectF box = cellBoxFor(*cell, dive->dataAtTime(timePoint), dive);
         cell->setFixedSize(QSizeF(box.width() / m_templateWidth,
                                   box.height() / m_templateHeight));
     }
@@ -1078,7 +1087,10 @@ void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
 {
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
+        if (cell->visible() == visible)
+            return;
         cell->setVisible(visible);
+        dropStaleSelection();
         emit cellLayoutChanged();
     } else {
         qWarning() << "setCellVisible: Cell not found:" << cellId;
@@ -1089,7 +1101,13 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
 {
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
+        // No-op when unchanged: loadTemplate() emits every show*Changed and
+        // the canvas answers each with this call, so an unconditional emit
+        // costs a full model refresh per flag
+        if (cell->visible() == visible)
+            return;
         cell->setVisible(visible);
+        dropStaleSelection();
         emit cellLayoutChanged();
         return;
     }
@@ -1161,6 +1179,7 @@ void OverlayGenerator::adjustTankCellVisibility(DiveData* dive)
     }
 
     if (changed) {
+        dropStaleSelection();
         emit cellLayoutChanged();
     }
 }
@@ -1216,14 +1235,21 @@ void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
     }
 
     // Toggle existing pressure cells
+    bool changed = false;
     for (int i = 0; i < m_cells.size(); ++i) {
         if (m_cells[i].cellType() == Unabara::CellType::Pressure) {
             bool shouldBeVisible = visible && m_cells[i].tankIndex() < tankCount;
-            m_cells[i].setVisible(shouldBeVisible);
+            if (m_cells[i].visible() != shouldBeVisible) {
+                m_cells[i].setVisible(shouldBeVisible);
+                changed = true;
+            }
         }
     }
 
-    emit cellLayoutChanged();
+    if (changed) {
+        dropStaleSelection();
+        emit cellLayoutChanged();
+    }
 }
 
 void OverlayGenerator::setUseCellBasedLayout(bool use)
@@ -1257,6 +1283,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_shadowOpacity = templ.defaultShadowOpacity();
     m_cells = templ.cells();
     m_useCellBasedLayout = true;
+    // The selection belongs to the previous cell list
+    dropStaleSelection();
 
     // Optional profile color scheme: carried when the template has one,
     // cleared (invalid QColor) when it doesn't — so undo snapshots and
@@ -2084,8 +2112,7 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
     for (const auto& cell : m_cells) {
         if (!cell.visible()) continue;
 
-        // Get effective font and colors (same as before)
-        QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
+        // Get effective colors
         QColor effectiveLabelColor = cell.hasCustomLabelColor() ? cell.labelColor() : m_labelColor;
         QColor effectiveValueColor = cell.hasCustomValueColor() ? cell.valueColor() : m_valueColor;
 
@@ -2097,16 +2124,11 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         const int shadowSize = customShadow ? cell.shadowSize() : m_shadowSize;
         const double shadowOpacity = customShadow ? cell.shadowOpacity() : m_shadowOpacity;
 
-        // Generate displayText (same format as QML CellModel)
-        QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
-                                                       cell.tankIndex(), dive,
-                                                       cell.showLabel());
-
-        // Scale font for template resolution (match calculateCellSize behavior)
-        // QML renders at preview size, but C++ renders at full template resolution
-        // then scales down, so we need scaled fonts to match
-        QFont renderFont = effectiveFont;
-        renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
+        // Font (scaled to template resolution) and text, shared with the
+        // hit-test / re-anchoring path so both measure exactly what is drawn
+        const CellRenderInputs inputs = cellRenderInputs(cell, dataPoint, dive);
+        const QFont& renderFont = inputs.renderFont;
+        const QString& displayText = inputs.displayText;
 
         painter.setFont(renderFont);
         QFontMetrics fm(renderFont);
@@ -2114,7 +2136,10 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
         const QRectF& cellRect = geo.textRect;
 
         // A fixed-size box may be smaller than its content: clip the whole
-        // cell to the box (the shadow paths draw with TextDontClip)
+        // cell to the box (the shadow paths draw with TextDontClip). Shadows
+        // are clipped too, deliberately — the box is the cell's full
+        // footprint, so a fixed-size cell never bleeds into its neighbours.
+        // Auto-sized cells are unclipped, as before 1.2.
         const bool clipToBox = cell.hasFixedSize();
         if (clipToBox) {
             painter.save();
@@ -2260,19 +2285,27 @@ OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
     return { box, QRectF(qFloor(tx), qFloor(ty), textBounds.width(), textBounds.height()) };
 }
 
-QRectF OverlayGenerator::cellBoxFor(const Unabara::CellData& cell, DiveData* dive,
-                                    double timePoint) const
+OverlayGenerator::CellRenderInputs OverlayGenerator::cellRenderInputs(
+    const Unabara::CellData& cell, const DiveDataPoint& dataPoint, DiveData* dive) const
 {
-    const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
+    // Scale the font to template resolution: the QML preview renders at
+    // widget size, the C++ render at full template resolution, and the 1.8
+    // factor (duplicated in the QML) is what makes the two agree
     const QFont effectiveFont = cell.hasCustomFont() ? cell.font() : m_font;
     QFont renderFont = effectiveFont;
     renderFont.setPixelSize(getScaledFontSize(effectiveFont, 1.8));
 
-    const QString displayText = generateCellDisplayText(cell.cellType(), dataPoint,
-                                                        cell.tankIndex(), dive,
-                                                        cell.showLabel());
-    const QFontMetrics fm(renderFont);
-    return cellGeometry(cell, fm, displayText,
+    return { renderFont,
+             generateCellDisplayText(cell.cellType(), dataPoint, cell.tankIndex(),
+                                     dive, cell.showLabel()) };
+}
+
+QRectF OverlayGenerator::cellBoxFor(const Unabara::CellData& cell,
+                                    const DiveDataPoint& dataPoint, DiveData* dive) const
+{
+    const CellRenderInputs inputs = cellRenderInputs(cell, dataPoint, dive);
+    const QFontMetrics fm(inputs.renderFont);
+    return cellGeometry(cell, fm, inputs.displayText,
                         m_templateWidth, m_templateHeight).box;
 }
 
@@ -2283,10 +2316,12 @@ QVector<QPair<QString, QRectF>> OverlayGenerator::cellRects(DiveData* dive,
     if (!dive || m_templateWidth <= 0 || m_templateHeight <= 0)
         return rects;
 
+    // One interpolation for all cells (dataAtTime is a search plus a blend)
+    const DiveDataPoint dataPoint = dive->dataAtTime(timePoint);
     for (const auto& cell : m_cells) {
         if (!cell.visible())
             continue;
-        rects.append({cell.cellId(), cellBoxFor(cell, dive, timePoint)});
+        rects.append({cell.cellId(), cellBoxFor(cell, dataPoint, dive)});
     }
     return rects;
 }

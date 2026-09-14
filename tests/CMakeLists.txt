@@ -21,7 +21,14 @@ add_library(unabara_testlib STATIC
     ${CMAKE_SOURCE_DIR}/include/core/log_parser.h
     ${CMAKE_SOURCE_DIR}/include/core/units.h
     ${CMAKE_SOURCE_DIR}/include/core/whatsnew.h
+    ${CMAKE_SOURCE_DIR}/include/core/config.h
+    ${CMAKE_SOURCE_DIR}/include/generators/overlay_gen.h
     ${CMAKE_SOURCE_DIR}/src/core/cell_data.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/config.cpp
+    # Core+Gui only (QPainter, QFontMetrics); pulled in for the cell geometry
+    # tests. Tests that construct it must redirect QSettings first — see
+    # overlay_geometry_test.cpp.
+    ${CMAKE_SOURCE_DIR}/src/generators/overlay_gen.cpp
     ${CMAKE_SOURCE_DIR}/src/core/overlay_template.cpp
     ${CMAKE_SOURCE_DIR}/src/core/dive_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_parser.cpp
@@ -57,4 +64,5 @@ unabara_add_test(uddf_parser_test)
 unabara_add_test(core_utils_test)
 unabara_add_test(cell_data_test)
 unabara_add_test(overlay_template_test)
+unabara_add_test(overlay_geometry_test)
 unabara_add_test(whatsnew_test)

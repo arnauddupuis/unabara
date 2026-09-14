@@ -48,7 +48,6 @@ Item {
     // Function to detect all overlapping cells
     function detectOverlaps() {
         detectOverlapsCount++
-        console.log(">>> detectOverlaps called, count: ", detectOverlapsCount)
         var overlaps = {}
         var cells = []
 
@@ -192,7 +191,6 @@ Item {
             source: {
                 if (!generator) return ""
                 var path = generator.templatePath
-                console.log("InteractiveOverlayPreview: Loading background image:", path)
 
                 // Handle different path formats:
                 // 1. Qt resource paths (:/...) should be converted to qrc:/ format
@@ -211,18 +209,15 @@ Item {
                     path = "file:///" + path
                 }
 
-                console.log("InteractiveOverlayPreview: Final image source:", path)
                 return path
             }
             fillMode: Image.PreserveAspectFit
             asynchronous: true
 
             onStatusChanged: {
-                console.log(">>> BG Image status:", status, "(0=Null,1=Ready,2=Loading,3=Error)")
                 if (status === Image.Error) {
                     console.error("Failed to load background image:", source)
                 } else if (status === Image.Ready) {
-                    console.log("Background image loaded successfully, size:", sourceSize.width, "x", sourceSize.height)
                 }
             }
 
@@ -433,14 +428,10 @@ Item {
                         // Generator reference for snap-to-grid
                         generator: interactivePreview.generator
 
-                        // Position: the model stores the ANCHOR point;
-                        // alignment decides which box edge/center pins to it
-                        // (left/top = legacy top-left corner). Mirrors
-                        // OverlayGenerator::cellGeometry().
-                        x: model.position.x * cellContainer.width
-                           - (model.hAlign === 1 ? width / 2 : model.hAlign === 2 ? width : 0)
-                        y: model.position.y * cellContainer.height
-                           - (model.vAlign === 1 ? height / 2 : model.vAlign === 2 ? height : 0)
+                        // Box position is derived inside OverlayCell from this
+                        // anchor point + alignment (so the cell can re-install
+                        // its own x/y bindings after a drag or resize).
+                        cellPosition: model.position
 
                         // Trigger overlap and alignment detection when position or size changes
                         onXChanged: {

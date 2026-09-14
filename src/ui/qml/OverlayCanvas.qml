@@ -74,15 +74,15 @@ Item {
     // Short debounce so bursts of property changes cost one render.
     Timer {
         id: renderTimer
-        interval: 100
+        interval: 40
         repeat: false
         onTriggered: {
             root.renderDirty = false
-            // Two-step refresh forces the image provider to be re-queried.
-            renderImage.source = ""
-            Qt.callLater(function() {
-                renderImage.source = "image://overlay/preview/" + Date.now()
-            })
+            // A unique URL (cache: false on the Image) is enough to re-query
+            // the provider. Never blank the source first: with an
+            // asynchronous Image that shows an empty frame until the new
+            // render arrives, i.e. a flash on every scrub tick.
+            renderImage.source = "image://overlay/preview/" + Date.now()
         }
     }
 
@@ -139,70 +139,58 @@ Item {
 
         // Toggle cell visibility without destroying the layout.
         // setCellTypeVisible creates a default cell when the current
-        // template has none for that data type.
+        // template has none for that data type. No explicit refresh here:
+        // the setters emit cellsChanged/cellLayoutChanged only when
+        // something actually changed, and those are handled above. (A
+        // template load fires all 16 of these; refreshing unconditionally
+        // used to cost two full model refreshes per flag.)
         function onShowDepthChanged() {
             root.generator.setCellTypeVisible("depth", root.generator.showDepth)
-            root.refreshAll()
         }
         function onShowTemperatureChanged() {
             root.generator.setCellTypeVisible("temperature", root.generator.showTemperature)
-            root.refreshAll()
         }
         function onShowNDLChanged() {
             root.generator.setCellTypeVisible("ndl", root.generator.showNDL)
-            root.refreshAll()
         }
         function onShowPressureChanged() {
             root.generator.setPressureCellsVisible(root.generator.showPressure, root.dive)
-            root.refreshAll()
         }
         function onShowTimeChanged() {
             root.generator.setCellTypeVisible("time", root.generator.showTime)
-            root.refreshAll()
         }
         function onShowCNSChanged() {
             root.generator.setCellTypeVisible("cns", root.generator.showCNS)
-            root.refreshAll()
         }
         function onShowMeanDepthChanged() {
             root.generator.setCellTypeVisible("mean_depth", root.generator.showMeanDepth)
-            root.refreshAll()
         }
         function onShowMaxDepthChanged() {
             root.generator.setCellTypeVisible("max_depth", root.generator.showMaxDepth)
-            root.refreshAll()
         }
         function onShowGasChanged() {
             root.generator.setCellTypeVisible("gas", root.generator.showGas)
-            root.refreshAll()
         }
         function onShowTTSChanged() {
             root.generator.setCellTypeVisible("tts", root.generator.showTTS)
-            root.refreshAll()
         }
         function onShowStopDepthChanged() {
             root.generator.setCellTypeVisible("stop_depth", root.generator.showStopDepth)
-            root.refreshAll()
         }
         function onShowStopTimeChanged() {
             root.generator.setCellTypeVisible("stop_time", root.generator.showStopTime)
-            root.refreshAll()
         }
         function onShowPO2Cell1Changed() {
             root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
-            root.refreshAll()
         }
         function onShowPO2Cell2Changed() {
             root.generator.setCellTypeVisible("po2_cell2", root.generator.showPO2Cell2)
-            root.refreshAll()
         }
         function onShowPO2Cell3Changed() {
             root.generator.setCellTypeVisible("po2_cell3", root.generator.showPO2Cell3)
-            root.refreshAll()
         }
         function onShowCompositePO2Changed() {
             root.generator.setCellTypeVisible("composite_po2", root.generator.showCompositePO2)
-            root.refreshAll()
         }
     }
 

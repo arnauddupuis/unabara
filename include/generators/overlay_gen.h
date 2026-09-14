@@ -53,8 +53,6 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     // Cell selection for per-cell editing
     Q_PROPERTY(QString selectedCellId READ selectedCellId WRITE setSelectedCellId NOTIFY selectedCellIdChanged)
 
-    // Cell background visibility (editor only, not for export/preview)
-    Q_PROPERTY(bool showCellBackgrounds READ showCellBackgrounds WRITE setShowCellBackgrounds NOTIFY showCellBackgroundsChanged)
 
     // Snap-to-grid settings
     Q_PROPERTY(bool snapToGrid READ snapToGrid WRITE setSnapToGrid NOTIFY snapToGridChanged)
@@ -109,8 +107,6 @@ public:
     // Cell selection getter
     QString selectedCellId() const { return m_selectedCellId; }
 
-    // Cell background visibility
-    bool showCellBackgrounds() const { return m_showCellBackgrounds; }
 
     // Snap-to-grid getters
     bool snapToGrid() const { return m_snapToGrid; }
@@ -161,8 +157,6 @@ public:
     // Cell selection setter
     void setSelectedCellId(const QString& cellId);
 
-    // Cell background visibility setter
-    void setShowCellBackgrounds(bool show);
 
     // Snap-to-grid setters
     void setSnapToGrid(bool enabled);
@@ -178,6 +172,15 @@ public:
     // Normalized fixed size; an invalid/empty size reverts the cell to
     // auto-sizing from its content (v1.2 geometry)
     Q_INVOKABLE void setCellFixedSize(const QString& cellId, const QSizeF& size);
+    // Atomic position + fixed-size commit (a resize moves both): ONE
+    // cellLayoutChanged, so downstream costs — model refresh, cache
+    // invalidation, undo snapshot — happen once by construction instead of
+    // relying on debounce timing to coalesce two setter emissions.
+    Q_INVOKABLE void setCellGeometry(const QString& cellId, const QPointF& pos,
+                                     const QSizeF& size);
+    // Translated human-readable name for a cell id (delegates to
+    // CellData::displayName) — for QML lists that show cells.
+    Q_INVOKABLE QString cellDisplayName(const QString& cellId) const;
 
     // v1.2 cell geometry (alignment values use the Unabara::HAlign/VAlign
     // enum order: 0 = left/top, 1 = center/middle, 2 = right/bottom)
@@ -187,6 +190,11 @@ public:
     // Change the anchor edge. When a dive is provided, the stored position is
     // re-derived from the cell's current on-screen box so changing alignment
     // never moves the cell — it only changes which edge stays fixed later.
+    // Pixel-exact on every axis: Center/Right/Middle/Bottom via the epsilon
+    // floor in cellGeometry; Left/Top (whose render path keeps the plain
+    // pre-1.2 truncation for byte-compat) by baking the same epsilon into
+    // the stored anchor value, which survives the multiply-back and .utp
+    // JSON round trips (locked in by overlay_geometry_test).
     Q_INVOKABLE void setCellHAlign(const QString& cellId, int align,
                                    DiveData* dive = nullptr, double timePoint = 0.0);
     Q_INVOKABLE void setCellVAlign(const QString& cellId, int align,
@@ -273,8 +281,6 @@ public:
 
     // IFrameGenerator
     QImage generate(DiveData* dive, double timePoint) override { return generateOverlay(dive, timePoint); }
-    void beginExport() override;
-    void endExport() override;
     
 signals:
     void templateChanged();
@@ -314,8 +320,6 @@ signals:
     void templateSaved(const QString& filePath);
     void templateLoaded(const QString& filePath);
 
-    // Cell background signal
-    void showCellBackgroundsChanged();
 
     // Snap-to-grid signals
     void snapToGridChanged();
@@ -365,8 +369,6 @@ private:
     // Cell selection
     QString m_selectedCellId;
 
-    // Cell background visibility
-    bool m_showCellBackgrounds;
 
     // Template listing cache
     QStringList m_templateNames;
@@ -381,8 +383,6 @@ private:
     QColor m_primaryColor;
     QColor m_secondaryColor;
 
-    // Export-pass state stash (saved by beginExport, restored by endExport)
-    bool m_savedShowCellBackgrounds = true;
 
     // Seed a cell's label/value colors from the globals (isCustom = false)
     void seedCellColors(Unabara::CellData& cell) const;

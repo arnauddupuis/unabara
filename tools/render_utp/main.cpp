@@ -177,8 +177,8 @@ int main(int argc, char* argv[])
     }
 
     DiveData* dive = makeSyntheticDive();
-    // Same path as the real exporters: beginExport() disables the editor-only
-    // cell backgrounds so the output matches what users actually export.
+    // Same path as the real exporters: the begin/endExport pair is part of
+    // the IFrameGenerator contract (currently a no-op for OverlayGenerator).
     generator.beginExport();
     const QImage overlay = generator.generateOverlay(dive, timePoint);
     generator.endExport();

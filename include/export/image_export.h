@@ -13,6 +13,10 @@ class ImageExporter : public QObject
     Q_OBJECT
     
     Q_PROPERTY(QString exportPath READ exportPath WRITE setExportPath NOTIFY exportPathChanged)
+    // Base directory that createDefaultExportDir() creates per-dive subfolders
+    // under. Bound from QML (config.lastExportPath) so the exporter itself has
+    // no dependency on the settings store.
+    Q_PROPERTY(QString baseDirectory READ baseDirectory WRITE setBaseDirectory NOTIFY baseDirectoryChanged)
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
@@ -22,12 +26,14 @@ public:
     
     // Getters
     QString exportPath() const { return m_exportPath; }
+    QString baseDirectory() const { return m_baseDirectory; }
     double frameRate() const { return m_frameRate; }
     int progress() const { return m_progress; }
     bool isBusy() const { return m_busy; }
     
     // Setters
     void setExportPath(const QString &path);
+    void setBaseDirectory(const QString &path);
     void setFrameRate(double fps);
     
     // Export methods. `generator` is accepted as a QObject* so QML can pass
@@ -54,6 +60,7 @@ public:
     
 signals:
     void exportPathChanged();
+    void baseDirectoryChanged();
     void frameRateChanged();
     void progressChanged();
     void busyChanged();
@@ -64,13 +71,11 @@ signals:
 
 private:
     QString m_exportPath;
+    QString m_baseDirectory;
     double m_frameRate;
     int m_progress;
     bool m_busy;
     bool m_cancelRequested;
-
-    // Helper methods
-    void removePartialFrames(int frameCount);
 };
 
 #endif // IMAGE_EXPORT_H

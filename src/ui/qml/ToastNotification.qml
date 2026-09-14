@@ -37,12 +37,15 @@ Item {
 
     function show(text, options) {
         var opts = options || {}
-        queue.push({
+        // Reassign rather than push(): mutating a `property var` array in
+        // place never fires change notifications, so anything bound to the
+        // queue (even just a future debug counter) would silently go stale.
+        queue = queue.concat([{
             text: text,
             duration: opts.duration !== undefined ? opts.duration : defaultDuration,
             actionText: opts.actionText !== undefined ? opts.actionText : "",
             onAction: opts.onAction !== undefined ? opts.onAction : null
-        })
+        }])
         if (!current)
             advance()
     }
@@ -53,7 +56,8 @@ Item {
             current = null
             return
         }
-        current = queue.shift()
+        current = queue[0]
+        queue = queue.slice(1)
         // Re-arm even when a toast replaces another: assigning `current`
         // rebinds the box contents, and the timer restarts for the new one.
         dismissTimer.interval = current.duration

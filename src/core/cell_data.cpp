@@ -1,5 +1,6 @@
 #include "include/core/cell_data.h"
 #include <QJsonArray>
+#include <QCoreApplication>
 
 namespace Unabara {
 
@@ -201,7 +202,7 @@ CellData CellData::fromJson(const QJsonObject& json)
     if (json.contains("font")) {
         QJsonObject fontJson = json["font"].toObject();
         QFont font;
-        font.setFamily(fontJson["family"].toString("Arial"));
+        font.setFamily(normalizedFontFamily(fontJson["family"].toString("Arial")));
         font.setPointSize(fontJson["pointSize"].toInt(12));
         font.setWeight(static_cast<QFont::Weight>(fontJson["weight"].toInt(QFont::Normal)));
         font.setItalic(fontJson["italic"].toBool(false));
@@ -361,6 +362,44 @@ VAlign CellData::vAlignFromString(const QString& str)
     if (str == "middle") return VAlign::Middle;
     if (str == "bottom") return VAlign::Bottom;
     return VAlign::Top;
+}
+
+QString CellData::displayName(const QString& cellId)
+{
+    const auto tr = [](const char* s) {
+        return QCoreApplication::translate("CellNames", s);
+    };
+    // Tank pressure cells are dynamic ("tank_0", "tank_1", ...)
+    if (cellId.startsWith(QStringLiteral("tank_"))) {
+        bool ok = false;
+        const int index = cellId.mid(5).toInt(&ok);
+        if (ok)
+            return tr("Tank %1").arg(index + 1);
+    }
+    if (cellId == QStringLiteral("depth"))         return tr("Depth");
+    if (cellId == QStringLiteral("temperature"))   return tr("Temperature");
+    if (cellId == QStringLiteral("time"))          return tr("Dive Time");
+    if (cellId == QStringLiteral("gas"))           return tr("Gas Mix");
+    if (cellId == QStringLiteral("cns"))           return tr("CNS");
+    if (cellId == QStringLiteral("mean_depth"))    return tr("Mean Depth");
+    if (cellId == QStringLiteral("max_depth"))     return tr("Max Depth");
+    if (cellId == QStringLiteral("ndl"))           return tr("NDL / TTS");
+    if (cellId == QStringLiteral("tts"))           return tr("Time To Surface");
+    if (cellId == QStringLiteral("stop_depth"))    return tr("Stop Depth");
+    if (cellId == QStringLiteral("stop_time"))     return tr("Stop Time");
+    if (cellId == QStringLiteral("po2_cell1"))     return tr("PO2 Cell 1");
+    if (cellId == QStringLiteral("po2_cell2"))     return tr("PO2 Cell 2");
+    if (cellId == QStringLiteral("po2_cell3"))     return tr("PO2 Cell 3");
+    if (cellId == QStringLiteral("composite_po2")) return tr("Composite PO2");
+    if (cellId == QStringLiteral("pressure"))      return tr("Tank Pressure");
+    return cellId;
+}
+
+QString CellData::normalizedFontFamily(const QString& family)
+{
+    if (family == QStringLiteral("Sans Serif"))
+        return QStringLiteral("DejaVu Sans");
+    return family;
 }
 
 } // namespace Unabara

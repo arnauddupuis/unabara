@@ -54,10 +54,11 @@ int main(int argc, char *argv[])
             qWarning() << "Failed to register bundled font" << fontPath;
     }
 
-    // Templates and settings saved by earlier versions carry the family name
-    // "Sans Serif". On Linux fontconfig resolves it (so this substitution is
-    // never consulted); on macOS/Windows no such family exists and Qt would
-    // fall back to an arbitrary font — map it onto the bundled default instead.
+    // Legacy "Sans Serif" families are rewritten to the bundled default when
+    // templates/settings load (CellData::normalizedFontFamily) — on Linux
+    // fontconfig resolves the alias before this substitution would run, so
+    // load-time rewriting is what makes rendering distro-independent. The
+    // substitution stays as a safety net for paths that bypass the loaders.
     QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
@@ -140,13 +141,12 @@ int main(int argc, char *argv[])
     QObject::connect(overlayGenerator, &OverlayGenerator::showCompositePO2Changed,  invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellsChanged,             invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellLayoutChanged,        invalidateOverlay);
-    QObject::connect(overlayGenerator, &OverlayGenerator::showCellBackgroundsChanged, invalidateOverlay);
     QObject::connect(Config::instance(), &Config::unitSystemChanged,                invalidateOverlay);
 
     // Undo/redo: record a snapshot when template *content* changes. This tracks
     // only the signals that map to what exportTemplate() serializes — not the
     // full invalidate set above, which also fires on editor-only / display state
-    // (showCellBackgrounds, unit system, show* toggles whose real cell mutation
+    // (unit system, show* toggles whose real cell mutation
     // already arrives via cellsChanged/cellLayoutChanged) and would otherwise
     // produce no-op undo entries.
     undoManager->trackSignal(SIGNAL(cellsChanged()));

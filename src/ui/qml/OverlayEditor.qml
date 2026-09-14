@@ -331,7 +331,14 @@ Item {
                             same = fresh[i] === ids[i]
                         if (!same) {
                             ids = fresh
-                            model = [qsTr("All cells")].concat(ids)
+                            // Human-readable names (C++ is the single
+                            // id-to-name source, shared with CellsPanel);
+                            // selection still works on the parallel ids array.
+                            model = [qsTr("All cells")].concat(
+                                        ids.map(function(id) {
+                                            return root.generator
+                                                 ? root.generator.cellDisplayName(id) : id
+                                        }))
                         }
                         syncIndex()
                     }
@@ -782,25 +789,25 @@ Item {
                     id: autoSizeCheckBox
                     Layout.fillWidth: true
                     text: qsTr("Auto size (fit content)")
-                    checked: root.currentAutoSize
                     ToolTip.visible: hovered
                     ToolTip.delay: 500
                     ToolTip.text: qsTr("Unchecking freezes the current box size; drag the handles on the canvas to adjust it")
-                    Connections {
-                        target: root
-                        function onCurrentAutoSizeChanged() {
-                            autoSizeCheckBox.checked = root.currentAutoSize
-                        }
+                    // A Binding element survives the imperative write a user
+                    // click performs (a plain `checked:` binding would be
+                    // broken by it) and re-asserts whenever the model value
+                    // changes — replacing the old Connections resync.
+                    Binding on checked {
+                        value: root.currentAutoSize
                     }
                     onClicked: {
                         if (root.generator && root.selectedCellId)
                             root.generator.setCellAutoSize(
                                 root.selectedCellId, checked, root.dive,
                                 root.timeline ? root.timeline.currentTime : 0.0)
-                        // The click already flipped the box; if the setter
-                        // declined (no cell, nothing to measure) the model
-                        // did not change and no signal re-syncs us — so
-                        // always re-read the truth.
+                        // One imperative re-read must stay: if the setter
+                        // DECLINED (nothing to measure), the model value did
+                        // not change, so the Binding has nothing new to
+                        // re-assert and the click's flip would stick.
                         checked = root.currentAutoSize
                     }
                 }

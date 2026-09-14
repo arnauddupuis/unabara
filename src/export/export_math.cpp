@@ -86,11 +86,11 @@ QString exportBaseName(DiveData *dive,
     return baseName;
 }
 
-void removeFrameRange(const QString &dirPath, int frameCount)
+void removeWrittenFiles(const QString &dirPath, const QStringList &fileNames)
 {
     QDir dir(dirPath);
-    for (int i = 0; i < frameCount; ++i) {
-        dir.remove(frameFileName(i));
+    for (const QString &name : fileNames) {
+        dir.remove(name);
     }
     const QString name = dir.dirName();
     if (dir.cdUp()) {

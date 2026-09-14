@@ -10,6 +10,15 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+// Representation-error epsilon for the anchor round trip (a stored
+// normalized anchor multiplied back to pixels can land ~1e-13 below the
+// intended integer; this absorbs it without ever reaching a legitimate
+// sub-pixel intent). Used two ways: cellGeometry() adds it before flooring
+// the ANCHORED (Center/Right/Middle/Bottom) axes, and the re-anchoring
+// setters bake it into the STORED value for Left/Top targets, whose render
+// path must keep the plain pre-1.2 floor for byte-compat.
+static constexpr double kAnchorEps = 1e-6;
+
 OverlayGenerator::OverlayGenerator(QObject *parent)
     : QObject(parent)
     , m_templatePath(":/images/DC_Faces/unabara_round_ocean.png")
@@ -47,7 +56,6 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     // render_utp) wants them off. Keeping the default off lets the image
     // provider render WITHOUT mutating this from its worker thread (a
     // cross-thread setter + signal emission violated Qt's threading rules).
-    , m_showCellBackgrounds(false)
     , m_snapToGrid(true)
     , m_gridSpacing(10)
     , m_showGrid(false)
@@ -605,27 +613,6 @@ void OverlayGenerator::clearColorScheme()
     }
 }
 
-void OverlayGenerator::setShowCellBackgrounds(bool show)
-{
-    if (m_showCellBackgrounds != show) {
-        m_showCellBackgrounds = show;
-        emit showCellBackgroundsChanged();
-    }
-}
-
-void OverlayGenerator::beginExport()
-{
-    // Cell backgrounds are an editor-only affordance — never render them
-    // into export frames. Stash the user's current value and force off.
-    m_savedShowCellBackgrounds = m_showCellBackgrounds;
-    m_showCellBackgrounds = false;
-}
-
-void OverlayGenerator::endExport()
-{
-    m_showCellBackgrounds = m_savedShowCellBackgrounds;
-}
-
 QStringList OverlayGenerator::getAvailableTemplates()
 {
     if (m_templateNames.isEmpty()) {
@@ -838,6 +825,28 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
     }
 }
 
+void OverlayGenerator::setCellGeometry(const QString& cellId, const QPointF& pos,
+                                       const QSizeF& size)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (!cell) {
+        qWarning() << "setCellGeometry: Cell not found:" << cellId;
+        return;
+    }
+    cell->setPosition(pos);
+    if (size.width() > 0.0 && size.height() > 0.0) {
+        cell->setFixedSize(size);
+    } else {
+        cell->clearFixedSize();
+    }
+    emit cellLayoutChanged();
+}
+
+QString OverlayGenerator::cellDisplayName(const QString& cellId) const
+{
+    return Unabara::CellData::displayName(cellId);
+}
+
 int OverlayGenerator::getCellHAlign(const QString& cellId) const
 {
     const Unabara::CellData* cell = getCellData(cellId);
@@ -877,6 +886,12 @@ void OverlayGenerator::setCellHAlign(const QString& cellId, int align,
         double ax = box.x();
         if (newAlign == Unabara::HAlign::Center) ax = box.x() + box.width() / 2.0;
         else if (newAlign == Unabara::HAlign::Right) ax = box.x() + box.width();
+        // Left keeps the plain pre-1.2 floor at render time, so the epsilon
+        // rides inside the STORED value instead: box.x() is an exact integer
+        // here, and integer/width can multiply back one ulp low and truncate
+        // a pixel. Re-derived on every re-anchor, never compounded; survives
+        // shortest-round-trip JSON serialization (locked in by a test).
+        else ax = box.x() + kAnchorEps;
         QPointF pos = cell->position();
         pos.setX(ax / m_templateWidth);
         cell->setPosition(pos);
@@ -902,6 +917,8 @@ void OverlayGenerator::setCellVAlign(const QString& cellId, int align,
         double ay = box.y();
         if (newAlign == Unabara::VAlign::Middle) ay = box.y() + box.height() / 2.0;
         else if (newAlign == Unabara::VAlign::Bottom) ay = box.y() + box.height();
+        // Same store-side epsilon as setCellHAlign's Left branch
+        else ay = box.y() + kAnchorEps;
         QPointF pos = cell->position();
         pos.setY(ay / m_templateHeight);
         cell->setPosition(pos);
@@ -2174,12 +2191,6 @@ void OverlayGenerator::renderCellBasedOverlay(QPainter& painter, const QSize& im
             painter.setClipRect(geo.box);
         }
 
-        // Draw semi-transparent background (like QML's "#80000000" Rectangle)
-        // Only in editor mode, not for export/preview
-        if (m_showCellBackgrounds) {
-            painter.fillRect(geo.box, QColor(0, 0, 0, 128));
-        }
-
         // Draw the shadow first, if enabled (same 1.8 scale factor as fonts)
         if (shadowEnabled && !displayText.isEmpty()) {
             shadowColor.setAlphaF(shadowColor.alphaF() * shadowOpacity);
@@ -2285,19 +2296,34 @@ OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
     // box pins to it. The legacy default (Left/Top) anchors the top-left
     // corner, and qFloor matches the old static_cast<int> truncation, so
     // pre-1.2 templates render pixel-identically.
+    //
+    // Anchored axes floor with a tiny epsilon: re-anchoring (setCellHAlign /
+    // setCellVAlign / setCellAutoSize) stores anchor/width and this code
+    // multiplies it back, a round trip that can land ~1e-13 below the
+    // intended integer and truncate a whole pixel away — e.g. at 1920 px,
+    // (51 + 21/2) / 1920 * 1920 - 21/2 == 50.99999999999999 → 50, and each
+    // alignment toggle would then re-anchor from the already-shifted box.
+    // The epsilon absorbs representation error only (any legitimate
+    // sub-pixel placement is orders of magnitude larger). It must stay OFF
+    // the legacy Left/Top axes: plain truncation is the pre-1.2 byte-compat
+    // contract, and decimal-fraction positions sit within the epsilon of an
+    // integer routinely (x=0.3 at 1920 px is 575.99999999999998 and must
+    // keep flooring to 575).
     double x = cell.position().x() * width;
     double y = cell.position().y() * height;
+    double xEps = 0.0;
+    double yEps = 0.0;
     switch (cell.hAlign()) {
-        case Unabara::HAlign::Center: x -= boxW / 2.0; break;
-        case Unabara::HAlign::Right:  x -= boxW;       break;
+        case Unabara::HAlign::Center: x -= boxW / 2.0; xEps = kAnchorEps; break;
+        case Unabara::HAlign::Right:  x -= boxW;       xEps = kAnchorEps; break;
         case Unabara::HAlign::Left:   break;
     }
     switch (cell.vAlign()) {
-        case Unabara::VAlign::Middle: y -= boxH / 2.0; break;
-        case Unabara::VAlign::Bottom: y -= boxH;       break;
+        case Unabara::VAlign::Middle: y -= boxH / 2.0; yEps = kAnchorEps; break;
+        case Unabara::VAlign::Bottom: y -= boxH;       yEps = kAnchorEps; break;
         case Unabara::VAlign::Top:    break;
     }
-    const QRectF box(qFloor(x), qFloor(y), boxW, boxH);
+    const QRectF box(qFloor(x + xEps), qFloor(y + yEps), boxW, boxH);
 
     // The text block keeps its measured size — the label/value lines stay
     // centered relative to each other exactly as before — and the block as a
@@ -2316,7 +2342,13 @@ OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
         case Unabara::VAlign::Top:    break;
     }
 
-    return { box, QRectF(qFloor(tx), qFloor(ty), textBounds.width(), textBounds.height()) };
+    // Same epsilon on the text block: the anchored branches mix in a fixed
+    // box size restored from its normalized form (one ulp low), which can
+    // push tx/ty just below their intended pixel. Unconditional here — on
+    // the legacy path tx/ty are exact integers (box corner + 4), so the
+    // epsilon cannot change pre-1.2 output.
+    return { box, QRectF(qFloor(tx + kAnchorEps), qFloor(ty + kAnchorEps),
+                         textBounds.width(), textBounds.height()) };
 }
 
 OverlayGenerator::CellRenderInputs OverlayGenerator::cellRenderInputs(

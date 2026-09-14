@@ -197,7 +197,7 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
     if (json.contains("defaultFont")) {
         QJsonObject fontJson = json["defaultFont"].toObject();
         QFont font;
-        font.setFamily(fontJson["family"].toString("Arial"));
+        font.setFamily(CellData::normalizedFontFamily(fontJson["family"].toString("Arial")));
         font.setPointSize(fontJson["pointSize"].toInt(12));
         font.setWeight(static_cast<QFont::Weight>(fontJson["weight"].toInt(QFont::Normal)));
         font.setItalic(fontJson["italic"].toBool(false));

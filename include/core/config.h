@@ -408,6 +408,17 @@ private:
 
     // Load configuration from disk
     void loadConfig();
+
+    // Eager persistence for Settings-tab / dialog-driven setters: write the
+    // one key that changed and sync, instead of a full saveConfig() — a full
+    // rewrite per keystroke (frame-rate spinner arrows) would also flush
+    // unrelated in-memory state early, e.g. the section-collapse states that
+    // deliberately wait for the exit hook.
+    void persistNow(const QString &key, const QVariant &value);
+    // Serialization shared by saveConfig() and the eager JSON-blob setters
+    // (camera pairings, per-video overlay layouts). No sync of their own.
+    void writeVideoOverlayLayouts();
+    void writeCameraPairings();
 };
 
 #endif // CONFIG_H

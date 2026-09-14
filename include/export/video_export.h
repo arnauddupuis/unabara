@@ -14,7 +14,10 @@ class VideoExporter : public QObject
 {
     Q_OBJECT
     
-    Q_PROPERTY(QString exportPath READ exportPath WRITE setExportPath NOTIFY exportPathChanged)
+    // Base directory the output file lands in (createDefaultExportFile /
+    // generateUniqueFileName). Bound from QML (config.lastExportPath) so the
+    // exporter itself has no dependency on the settings store.
+    Q_PROPERTY(QString baseDirectory READ baseDirectory WRITE setBaseDirectory NOTIFY baseDirectoryChanged)
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     Q_PROPERTY(int videoBitrate READ videoBitrate WRITE setVideoBitrate NOTIFY videoBitrateChanged)
     Q_PROPERTY(QString videoCodec READ videoCodec WRITE setVideoCodec NOTIFY videoCodecChanged)
@@ -36,7 +39,7 @@ public:
     Q_ENUM(VideoCodec)
     
     // Getters
-    QString exportPath() const { return m_exportPath; }
+    QString baseDirectory() const { return m_baseDirectory; }
     double frameRate() const { return m_frameRate; }
     int videoBitrate() const { return m_videoBitrate; }
     QString videoCodec() const { return m_videoCodec; }
@@ -45,7 +48,7 @@ public:
     QSize customResolution() const { return m_customResolution; }
     
     // Setters
-    void setExportPath(const QString &path);
+    void setBaseDirectory(const QString &path);
     void setFrameRate(double fps);
     void setVideoBitrate(int bitrate);
     void setVideoCodec(const QString &codec);
@@ -82,7 +85,7 @@ public:
     Q_INVOKABLE QString getFileExtensionForCodec(const QString &codec);
     
 signals:
-    void exportPathChanged();
+    void baseDirectoryChanged();
     void frameRateChanged();
     void videoBitrateChanged();
     void videoCodecChanged();
@@ -101,7 +104,7 @@ private slots:
     void updateEncodingProgress();
     
 private:
-    QString m_exportPath;
+    QString m_baseDirectory;
     double m_frameRate;
     int m_videoBitrate;
     QString m_videoCodec;

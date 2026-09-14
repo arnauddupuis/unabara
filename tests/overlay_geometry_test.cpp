@@ -8,6 +8,7 @@
 
 #include <QtTest>
 
+#include <QJsonDocument>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -54,12 +55,16 @@ QRectF boxOf(const OverlayGenerator &gen, DiveData *dive, double t, const QStrin
     return QRectF();
 }
 
-// Re-anchoring goes through a normalized position and qFloor, so allow one
-// pixel of rounding slack
+// Re-anchoring must be pixel-exact: cellGeometry's epsilon floor absorbs the
+// representation error of the normalized-anchor round trip, so positions
+// (floored integers) compare exactly. Sizes get 1e-9 slack only because a
+// frozen fixed size multiplied back from its normalized form can sit one ulp
+// off its pixel value — invisible, and never the 1 px class this guards.
 bool sameBox(const QRectF &a, const QRectF &b)
 {
-    return qAbs(a.x() - b.x()) <= 1.0 && qAbs(a.y() - b.y()) <= 1.0
-        && qAbs(a.width() - b.width()) <= 1.0 && qAbs(a.height() - b.height()) <= 1.0;
+    return a.x() == b.x() && a.y() == b.y()
+        && qAbs(a.width() - b.width()) <= 1e-9
+        && qAbs(a.height() - b.height()) <= 1e-9;
 }
 
 } // namespace
@@ -130,10 +135,12 @@ private slots:
         // Same content → same size whatever the anchor
         QCOMPARE(c.size(), l.size());
         QCOMPARE(r.size(), l.size());
-        QVERIFY(qAbs((l.x() - c.x()) - l.width() / 2.0) <= 1.0);
-        QVERIFY(qAbs((l.y() - c.y()) - l.height() / 2.0) <= 1.0);
-        QVERIFY(qAbs((l.x() - r.x()) - l.width()) <= 1.0);
-        QVERIFY(qAbs((l.y() - r.y()) - l.height()) <= 1.0);
+        // The only rounding left is flooring a half-odd box size for the
+        // centered anchors; the full-size shifts are integer-exact
+        QVERIFY(qAbs((l.x() - c.x()) - l.width() / 2.0) <= 0.5);
+        QVERIFY(qAbs((l.y() - c.y()) - l.height() / 2.0) <= 0.5);
+        QCOMPARE(l.x() - r.x(), l.width());
+        QCOMPARE(l.y() - r.y(), l.height());
     }
 
     void fixedSizeOverridesTheMeasuredSize()
@@ -173,6 +180,91 @@ private slots:
         // Out-of-range values clamp to the enum instead of corrupting state
         gen.setCellHAlign(id, 99, m_dive, m_t);
         QCOMPARE(gen.getCellHAlign(id), int(HAlign::Right));
+    }
+
+    // Regression: the anchor round trip (anchor stored normalized by the
+    // re-anchoring setters, multiplied back in cellGeometry) can land ~1e-13
+    // below the intended integer, and a plain qFloor then eats a whole pixel
+    // (e.g. (51 + 21/2) / 1920 * 1920 - 21/2 == 50.99999999999999). These
+    // exact values reproduce it on both axes at the HUD templates' 1920x1080
+    // resolution; cellGeometry's epsilon floor must absorb it. The cell is
+    // fixed-size so the box does not depend on this Qt's font metrics.
+    void anchorRoundTripDoesNotLoseAPixel()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        // BMP: built into Qt, no image-format plugin needed offscreen
+        const QString bgPath = dir.filePath(QStringLiteral("bg.bmp"));
+        QImage bg(1920, 1080, QImage::Format_ARGB32);
+        bg.fill(Qt::black);
+        QVERIFY(bg.save(bgPath));
+
+        CellData cell = depthCell(QStringLiteral("depth"),
+                                  (51.0 + 21.0 / 2.0) / 1920.0,  // x=51, boxW=21
+                                  (34.0 + 10.0 / 2.0) / 1080.0); // y=34, boxH=10
+        cell.setHAlign(HAlign::Center);
+        cell.setVAlign(VAlign::Middle);
+        cell.setFixedSize(QSizeF(21.0 / 1920.0, 10.0 / 1080.0));
+
+        OverlayTemplate templ = makeTemplate({cell});
+        templ.setBackgroundImagePath(bgPath);
+
+        OverlayGenerator gen;
+        gen.loadTemplate(templ);
+        QCOMPARE(gen.templateWidth(), 1920);
+
+        const QRectF box = boxOf(gen, m_dive, m_t, QStringLiteral("depth"));
+        // Without the epsilon both axes floor one pixel low, to (50, 33)
+        QCOMPARE(box.x(), 51.0);
+        QCOMPARE(box.y(), 34.0);
+    }
+
+    // Regression: Left/Top targets keep the plain pre-1.2 floor at render
+    // time, so the re-anchoring setters bake the epsilon into the STORED
+    // anchor instead — integer/width alone can multiply back one ulp low
+    // (123/1920*1920 and 78/1080*1080 both do; unbiased, the toggles below
+    // settle at (122, 77)). Also proves the biased value survives a .utp
+    // JSON round trip: Qt writes shortest-round-trip doubles.
+    void leftTopReanchorDoesNotLoseAPixel()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString bgPath = dir.filePath(QStringLiteral("bg.bmp"));
+        QImage bg(1920, 1080, QImage::Format_ARGB32);
+        bg.fill(Qt::black);
+        QVERIFY(bg.save(bgPath));
+
+        // Center/middle-anchored fixed-size cell whose box lands at (123, 78)
+        CellData cell = depthCell(QStringLiteral("depth"),
+                                  (123.0 + 21.0 / 2.0) / 1920.0,
+                                  (78.0 + 10.0 / 2.0) / 1080.0);
+        cell.setHAlign(HAlign::Center);
+        cell.setVAlign(VAlign::Middle);
+        cell.setFixedSize(QSizeF(21.0 / 1920.0, 10.0 / 1080.0));
+
+        OverlayTemplate templ = makeTemplate({cell});
+        templ.setBackgroundImagePath(bgPath);
+
+        OverlayGenerator gen;
+        gen.loadTemplate(templ);
+        const QString id = QStringLiteral("depth");
+        const QRectF before = boxOf(gen, m_dive, m_t, id);
+        QCOMPARE(before.x(), 123.0);
+        QCOMPARE(before.y(), 78.0);
+
+        gen.setCellHAlign(id, int(HAlign::Left), m_dive, m_t);
+        gen.setCellVAlign(id, int(VAlign::Top), m_dive, m_t);
+        QVERIFY2(sameBox(boxOf(gen, m_dive, m_t, id), before),
+                 "toggling to the legacy anchor moved the cell");
+
+        // The stored bias must survive template serialization
+        const OverlayTemplate roundTripped =
+            OverlayTemplate::fromJson(QJsonDocument::fromJson(
+                QJsonDocument(gen.exportTemplate().toJson()).toJson()).object());
+        OverlayGenerator gen2;
+        gen2.loadTemplate(roundTripped);
+        QVERIFY2(sameBox(boxOf(gen2, m_dive, m_t, id), before),
+                 "JSON round trip lost the stored anchor epsilon");
     }
 
     void freezingTheSizeKeepsTheBoxInPlace()

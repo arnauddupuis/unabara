@@ -38,7 +38,19 @@ Item {
 
     // --- Refresh plumbing -------------------------------------------------
 
+    // Coalesced: a template load fires templateChanged + shadowChanged +
+    // cellsChanged + cellLayoutChanged (each routed to refreshAll), and every
+    // uncoalesced call copies the cell vector, formats all display texts and
+    // fires dataChanged across every delegate. Qt.callLater folds a burst
+    // into one refresh per event-loop turn — same pattern as detectOverlaps.
     function updateCellModel() {
+        Qt.callLater(root.updateCellModelNow)
+    }
+
+    // The immediate variant: the drag/resize commit handlers use it because
+    // OverlayCell restores its geometry bindings right after committing and
+    // those bindings must evaluate against the already-updated model.
+    function updateCellModelNow() {
         if (root.generator && root.dive && root.timeline && root.cellModel) {
             root.cellModel.updateFromGenerator(root.generator, root.dive,
                                                root.timeline.currentTime)
@@ -323,18 +335,18 @@ Item {
                     onCellPositionChanged: function(cellId, newPosition) {
                         if (root.generator) {
                             root.generator.setCellPosition(cellId, newPosition)
-                            root.updateCellModel()
+                            root.updateCellModelNow()
                         }
                     }
 
                     // Resize commit: anchor and fixed size land together so
-                    // the box stays put whatever the cell's alignment is (the
-                    // undo stack's debounce coalesces the pair into one entry).
+                    // the box stays put whatever the cell's alignment is —
+                    // one atomic setter, so one signal, one refresh and one
+                    // undo entry by construction (not by debounce timing).
                     onCellGeometryChanged: function(cellId, newPosition, newSize) {
                         if (root.generator) {
-                            root.generator.setCellPosition(cellId, newPosition)
-                            root.generator.setCellFixedSize(cellId, newSize)
-                            root.updateCellModel()
+                            root.generator.setCellGeometry(cellId, newPosition, newSize)
+                            root.updateCellModelNow()
                         }
                     }
                 }

@@ -24,9 +24,9 @@ private slots:
     void framePatternMatchesFileName();
     void sanitizeFileName();
     void exportBaseName();
-    void removeFrameRange_keepsForeignFiles();
-    void removeFrameRange_removesEmptiedDirectory();
-    void removeFrameRange_leavesFramesBeyondCount();
+    void removeWrittenFiles_keepsForeignFiles();
+    void removeWrittenFiles_removesEmptiedDirectory();
+    void removeWrittenFiles_removesOnlyListedFiles();
 
 private:
     static bool writeFile(const QString &path, const QByteArray &content = "x")
@@ -143,61 +143,70 @@ void ExportMathTest::exportBaseName()
              QStringLiteral("2026-01-15_103005_Wreck_ Zenobia_Blue_Hole_clip.v2"));
 }
 
-void ExportMathTest::removeFrameRange_keepsForeignFiles()
+static QStringList frameNames(int count)
+{
+    QStringList names;
+    for (int i = 0; i < count; ++i)
+        names.append(ExportMath::frameFileName(i));
+    return names;
+}
+
+void ExportMathTest::removeWrittenFiles_keepsForeignFiles()
 {
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const QString dirPath = tmp.filePath(QStringLiteral("export"));
     QVERIFY(QDir().mkpath(dirPath));
 
-    for (int i = 0; i < 5; ++i)
-        QVERIFY(writeFile(QDir(dirPath).filePath(ExportMath::frameFileName(i))));
+    for (const QString &name : frameNames(5))
+        QVERIFY(writeFile(QDir(dirPath).filePath(name)));
     QVERIFY(writeFile(QDir(dirPath).filePath(QStringLiteral("keep.txt"))));
 
-    ExportMath::removeFrameRange(dirPath, 5);
+    ExportMath::removeWrittenFiles(dirPath, frameNames(5));
 
     // Frames gone, the user's file untouched, and the (non-empty) directory
     // itself preserved — rmdir must not force-remove it.
     QVERIFY(QDir(dirPath).exists());
     QVERIFY(QFile::exists(QDir(dirPath).filePath(QStringLiteral("keep.txt"))));
-    for (int i = 0; i < 5; ++i)
-        QVERIFY(!QFile::exists(QDir(dirPath).filePath(ExportMath::frameFileName(i))));
+    for (const QString &name : frameNames(5))
+        QVERIFY(!QFile::exists(QDir(dirPath).filePath(name)));
 }
 
-void ExportMathTest::removeFrameRange_removesEmptiedDirectory()
+void ExportMathTest::removeWrittenFiles_removesEmptiedDirectory()
 {
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const QString dirPath = tmp.filePath(QStringLiteral("export"));
     QVERIFY(QDir().mkpath(dirPath));
 
-    for (int i = 0; i < 3; ++i)
-        QVERIFY(writeFile(QDir(dirPath).filePath(ExportMath::frameFileName(i))));
+    for (const QString &name : frameNames(3))
+        QVERIFY(writeFile(QDir(dirPath).filePath(name)));
 
-    ExportMath::removeFrameRange(dirPath, 3);
+    ExportMath::removeWrittenFiles(dirPath, frameNames(3));
 
-    // Nothing but this run's frames was inside, so the directory goes too.
+    // Nothing but this run's files was inside, so the directory goes too.
     QVERIFY(!QDir(dirPath).exists());
 }
 
-void ExportMathTest::removeFrameRange_leavesFramesBeyondCount()
+void ExportMathTest::removeWrittenFiles_removesOnlyListedFiles()
 {
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const QString dirPath = tmp.filePath(QStringLiteral("export"));
     QVERIFY(QDir().mkpath(dirPath));
 
-    for (int i = 0; i < 6; ++i)
-        QVERIFY(writeFile(QDir(dirPath).filePath(ExportMath::frameFileName(i))));
+    for (const QString &name : frameNames(6))
+        QVERIFY(writeFile(QDir(dirPath).filePath(name)));
 
-    // Only frames 0..4 belong to "this run" — frame 5 (e.g. from an earlier
-    // export into the same directory) must survive.
-    ExportMath::removeFrameRange(dirPath, 5);
+    // Only frames 0..4 were recorded by "this run" — frame 5 (e.g. from an
+    // earlier export into the same directory) must survive, which is the
+    // point of tracking written names instead of deleting by pattern.
+    ExportMath::removeWrittenFiles(dirPath, frameNames(5));
 
     QVERIFY(QDir(dirPath).exists());
     QVERIFY(QFile::exists(QDir(dirPath).filePath(ExportMath::frameFileName(5))));
-    for (int i = 0; i < 5; ++i)
-        QVERIFY(!QFile::exists(QDir(dirPath).filePath(ExportMath::frameFileName(i))));
+    for (const QString &name : frameNames(5))
+        QVERIFY(!QFile::exists(QDir(dirPath).filePath(name)));
 }
 
 QTEST_GUILESS_MAIN(ExportMathTest)

@@ -2,6 +2,7 @@
 #define EXPORT_MATH_H
 
 #include <QString>
+#include <QStringList>
 
 class DiveData;
 
@@ -43,11 +44,13 @@ QString exportBaseName(DiveData *dive,
                        const QString &videoFilePath = QString(),
                        const QString &contentType = QString());
 
-// Remove frames 0..frameCount-1 (frameFileName numbering) from dirPath, then
-// the directory itself — but only via rmdir, which fails on a non-empty
+// Cancellation cleanup: remove exactly the named files (the ones the current
+// run recorded as written — never a name pattern, which could delete
+// same-named files from an earlier export into the same directory), then the
+// directory itself — but only via rmdir, which fails on a non-empty
 // directory, so a pre-existing user-chosen directory holding other files is
 // left alone.
-void removeFrameRange(const QString &dirPath, int frameCount);
+void removeWrittenFiles(const QString &dirPath, const QStringList &fileNames);
 
 } // namespace ExportMath
 

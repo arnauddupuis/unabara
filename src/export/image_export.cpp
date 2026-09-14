@@ -1,6 +1,5 @@
 #include "include/export/image_export.h"
 #include "include/export/export_math.h"
-#include "include/core/config.h"
 #include <QDir>
 #include <QCoreApplication>
 #include <QDebug>
@@ -12,11 +11,11 @@ ImageExporter::ImageExporter(QObject *parent)
     , m_busy(false)
     , m_cancelRequested(false)
 {
-    // m_exportPath is the directory frames are written to. main.qml points it
+    // m_exportPath is the directory frames are written to: main.qml points it
     // at the per-dive sub-directory returned by createDefaultExportDir()
-    // before each export; the base directory lives in Config. No directory is
-    // created here — that happens when an export actually runs.
-    m_exportPath = Config::instance()->lastExportPath();
+    // before each export. m_baseDirectory (what that subfolder is created
+    // under) is bound from QML — the exporter never touches the settings
+    // store itself. No directory is created here.
 }
 
 void ImageExporter::setExportPath(const QString &path)
@@ -24,6 +23,14 @@ void ImageExporter::setExportPath(const QString &path)
     if (m_exportPath != path) {
         m_exportPath = path;
         emit exportPathChanged();
+    }
+}
+
+void ImageExporter::setBaseDirectory(const QString &path)
+{
+    if (m_baseDirectory != path) {
+        m_baseDirectory = path;
+        emit baseDirectoryChanged();
     }
 }
 
@@ -72,10 +79,16 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     m_cancelRequested = false;
     emit busyChanged();
 
+    // Capture the destination for the whole run: the exportPath property is
+    // writable from QML and the loop below pumps the event loop, so a
+    // mid-run write must not redirect later frames — or the cancellation
+    // cleanup — to a different directory.
+    const QString exportDir = m_exportPath;
+
     // Create the export directory if it doesn't exist
-    QDir dir(m_exportPath);
+    QDir dir(exportDir);
     if (!dir.exists() && !dir.mkpath(".")) {
-        emit exportError(tr("Failed to create export directory: %1").arg(m_exportPath));
+        emit exportError(tr("Failed to create export directory: %1").arg(exportDir));
         m_busy = false;
         emit busyChanged();
         return false;
@@ -84,8 +97,8 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     // Notify that export has started
     emit exportStarted();
 
-    // Let the generator stage any export-only state (e.g. overlay hides its
-    // editor-only cell backgrounds).
+    // Let the generator stage any export-only state (IFrameGenerator
+    // contract; currently a no-op for both generators).
     gen->beginExport();
 
     // Calculate the number of frames to generate
@@ -94,6 +107,10 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     // so never let a sub-frame range divide the progress by zero
     int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
     int processedFrames = 0;
+    // Exactly the files this run writes — cancellation cleanup removes these
+    // and nothing else (never a name pattern, which could hit files from an
+    // earlier export into the same directory).
+    QStringList framesWritten;
 
     qDebug() << "Exporting images from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
@@ -109,7 +126,8 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         }
 
         // Create a filename with the frame number
-        QString filePath = QDir(m_exportPath).filePath(ExportMath::frameFileName(processedFrames));
+        const QString fileName = ExportMath::frameFileName(processedFrames);
+        QString filePath = QDir(exportDir).filePath(fileName);
 
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
@@ -119,6 +137,7 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
             emit busyChanged();
             return false;
         }
+        framesWritten.append(fileName);
 
         // Update progress
         processedFrames++;
@@ -132,7 +151,7 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         // above; cancelExport() runs there and sets the flag we poll here.
         if (m_cancelRequested) {
             gen->endExport();
-            removePartialFrames(processedFrames);
+            ExportMath::removeWrittenFiles(exportDir, framesWritten);
             m_busy = false;
             emit busyChanged();
             emit exportCancelled();
@@ -148,7 +167,7 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
 
     m_busy = false;
     emit busyChanged();
-    emit exportFinished(true, m_exportPath);
+    emit exportFinished(true, exportDir);
 
     return true;
 }
@@ -160,14 +179,6 @@ void ImageExporter::cancelExport()
     }
 }
 
-void ImageExporter::removePartialFrames(int frameCount)
-{
-    // Remove exactly the frames this run wrote (they are numbered
-    // sequentially from 0), leaving a pre-existing user-chosen directory
-    // holding other files alone.
-    ExportMath::removeFrameRange(m_exportPath, frameCount);
-}
-
 QString ImageExporter::createDefaultExportDir(DiveData* dive,
                                               const QString &videoFilePath,
                                               const QString &contentType)
@@ -176,13 +187,16 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive,
         return QString();
     }
 
-    // Create a unique directory for this dive under the user's configured
-    // base export directory. Read from Config at call time (not m_exportPath):
-    // main.qml points m_exportPath at the created sub-directory for the frame
-    // writer, so using it as the base would nest every subsequent export one
-    // level deeper.
+    // Create a unique directory for this dive under the QML-bound base
+    // directory (not m_exportPath: main.qml points that at the created
+    // sub-directory for the frame writer, so using it as the base would nest
+    // every subsequent export one level deeper).
+    if (!ExportMath::isValidExportPath(m_baseDirectory)) {
+        qWarning() << "createDefaultExportDir: no base directory set";
+        return QString();
+    }
     QString dirName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
-    QString path = QDir(Config::instance()->lastExportPath()).filePath(dirName);
+    QString path = QDir(m_baseDirectory).filePath(dirName);
 
     QDir dir;
     if (!dir.mkpath(path)) {

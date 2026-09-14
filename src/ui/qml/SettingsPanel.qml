@@ -18,6 +18,10 @@ Item {
 
     // Asks main.qml to open the What's New dialog with the full changelog.
     signal showWhatsNew()
+    // The export destination is picked with main.qml's single FolderDialog
+    // (the export dialog's Destination group uses the same one) — two dialogs
+    // for one setting drift apart.
+    signal chooseExportDirectory()
 
     // Reactive mirror of config.cameraPairingNames()
     property var cameraProfileNames: config ? config.cameraPairingNames() : []
@@ -240,7 +244,7 @@ Item {
 
                         Button {
                             text: qsTr("Browse...")
-                            onClicked: exportDirDialog.open()
+                            onClicked: root.chooseExportDirectory()
                         }
                     }
 
@@ -268,16 +272,6 @@ Item {
             }
 
             Item { Layout.preferredHeight: 8 }
-        }
-    }
-
-    FolderDialog {
-        id: exportDirDialog
-        title: qsTr("Select Export Directory")
-        currentFolder: config ? mainWindow.localFileToUrl(config.lastExportPath) : ""
-        onAccepted: {
-            if (config)
-                config.lastExportPath = mainWindow.urlToLocalFile(selectedFolder.toString())
         }
     }
 

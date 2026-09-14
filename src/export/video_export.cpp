@@ -1,6 +1,5 @@
 #include "include/export/video_export.h"
 #include "include/export/export_math.h"
-#include "include/core/config.h"
 #include <QDateTime>
 #include <QStandardPaths>
 #include <QRegularExpression>
@@ -23,10 +22,9 @@ VideoExporter::VideoExporter(QObject *parent)
     , m_cancelRequested(false)
     , m_ffmpegProcess(nullptr)
 {
-    // Exports land under the user's configured base directory (read from
-    // Config at export time); this is only the property's initial value. No
-    // directory is created here — that happens when an export actually runs.
-    m_exportPath = Config::instance()->lastExportPath();
+    // The base directory the output file lands in is bound from QML
+    // (config.lastExportPath) — the exporter never touches the settings
+    // store itself. No directory is created here.
 
     // Create the temporary directory
     if (!m_tempDir.isValid()) {
@@ -52,11 +50,11 @@ VideoExporter::~VideoExporter()
     delete m_ffmpegProcess;
 }
 
-void VideoExporter::setExportPath(const QString &path)
+void VideoExporter::setBaseDirectory(const QString &path)
 {
-    if (m_exportPath != path) {
-        m_exportPath = path;
-        emit exportPathChanged();
+    if (m_baseDirectory != path) {
+        m_baseDirectory = path;
+        emit baseDirectoryChanged();
     }
 }
 
@@ -208,6 +206,11 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         return false;
     }
     
+    if (!ExportMath::isValidExportPath(m_baseDirectory)) {
+        emit exportError(tr("No export directory is set"));
+        return false;
+    }
+
     m_busy = true;
     m_cancelRequested = false;
     emit busyChanged();
@@ -215,12 +218,12 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
     // Notify that export has started
     emit exportStarted();
     emit statusUpdate(tr("Generating frames..."));
-    
+
     // Create the export directory if it doesn't exist
-    QDir dir(Config::instance()->lastExportPath());
+    QDir dir(m_baseDirectory);
     if (!dir.exists() && !dir.mkpath(".")) {
         emit exportError(tr("Failed to create export directory: %1")
-                             .arg(Config::instance()->lastExportPath()));
+                             .arg(m_baseDirectory));
         m_busy = false;
         emit busyChanged();
         return false;
@@ -347,8 +350,8 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
     qDebug() << "Generating frames from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
 
-    // Stage any export-only generator state (e.g. overlay's editor-only
-    // cell backgrounds get hidden for the duration of this loop).
+    // Stage any export-only generator state (IFrameGenerator contract;
+    // currently a no-op for both generators).
     generator->beginExport();
 
     // Clear any previous temp files and ensure the temp directory exists
@@ -961,14 +964,13 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
     QString baseName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
     baseName += "." + extension;
 
-    // Create full path under the user's configured base export directory -
-    // make sure the directory exists before returning the file path
-    QString dirPath = Config::instance()->lastExportPath();
-    QDir dir(dirPath);
+    // Create full path under the QML-bound base export directory - make
+    // sure the directory exists before returning the file path
+    QDir dir(m_baseDirectory);
     if (!dir.exists()) {
         dir.mkpath(".");
     }
 
     // Create and return the full path
-    return QDir(dirPath).filePath(baseName);
+    return QDir(m_baseDirectory).filePath(baseName);
 }

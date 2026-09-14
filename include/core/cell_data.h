@@ -177,6 +177,21 @@ public:
     static QString vAlignToString(VAlign align);
     static VAlign vAlignFromString(const QString& str);
 
+    // Human-readable, translated name for a cell id ("depth" -> "Depth",
+    // "tank_0" -> "Tank 1"). Single source for every UI list that shows
+    // cells (layers panel, editing-scope combo); unknown ids fall through
+    // unchanged so a new cell type is visible-but-raw rather than invisible.
+    static QString displayName(const QString& cellId);
+
+    // Map legacy font family aliases onto the bundled default. Templates and
+    // settings saved by pre-0.3 versions carry "Sans Serif", a fontconfig
+    // alias: on macOS/Windows a QFont substitution heals it, but on Linux
+    // fontconfig resolves it FIRST (to whatever the distro default is), so
+    // for deterministic cross-platform rendering the family must be
+    // rewritten at load time, not at match time. Apply wherever a family
+    // name is read from disk.
+    static QString normalizedFontFamily(const QString& family);
+
 private:
     QString m_cellId;              // Unique identifier (e.g., "depth", "tank_0")
     CellType m_cellType;           // Type of data displayed

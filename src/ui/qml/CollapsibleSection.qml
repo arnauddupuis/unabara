@@ -26,6 +26,11 @@ Column {
     // `expanded` value acts as the first-run default.
     property string settingsKey: ""
 
+    // Persistence backend. Defaults to the app's Config context property but
+    // stays optional, so the component can be instantiated in a tool or a
+    // QML test that has no `config` (typeof guards the missing name).
+    property var settingsStore: typeof config !== "undefined" ? config : null
+
     default property alias contentData: contentColumn.data
 
     spacing: 0
@@ -37,14 +42,14 @@ Column {
     property bool _stateRestored: false
 
     Component.onCompleted: {
-        if (settingsKey !== "")
-            expanded = config.sectionExpanded(settingsKey, expanded)
+        if (settingsKey !== "" && settingsStore)
+            expanded = settingsStore.sectionExpanded(settingsKey, expanded)
         _stateRestored = true
     }
 
     onExpandedChanged: {
-        if (_stateRestored && settingsKey !== "")
-            config.setSectionExpanded(settingsKey, expanded)
+        if (_stateRestored && settingsKey !== "" && settingsStore)
+            settingsStore.setSectionExpanded(settingsKey, expanded)
     }
 
     Rectangle {

@@ -44,12 +44,14 @@ ApplicationWindow {
     // Models and objects
     ImageExporter {
         id: imageExporter
-        
+        // Where per-dive export subfolders are created. The exporter itself
+        // never reads the settings store — this binding is its only source.
+        baseDirectory: config ? config.lastExportPath : ""
+
         onExportStarted: {
             // The generators are not thread-safe: playback keeps the image
             // provider rendering on its worker thread while the export
-            // renders on the GUI thread (and the provider's cell-background
-            // toggle races beginExport()). Export is reachable from the
+            // renders on the GUI thread. Export is reachable from the
             // Video Preview tab, so stop the player first.
             videoSyncPlayer.pause()
             exportProgressDialog.open()
@@ -85,7 +87,9 @@ ApplicationWindow {
     // Video exporter
     VideoExporter {
         id: videoExporter
-        
+        // Same contract as ImageExporter.baseDirectory
+        baseDirectory: config ? config.lastExportPath : ""
+
         onExportStarted: {
             videoSyncPlayer.pause()  // see ImageExporter.onExportStarted
             videoExportProgressDialog.open()
@@ -307,9 +311,17 @@ ApplicationWindow {
         }
     }
     
+    // Update info arriving while the What's New notes are open is held back
+    // so the two startup modals never stack; the notes' onClosed releases it.
+    property var pendingUpdateInfo: null
+
     Connections {
         target: updateChecker
         function onUpdateAvailable(latestVersion, releaseUrl) {
+            if (whatsNewDialog.visible) {
+                window.pendingUpdateInfo = { version: latestVersion, url: releaseUrl }
+                return
+            }
             updateDialog.latestVersion = latestVersion
             updateDialog.releaseUrl = releaseUrl
             updateDialog.open()
@@ -431,10 +443,15 @@ ApplicationWindow {
                         exportImagesDialog.targetGenerator = profileGenerator
                         exportImagesDialog.contentType = "dive_profile"
                         exportImagesDialog.title = qsTr("Export Dive Profile")
+                        // Don't inherit a "video range" left over from a
+                        // Video-tab export — each entry point picks its
+                        // natural default range.
+                        exportFullDive.checked = true
                     } else {
                         exportImagesDialog.targetGenerator = overlayGenerator
                         exportImagesDialog.contentType = "dive_computer"
                         exportImagesDialog.title = qsTr("Export Dive Computer Overlay")
+                        exportFullDive.checked = true
                     }
                     exportImagesDialog.open()
                 }
@@ -936,6 +953,7 @@ ApplicationWindow {
                     // Tab 3: application settings
                     SettingsPanel {
                         id: settingsPanel
+                        onChooseExportDirectory: exportDestinationDialog.open()
                         onShowWhatsNew: {
                             whatsNewDialog.releases = whatsNew.allReleases()
                             whatsNewDialog.open()
@@ -1993,7 +2011,16 @@ ApplicationWindow {
 
         // Any dismissal counts as "seen" for the running version — including
         // manual opens from the Settings tab, where it's a no-op re-stamp.
-        onClosed: config.whatsNewSeenVersion = appVersion
+        onClosed: {
+            config.whatsNewSeenVersion = appVersion
+            // Release an update notice that arrived while the notes were open
+            if (window.pendingUpdateInfo) {
+                updateDialog.latestVersion = window.pendingUpdateInfo.version
+                updateDialog.releaseUrl = window.pendingUpdateInfo.url
+                window.pendingUpdateInfo = null
+                updateDialog.open()
+            }
+        }
     }
 
     // "Show me" target highlight: an Unabara-blue border pulsing slowly

@@ -36,28 +36,35 @@ ColumnLayout {
         function onSelectedCellIdChanged() { panel.rev++ }
     }
 
+    // Display names come from C++ (CellData::displayName via the generator)
+    // so this panel and the editing-scope combo can never disagree; these
+    // arrays only map ids to their generator visibility flags.
+    function fieldName(id) {
+        return panel.generator ? panel.generator.cellDisplayName(id) : id
+    }
+
     readonly property var standardFields: [
-        { id: "depth",       flag: "showDepth",       name: qsTr("Depth") },
-        { id: "temperature", flag: "showTemperature", name: qsTr("Temperature") },
-        { id: "time",        flag: "showTime",        name: qsTr("Dive Time") },
-        { id: "gas",         flag: "showGas",         name: qsTr("Gas Mix") },
-        { id: "cns",         flag: "showCNS",         name: qsTr("CNS") },
-        { id: "mean_depth",  flag: "showMeanDepth",   name: qsTr("Mean Depth") },
-        { id: "max_depth",   flag: "showMaxDepth",    name: qsTr("Max Depth") }
+        { id: "depth",       flag: "showDepth" },
+        { id: "temperature", flag: "showTemperature" },
+        { id: "time",        flag: "showTime" },
+        { id: "gas",         flag: "showGas" },
+        { id: "cns",         flag: "showCNS" },
+        { id: "mean_depth",  flag: "showMeanDepth" },
+        { id: "max_depth",   flag: "showMaxDepth" }
     ]
 
     readonly property var decoFields: [
-        { id: "ndl",        flag: "showNDL",       name: qsTr("NDL / TTS") },
-        { id: "tts",        flag: "showTTS",       name: qsTr("Time To Surface") },
-        { id: "stop_depth", flag: "showStopDepth", name: qsTr("Stop Depth") },
-        { id: "stop_time",  flag: "showStopTime",  name: qsTr("Stop Time") }
+        { id: "ndl",        flag: "showNDL" },
+        { id: "tts",        flag: "showTTS" },
+        { id: "stop_depth", flag: "showStopDepth" },
+        { id: "stop_time",  flag: "showStopTime" }
     ]
 
     readonly property var ccrFields: [
-        { id: "po2_cell1",     flag: "showPO2Cell1",     name: qsTr("PO2 Cell 1") },
-        { id: "po2_cell2",     flag: "showPO2Cell2",     name: qsTr("PO2 Cell 2") },
-        { id: "po2_cell3",     flag: "showPO2Cell3",     name: qsTr("PO2 Cell 3") },
-        { id: "composite_po2", flag: "showCompositePO2", name: qsTr("Composite PO2") }
+        { id: "po2_cell1",     flag: "showPO2Cell1" },
+        { id: "po2_cell2",     flag: "showPO2Cell2" },
+        { id: "po2_cell3",     flag: "showPO2Cell3" },
+        { id: "composite_po2", flag: "showCompositePO2" }
     ]
 
     function toggleSelection(cellId) {
@@ -188,7 +195,7 @@ ColumnLayout {
         delegate: FieldRow {
             cellId: modelData.id
             flagName: modelData.flag
-            displayName: modelData.name
+            displayName: panel.fieldName(modelData.id)
         }
     }
 
@@ -198,7 +205,7 @@ ColumnLayout {
         delegate: FieldRow {
             cellId: modelData.id
             flagName: modelData.flag
-            displayName: modelData.name
+            displayName: panel.fieldName(modelData.id)
         }
     }
 
@@ -208,7 +215,7 @@ ColumnLayout {
         delegate: FieldRow {
             cellId: modelData.id
             flagName: modelData.flag
-            displayName: modelData.name
+            displayName: panel.fieldName(modelData.id)
         }
     }
 

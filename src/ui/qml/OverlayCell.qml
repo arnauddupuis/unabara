@@ -88,6 +88,22 @@ Rectangle {
     y: cellPosition.y * (parent ? parent.height : 0) - anchorOffsetY()
     color: "transparent"
 
+    // Minimum box size a resize can shrink to, in container px.
+    readonly property int resizeMinSize: 20
+
+    // Shared by the handle-drag move and the release-time grid snap: clamp
+    // the candidate edges against the container bounds and the minimum size.
+    // Only the moving edges (resizeXe/resizeYe, set on handle press) are
+    // touched — the opposite edge stays pinned. Returns {left,top,right,bottom}.
+    function clampResizeEdges(left, top, right, bottom) {
+        var c = cellRoot.parent
+        if (resizeXe < 0) left = Math.max(0, Math.min(left, right - resizeMinSize))
+        if (resizeXe > 0) right = Math.min(c.width, Math.max(right, left + resizeMinSize))
+        if (resizeYe < 0) top = Math.max(0, Math.min(top, bottom - resizeMinSize))
+        if (resizeYe > 0) bottom = Math.min(c.height, Math.max(bottom, top + resizeMinSize))
+        return { left: left, top: top, right: right, bottom: bottom }
+    }
+
     // MouseArea.drag and the resize handles assign x/y/width/height
     // imperatively, which permanently breaks the declarative bindings above.
     // The cell model is updated in place (no reset, so delegates are not
@@ -363,22 +379,16 @@ Rectangle {
                     var dx = p.x - pressPos.x
                     var dy = p.y - pressPos.y
 
-                    var minSize = 20
-                    var container = cellRoot.parent
-                    var left = pressRect.x
-                    var top = pressRect.y
-                    var right = pressRect.x + pressRect.width
-                    var bottom = pressRect.y + pressRect.height
+                    var e = cellRoot.clampResizeEdges(
+                                pressRect.x + (xe < 0 ? dx : 0),
+                                pressRect.y + (ye < 0 ? dy : 0),
+                                pressRect.x + pressRect.width + (xe > 0 ? dx : 0),
+                                pressRect.y + pressRect.height + (ye > 0 ? dy : 0))
 
-                    if (xe < 0) left = Math.max(0, Math.min(left + dx, right - minSize))
-                    if (xe > 0) right = Math.min(container.width, Math.max(right + dx, left + minSize))
-                    if (ye < 0) top = Math.max(0, Math.min(top + dy, bottom - minSize))
-                    if (ye > 0) bottom = Math.min(container.height, Math.max(bottom + dy, top + minSize))
-
-                    cellRoot.x = left
-                    cellRoot.y = top
-                    cellRoot.width = right - left
-                    cellRoot.height = bottom - top
+                    cellRoot.x = e.left
+                    cellRoot.y = e.top
+                    cellRoot.width = e.right - e.left
+                    cellRoot.height = e.bottom - e.top
                 }
 
                 onReleased: {
@@ -396,18 +406,18 @@ Rectangle {
                         var scaleY = generator.templateHeight > 0 ? container.height / generator.templateHeight : 1.0
                         var spacingX = generator.gridSpacing * scaleX
                         var spacingY = generator.gridSpacing * scaleY
-                        var minSize = 20
 
                         if (spacingX >= 1 && spacingY >= 1) {
-                            if (xe < 0) left = Math.max(0, Math.min(Math.round(left / spacingX) * spacingX, right - minSize))
-                            if (xe > 0) right = Math.min(container.width, Math.max(Math.round(right / spacingX) * spacingX, left + minSize))
-                            if (ye < 0) top = Math.max(0, Math.min(Math.round(top / spacingY) * spacingY, bottom - minSize))
-                            if (ye > 0) bottom = Math.min(container.height, Math.max(Math.round(bottom / spacingY) * spacingY, top + minSize))
+                            var e = cellRoot.clampResizeEdges(
+                                        xe < 0 ? Math.round(left / spacingX) * spacingX : left,
+                                        ye < 0 ? Math.round(top / spacingY) * spacingY : top,
+                                        xe > 0 ? Math.round(right / spacingX) * spacingX : right,
+                                        ye > 0 ? Math.round(bottom / spacingY) * spacingY : bottom)
 
-                            cellRoot.x = left
-                            cellRoot.y = top
-                            cellRoot.width = right - left
-                            cellRoot.height = bottom - top
+                            cellRoot.x = e.left
+                            cellRoot.y = e.top
+                            cellRoot.width = e.right - e.left
+                            cellRoot.height = e.bottom - e.top
                         }
                     }
 

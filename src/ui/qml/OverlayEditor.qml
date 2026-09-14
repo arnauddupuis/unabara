@@ -20,6 +20,36 @@ Item {
     // unreadable .utp). main.qml owns the error dialog.
     signal templateLoadFailed(string path)
 
+    // Editing-scope routing: with a cell selected, edits create per-cell
+    // overrides; with "All cells", they write the global defaults. The
+    // getters already read scope-aware values — these are their write-side
+    // counterparts, and every input handler must go through them.
+    function applyFont(font) {
+        if (!generator)
+            return
+        if (hasSelection && selectedCellId)
+            generator.setCellFont(selectedCellId, font)
+        else
+            generator.font = font
+    }
+
+    function applyShadow(enabled, type, color, size, opacity) {
+        if (!generator)
+            return
+        if (hasSelection && selectedCellId) {
+            // hasCustomShadow is one flag for all five shadow properties, so
+            // a per-cell edit pins the full effective group with the edited
+            // value swapped in
+            generator.setCellShadow(selectedCellId, enabled, type, color, size, opacity)
+        } else {
+            generator.shadowEnabled = enabled
+            generator.shadowType = type
+            generator.shadowColor = color
+            generator.shadowSize = size
+            generator.shadowOpacity = opacity
+        }
+    }
+
     // Reactive properties that update when selection or cells change
     property var currentFont: getCurrentFont()
     property var currentLabelColor: getCurrentLabelColor()
@@ -178,15 +208,12 @@ Item {
 
     // Update reactive properties when selection or cells change
     onSelectedCellIdChanged: {
-        console.log("Selection changed to:", selectedCellId)
         updateCurrentProperties()
     }
 
     Connections {
         target: generator
         function onCellsChanged() {
-            console.log(">>> onCellsChanged triggered")
-            console.log("Cells changed, updating properties")
             updateCurrentProperties()
         }
 
@@ -197,35 +224,30 @@ Item {
 
         function onFontChanged() {
             if (!hasSelection) {
-                console.log("Global font changed")
                 updateCurrentProperties()
             }
         }
 
         function onLabelColorChanged() {
             if (!hasSelection) {
-                console.log("Global label color changed")
                 updateCurrentProperties()
             }
         }
 
         function onValueColorChanged() {
             if (!hasSelection) {
-                console.log("Global value color changed")
                 updateCurrentProperties()
             }
         }
 
         function onShowLabelChanged() {
             if (!hasSelection) {
-                console.log("Global showLabel changed")
                 updateCurrentProperties()
             }
         }
 
         function onShadowChanged() {
             if (!hasSelection) {
-                console.log("Global shadow changed")
                 updateCurrentProperties()
             }
         }
@@ -233,7 +255,6 @@ Item {
 
     function updateCurrentProperties() {
         var newFont = getCurrentFont()
-        console.log("Updating properties - Font:", newFont ? newFont.family : "null", "Size:", newFont ? newFont.pointSize : "null")
         currentFont = newFont
         currentLabelColor = getCurrentLabelColor()
         currentValueColor = getCurrentValueColor()
@@ -377,11 +398,9 @@ Item {
                     }
 
                     onActivated: {
-                        if (generator) {
-                            var font = root.currentFont
-                            font.family = currentText
-                            generator.font = font
-                        }
+                        var font = root.currentFont
+                        font.family = currentText
+                        root.applyFont(font)
                     }
                 }
 
@@ -416,11 +435,9 @@ Item {
                     }
 
                     onValueModified: {
-                        if (generator) {
-                            var font = root.currentFont
-                            font.pointSize = value
-                            generator.font = font
-                        }
+                        var font = root.currentFont
+                        font.pointSize = value
+                        root.applyFont(font)
                     }
                 }
                 // No reset button for size - it's part of the font property
@@ -441,11 +458,9 @@ Item {
                             }
                         }
                         onClicked: {
-                            if (generator) {
-                                var font = root.currentFont
-                                font.bold = checked
-                                generator.font = font
-                            }
+                            var font = root.currentFont
+                            font.bold = checked
+                            root.applyFont(font)
                         }
                     }
                     CheckBox {
@@ -459,11 +474,9 @@ Item {
                             }
                         }
                         onClicked: {
-                            if (generator) {
-                                var font = root.currentFont
-                                font.italic = checked
-                                generator.font = font
-                            }
+                            var font = root.currentFont
+                            font.italic = checked
+                            root.applyFont(font)
                         }
                     }
                 }
@@ -538,9 +551,12 @@ Item {
                         }
                     }
                     onClicked: {
-                        if (root.generator) {
+                        if (!root.generator)
+                            return
+                        if (root.hasSelection && root.selectedCellId)
+                            root.generator.setCellShowLabel(root.selectedCellId, checked)
+                        else
                             root.generator.showLabel = checked
-                        }
                     }
                 }
 
@@ -571,9 +587,9 @@ Item {
                         }
                     }
                     onClicked: {
-                        if (root.generator) {
-                            root.generator.shadowEnabled = checked
-                        }
+                        root.applyShadow(checked, root.currentShadowType,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         root.currentShadowOpacity)
                     }
                 }
 
@@ -605,9 +621,9 @@ Item {
                         }
                     }
                     onActivated: {
-                        if (root.generator) {
-                            root.generator.shadowType = currentIndex
-                        }
+                        root.applyShadow(root.currentShadowEnabled, currentIndex,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         root.currentShadowOpacity)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -643,9 +659,9 @@ Item {
                         }
                     }
                     onValueModified: {
-                        if (root.generator) {
-                            root.generator.shadowSize = value
-                        }
+                        root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                                         root.currentShadowColor, value,
+                                         root.currentShadowOpacity)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -665,9 +681,9 @@ Item {
                         }
                     }
                     onMoved: {
-                        if (root.generator) {
-                            root.generator.shadowOpacity = value
-                        }
+                        root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         value)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -1085,7 +1101,12 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.labelColor = selectedColor
+            if (!generator)
+                return
+            if (root.hasSelection && root.selectedCellId)
+                generator.setCellLabelColor(root.selectedCellId, selectedColor)
+            else
+                generator.labelColor = selectedColor
         }
     }
 
@@ -1102,7 +1123,12 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.valueColor = selectedColor
+            if (!generator)
+                return
+            if (root.hasSelection && root.selectedCellId)
+                generator.setCellValueColor(root.selectedCellId, selectedColor)
+            else
+                generator.valueColor = selectedColor
         }
     }
 
@@ -1119,7 +1145,9 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.shadowColor = selectedColor
+            root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                             selectedColor, root.currentShadowSize,
+                             root.currentShadowOpacity)
         }
     }
 
@@ -1132,10 +1160,8 @@ Item {
         onAccepted: {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
-                console.log("Saving template to:", localPath)
                 var success = generator.saveTemplateToFile(localPath)
                 if (success) {
-                    console.log("Template saved successfully!")
                     // Refresh ComboBox and select the saved template
                     generator.refreshTemplateList()
                     var idx = generator.indexOfTemplatePath(localPath)
@@ -1158,10 +1184,8 @@ Item {
         onAccepted: {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
-                console.log("Loading template from:", localPath)
                 var success = generator.loadTemplateFromFile(localPath)
                 if (success) {
-                    console.log("Template loaded successfully!")
                     // Update cell model to reflect loaded template
                     if (root.timeline && root.dive) {
                         cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)

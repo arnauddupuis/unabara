@@ -28,9 +28,12 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
     
     QImage result;
 
-    // Disable cell backgrounds for preview rendering (they're only for the interactive editor)
-    bool prevShowCellBg = m_generator->showCellBackgrounds();
-    m_generator->setShowCellBackgrounds(false);
+    // No generator state may be touched here: requestImage() runs on Qt
+    // Quick's image-loader worker thread (renderImage is asynchronous), and
+    // mutating a GUI-thread QObject — let alone emitting its signals — from
+    // here is a data race. Cell backgrounds are off by default on the
+    // generator (the interactive editor draws its own in QML), so the old
+    // save/disable/restore dance around the render is simply gone.
 
     if (id.startsWith("at/")) {
         // "at/<seconds>/<tick>" — explicit dive-time request from the video
@@ -66,9 +69,6 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
         }
     }
 
-    // Restore cell background setting
-    m_generator->setShowCellBackgrounds(prevShowCellBg);
-    
     if (result.isNull()) {
         qWarning() << "OverlayImageProvider: Failed to generate overlay image";
         QImage emptyImage(640, 120, QImage::Format_ARGB32);

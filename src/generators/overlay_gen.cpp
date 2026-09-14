@@ -42,7 +42,12 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
     , m_useCellBasedLayout(false)
-    , m_showCellBackgrounds(true)
+    // Off by default: the interactive editor draws its own cell backgrounds
+    // in QML, and every C++ render path (image provider, exporters,
+    // render_utp) wants them off. Keeping the default off lets the image
+    // provider render WITHOUT mutating this from its worker thread (a
+    // cross-thread setter + signal emission violated Qt's threading rules).
+    , m_showCellBackgrounds(false)
     , m_snapToGrid(true)
     , m_gridSpacing(10)
     , m_showGrid(false)
@@ -775,6 +780,25 @@ void OverlayGenerator::resetCellShadow(const QString& cellId)
     }
 }
 
+void OverlayGenerator::setCellShadow(const QString& cellId, bool enabled, int type,
+                                     const QColor& color, int size, double opacity)
+{
+    Unabara::CellData* cell = getCellData(cellId);
+    if (!cell) {
+        qWarning() << "setCellShadow: Cell not found:" << cellId;
+        return;
+    }
+    // All five values pinned as custom in one go: hasCustomShadow is a single
+    // flag, so a partial write would silently freeze stale values for the
+    // properties the caller didn't mean to touch.
+    cell->setShadowEnabled(enabled, true);
+    cell->setShadowType(static_cast<Unabara::ShadowType>(qBound(0, type, 2)), true);
+    cell->setShadowColor(color, true);
+    cell->setShadowSize(size, true);
+    cell->setShadowOpacity(opacity, true);
+    emit cellsChanged();
+}
+
 // Cell-based layout management methods
 
 void OverlayGenerator::seedCellColors(Unabara::CellData& cell) const
@@ -1142,10 +1166,11 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         return;
     }
 
-    QImage templateImage(m_templatePath);
-    QSizeF templateSize = templateImage.isNull()
-        ? QSizeF(640, 120)
-        : QSizeF(templateImage.width(), templateImage.height());
+    // Template dimensions are already tracked (set with the template path);
+    // re-reading the image from disk here cost a decode per toggle
+    QSizeF templateSize = (m_templateWidth > 0 && m_templateHeight > 0)
+        ? QSizeF(m_templateWidth, m_templateHeight)
+        : QSizeF(640, 120);
 
     Unabara::CellData newCell(cellId, idToType.value(cellId));
     newCell.setPosition(QPointF(0.5, 0.5));
@@ -1199,10 +1224,10 @@ void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
 
     if (visible && !hasPressureCells) {
         // Create default pressure cell(s) since the template has none
-        QImage templateImage(m_templatePath);
-        QSizeF templateSize = templateImage.isNull()
-            ? QSizeF(640, 120)
-            : QSizeF(templateImage.width(), templateImage.height());
+        // (dimensions already tracked — no disk re-read)
+        QSizeF templateSize = (m_templateWidth > 0 && m_templateHeight > 0)
+            ? QSizeF(m_templateWidth, m_templateHeight)
+            : QSizeF(640, 120);
 
         int actualTanks = (dive && dive->cylinderCount() > 0) ? dive->cylinderCount() : 1;
         if (actualTanks == 1) {
@@ -2039,12 +2064,13 @@ namespace {
 
 // One separable sliding-window box blur pass over a premultiplied ARGB32 image.
 // Blurring all 4 channels of premultiplied data is alpha-correct.
-void boxBlurPass(QImage& img, int radius)
+void boxBlurPass(QImage& img, int radius, QVector<QRgb>& line)
 {
     const int w = img.width();
     const int h = img.height();
     const int window = 2 * radius + 1;
-    QVector<QRgb> line(qMax(w, h));
+    if (line.size() < qMax(w, h))
+        line.resize(qMax(w, h));
 
     // Horizontal pass
     for (int y = 0; y < h; ++y) {
@@ -2090,12 +2116,14 @@ void boxBlurPass(QImage& img, int radius)
     }
 }
 
-// Three box blur passes approximate a gaussian blur.
+// Three box blur passes approximate a gaussian blur. One scratch line buffer
+// serves all passes (this runs per blurred cell per exported frame).
 void boxBlur(QImage& img, int radius)
 {
     if (radius < 1) return;
+    QVector<QRgb> line(qMax(img.width(), img.height()));
     for (int i = 0; i < 3; ++i) {
-        boxBlurPass(img, radius);
+        boxBlurPass(img, radius, line);
     }
 }
 
@@ -2234,8 +2262,14 @@ OverlayGenerator::CellGeometry OverlayGenerator::cellGeometry(
     const Unabara::CellData& cell, const QFontMetrics& fm,
     const QString& displayText, double width, double height) const
 {
-    const QRect textBounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
-                                             Qt::AlignHCenter | Qt::TextWordWrap,
+    // Measurement must match how renderCellBasedOverlay draws: multi-line
+    // via '\n' only, no soft word-wrap (drawText runs without TextWordWrap).
+    // The old 1000x1000 wrap rect silently re-wrapped — and mis-measured —
+    // any line wider than 1000 px (large fonts on 4K templates); a huge rect
+    // measures identically for everything that fit before. Keep in sync with
+    // render_utp --measure (tools/render_utp/main.cpp).
+    const QRect textBounds = fm.boundingRect(QRect(0, 0, 1000000, 1000000),
+                                             Qt::AlignHCenter,
                                              displayText);
 
     // Box size: measured text + 8 px padding (auto), or the normalized fixed

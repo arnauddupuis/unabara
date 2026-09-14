@@ -84,7 +84,8 @@ DiveData* makeSyntheticDive()
 }
 
 // Mirrors OverlayGenerator: pixelSize = int(pointSize * 1.33 * 1.8), then
-// QFontMetrics::boundingRect(0,0,1000,1000, AlignHCenter|TextWordWrap).
+// QFontMetrics::boundingRect over an unbounded rect, AlignHCenter, no soft
+// wrap ('\n' is the only line break — matches how drawText renders).
 // Cell footprint on canvas = bounds + 8 px in each dimension.
 int runMeasure(const QString& family, int pointSize, QString text)
 {
@@ -92,8 +93,8 @@ int runMeasure(const QString& family, int pointSize, QString text)
     QFont font(family, pointSize);
     font.setPixelSize(static_cast<int>(pointSize * 1.33 * 1.8));
     QFontMetrics fm(font);
-    const QRect bounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
-                                         Qt::AlignHCenter | Qt::TextWordWrap, text);
+    const QRect bounds = fm.boundingRect(QRect(0, 0, 1000000, 1000000),
+                                         Qt::AlignHCenter, text);
     printf("text_w=%d text_h=%d cell_w=%d cell_h=%d line_spacing=%d family_resolved=%s\n",
            bounds.width(), bounds.height(),
            bounds.width() + 8, bounds.height() + 8,

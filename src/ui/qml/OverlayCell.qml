@@ -283,9 +283,13 @@ Rectangle {
                     var spacingX = generator.gridSpacing * scaleX
                     var spacingY = generator.gridSpacing * scaleY
 
-                    // Snap to nearest grid intersection
-                    finalX = Math.round(finalX / spacingX) * spacingX
-                    finalY = Math.round(finalY / spacingY) * spacingY
+                    // Snap to nearest grid intersection. Same guard as the
+                    // resize handles: a zero/degenerate spacing would divide
+                    // by zero and commit NaN as the cell position.
+                    if (spacingX >= 1 && spacingY >= 1) {
+                        finalX = Math.round(finalX / spacingX) * spacingX
+                        finalY = Math.round(finalY / spacingY) * spacingY
+                    }
                 }
 
                 // Clamp position to boundaries [0, container size - cell size]

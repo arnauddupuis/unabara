@@ -202,6 +202,10 @@ public:
     Q_INVOKABLE void setCellLabelColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellValueColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
+    // Freezes the full shadow group on the cell (hasCustomShadow is one flag
+    // for all five properties, so a per-cell edit must pin every value)
+    Q_INVOKABLE void setCellShadow(const QString& cellId, bool enabled, int type,
+                                   const QColor& color, int size, double opacity);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
     Q_INVOKABLE bool getCellHasCustomFont(const QString& cellId) const;
     Q_INVOKABLE bool getCellHasCustomLabelColor(const QString& cellId) const;

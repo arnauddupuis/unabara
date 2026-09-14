@@ -87,6 +87,11 @@ Column {
         width: section.width
         clip: true
         height: section.expanded ? contentColumn.implicitHeight + 8 : 0
+        // Zero-height clipped items keep their children in the tab-focus
+        // chain — without this, keyboard navigation walks blindly through
+        // the controls of every collapsed section. Height > 0 keeps the
+        // content visible while the collapse animation is still running.
+        visible: section.expanded || height > 0
 
         Behavior on height {
             // Off until the persisted state has been applied: a stored

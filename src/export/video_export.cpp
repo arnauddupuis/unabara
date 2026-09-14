@@ -292,12 +292,21 @@ void VideoExporter::cancelExport()
         // re-entering the UI from inside the Cancel button's handler. If
         // FFmpeg ignores SIGTERM, escalate to kill() after a grace period.
         m_ffmpegProcess->terminate();
-        QPointer<QProcess> proc = m_ffmpegProcess;
-        QTimer::singleShot(3000, this, [proc]() {
-            if (proc && proc->state() != QProcess::NotRunning) {
-                proc->kill();
-            }
-        });
+        // Tracked (not a fire-and-forget singleShot): m_ffmpegProcess is
+        // reused across runs, so this timer must be disarmed in
+        // onFFmpegFinished() — otherwise a prompt termination followed by a
+        // new export within 3 s would get that new process killed.
+        if (!m_killTimer) {
+            m_killTimer = new QTimer(this);
+            m_killTimer->setSingleShot(true);
+            m_killTimer->setInterval(3000);
+            connect(m_killTimer, &QTimer::timeout, this, [this]() {
+                if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
+                    m_ffmpegProcess->kill();
+                }
+            });
+        }
+        m_killTimer->start();
     }
     // Frame-generation phase: nothing more to do here — this call was
     // delivered by the generation loop's processEvents(), and the loop
@@ -326,9 +335,12 @@ void VideoExporter::cleanupTempFiles()
 bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
                                  double startTime, double endTime)
 {
-    // Calculate the number of frames to generate
+    // Calculate the number of frames to generate. The loop below always
+    // writes at least one frame, so a degenerate (zero-length) range must
+    // not divide the progress computation by zero (same guard as
+    // ImageExporter::exportImageRange).
     double timeStep = 1.0 / m_frameRate;
-    int totalFrames = qRound((endTime - startTime) * m_frameRate);
+    int totalFrames = qMax(1, qRound((endTime - startTime) * m_frameRate));
     int processedFrames = 0;
 
     qDebug() << "Generating frames from" << startTime << "to" << endTime
@@ -567,6 +579,9 @@ void VideoExporter::processFFmpegOutput()
 void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     m_progressTimer->stop();
+    if (m_killTimer) {
+        m_killTimer->stop();
+    }
 
     if (m_cancelRequested) {
         // Cancelled mid-encode: the exit status only reflects the kill we

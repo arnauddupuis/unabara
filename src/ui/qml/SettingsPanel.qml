@@ -284,6 +284,7 @@ Item {
     FolderDialog {
         id: templateDirDialog
         title: qsTr("Select Template Directory")
+        currentFolder: config ? mainWindow.localFileToUrl(config.templateDirectory) : ""
         onAccepted: {
             if (config) {
                 // OverlayEditor listens to templateDirectoryChanged and

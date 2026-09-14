@@ -120,6 +120,10 @@ private:
     
     QProcess* m_ffmpegProcess;
     QTimer* m_progressTimer;
+    // Fallback SIGKILL escalation armed by cancelExport(); must be disarmed
+    // the moment the process finishes — m_ffmpegProcess is reused across
+    // export runs, so a stale timer would kill the NEXT export.
+    QTimer* m_killTimer = nullptr;
     QTemporaryDir m_tempDir;
     // QThread* m_workerThread;
     // QObject* m_worker;

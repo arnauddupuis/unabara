@@ -64,6 +64,14 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         return false;
     }
 
+    // An empty path would make QDir resolve to the working directory: frames
+    // would land there and a cancellation's cleanup would delete files from —
+    // and try to rmdir — whatever directory the app was launched in.
+    if (m_exportPath.trimmed().isEmpty()) {
+        emit exportError(tr("No export directory is set"));
+        return false;
+    }
+
     m_busy = true;
     m_cancelRequested = false;
     emit busyChanged();

@@ -88,22 +88,20 @@ Item {
 
     // --- Behavior: dive / generator / timeline reactions ------------------
 
-    Connections {
-        target: root
-        function onGeneratorChanged() { root.refreshAll() }
-        function onTimelineChanged() { root.refreshAll() }
-        function onDiveChanged() {
-            // Only initialize the default layout when no cells exist yet
-            // (don't wipe a loaded template on dive import).
-            if (root.generator && root.dive && root.generator.cellCount() === 0) {
-                root.generator.initializeDefaultCellLayout(root.dive)
-            }
-            // Hide tank pressure cells that exceed the dive's actual tank count
-            if (root.generator && root.dive) {
-                root.generator.adjustTankCellVisibility(root.dive)
-            }
-            root.refreshAll()
+    // Inline handlers (not a Connections on self) for root's own properties
+    onGeneratorChanged: refreshAll()
+    onTimelineChanged: refreshAll()
+    onDiveChanged: {
+        // Only initialize the default layout when no cells exist yet
+        // (don't wipe a loaded template on dive import).
+        if (generator && dive && generator.cellCount() === 0) {
+            generator.initializeDefaultCellLayout(dive)
         }
+        // Hide tank pressure cells that exceed the dive's actual tank count
+        if (generator && dive) {
+            generator.adjustTankCellVisibility(dive)
+        }
+        refreshAll()
     }
 
     Connections {

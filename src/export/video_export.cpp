@@ -1,4 +1,5 @@
 #include "include/export/video_export.h"
+#include "include/export/export_math.h"
 #include "include/core/config.h"
 #include <QDateTime>
 #include <QStandardPaths>
@@ -340,7 +341,7 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
     // not divide the progress computation by zero (same guard as
     // ImageExporter::exportImageRange).
     double timeStep = 1.0 / m_frameRate;
-    int totalFrames = qMax(1, qRound((endTime - startTime) * m_frameRate));
+    int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
     int processedFrames = 0;
 
     qDebug() << "Generating frames from" << startTime << "to" << endTime
@@ -370,9 +371,7 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
         }
 
         // Create a filename with the frame number
-        QString frameNumberStr = QString("%1").arg(processedFrames, 6, 10, QChar('0'));
-        QString filename = QString("frame_%1.png").arg(frameNumberStr);
-        QString filePath = QDir(tempDirPath).filePath(filename);
+        QString filePath = QDir(tempDirPath).filePath(ExportMath::frameFileName(processedFrames));
 
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
@@ -426,22 +425,22 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
     args << "-y"
          << "-progress" << "-" // Output progress info to stdout
          << "-stats" // Show stats
-         << "-framerate" << QString::number(m_frameRate) 
-         << "-i" << QString("%1/frame_%06d.png").arg(m_tempDir.path());
-    
+         << "-framerate" << QString::number(m_frameRate)
+         << "-i" << QString("%1/%2").arg(m_tempDir.path(), ExportMath::framePattern());
+
     // Add scale filter if custom resolution is set
     if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
         args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
     }
-    
+
     // Add codec-specific options
     QString formatOptions = getFormatOptions(m_videoCodec);
     QStringList formatArgs = formatOptions.split(" ", Qt::SkipEmptyParts);
     args.append(formatArgs);
-    
+
     // Add output file
     args << outputPath;
-    
+
     // Log the full command for debugging
     QString cmdLog = ffmpegPath;
     for (const QString &arg : args) {
@@ -957,41 +956,9 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
                                               const QString &videoFilePath,
                                               const QString &contentType)
 {
-    QString baseName;
-
-    // Use dive date and name to create the file name
-    QDateTime diveTime = dive->startTime();
-    if (diveTime.isValid()) {
-        baseName = diveTime.toString("yyyy-MM-dd_HHmmss");
-    } else {
-        baseName = QDateTime::currentDateTime().toString("yyyy-MM-dd_HHmmss");
-    }
-
-    // Add dive name if available
-    if (!dive->diveName().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->diveName());
-    }
-
-    // Add location if available
-    if (!dive->location().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->location());
-    }
-
-    // Add video filename stem if a video is imported
-    if (!videoFilePath.isEmpty()) {
-        QString videoStem = QFileInfo(videoFilePath).completeBaseName();
-        if (!videoStem.isEmpty()) {
-            baseName += "_" + sanitizeFileName(videoStem);
-        }
-    }
-
-    // Append the content-type tag (e.g. "dive_computer" / "dive_profile")
-    // so two exports of the same dive land in distinct files.
-    if (!contentType.isEmpty()) {
-        baseName += "_" + sanitizeFileName(contentType);
-    }
-
-    // Add extension
+    // Shared base-name builder (same naming as ImageExporter's directories),
+    // plus the codec-derived extension.
+    QString baseName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
     baseName += "." + extension;
 
     // Create full path under the user's configured base export directory -
@@ -1004,21 +971,4 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
 
     // Create and return the full path
     return QDir(dirPath).filePath(baseName);
-}
-
-QString VideoExporter::sanitizeFileName(const QString &fileName)
-{
-    // Replace invalid file name characters with underscores
-    QString result = fileName;
-    
-    // Replace characters that aren't allowed in file names
-    QRegularExpression regex("[\\\\/:*?\"<>|]");
-    result.replace(regex, "_");
-    
-    // Limit length
-    if (result.length() > 50) {
-        result = result.left(47) + "...";
-    }
-    
-    return result;
 }

@@ -9,6 +9,7 @@
 //   render_utp <template.utp|:/templates/X.utp> <out.png> [--time <seconds>]
 //   render_utp --measure <fontFamily> <pointSize> <text>   ("\n" splits lines)
 //   render_utp --rects <template.utp> [--time <seconds>]   (anchor-resolved cell boxes)
+//   render_utp --qt-version                                (runtime Qt version, for golden tests)
 //
 // Build with -DUNABARA_BUILD_TOOLS=ON. Runs offscreen; no display needed.
 
@@ -125,6 +126,13 @@ int main(int argc, char* argv[])
     QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     const QStringList args = app.arguments();
+
+    // Runtime (linked) Qt version — the golden-render test uses it to decide
+    // whether the committed manifest applies to this environment.
+    if (args.size() == 2 && args[1] == QStringLiteral("--qt-version")) {
+        printf("%s\n", qVersion());
+        return 0;
+    }
 
     if (args.size() == 5 && args[1] == QStringLiteral("--measure"))
         return runMeasure(args[2], args[3].toInt(), args[4]);

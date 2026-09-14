@@ -140,7 +140,6 @@ private:
     QString generateFFmpegCommand(const QString &inputPattern, 
                                  const QString &outputFile);
     QString getFormatOptions(const QString &codec);
-    QString sanitizeFileName(const QString &fileName);
     QString generateUniqueFileName(DiveData* dive,
                                    const QString &extension,
                                    const QString &videoFilePath = QString(),

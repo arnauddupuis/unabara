@@ -71,10 +71,6 @@ private:
 
     // Helper methods
     void removePartialFrames(int frameCount);
-    QString generateUniqueDirectoryName(DiveData* dive,
-                                        const QString &videoFilePath = QString(),
-                                        const QString &contentType = QString());
-    QString sanitizeFileName(const QString &fileName);
 };
 
 #endif // IMAGE_EXPORT_H

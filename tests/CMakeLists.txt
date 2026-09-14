@@ -23,6 +23,7 @@ add_library(unabara_testlib STATIC
     ${CMAKE_SOURCE_DIR}/include/core/whatsnew.h
     ${CMAKE_SOURCE_DIR}/include/core/config.h
     ${CMAKE_SOURCE_DIR}/include/generators/overlay_gen.h
+    ${CMAKE_SOURCE_DIR}/src/export/export_math.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cell_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/config.cpp
     # Core+Gui only (QPainter, QFontMetrics); pulled in for the cell geometry
@@ -66,3 +67,29 @@ unabara_add_test(cell_data_test)
 unabara_add_test(overlay_template_test)
 unabara_add_test(overlay_geometry_test)
 unabara_add_test(whatsnew_test)
+unabara_add_test(export_math_test)
+
+# Golden-render regression test: every bundled template rendered through
+# render_utp and SHA-256-compared against tests/golden/renders.sha256.
+# Renders depend on the Qt/FreeType version, so the driver enforces only when
+# the manifest has a section for the running Qt (CI pins one) and is
+# advisory on other versions — see tests/golden/golden_renders.py.
+add_test(NAME golden_renders
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/golden/golden_renders.py" check
+        --render-utp "$<TARGET_FILE:render_utp>"
+        --qrc "${CMAKE_SOURCE_DIR}/resources.qrc"
+        --manifest "${CMAKE_CURRENT_SOURCE_DIR}/golden/renders.sha256"
+        --work-dir "${CMAKE_CURRENT_BINARY_DIR}/golden_renders")
+set_tests_properties(golden_renders PROPERTIES TIMEOUT 600)
+
+# App-boot smoke test: launch the real binary offscreen with an isolated
+# config, let it settle, SIGTERM it, and fail on QML errors in stderr —
+# catches missing-property/broken-creation errors that only surface at
+# runtime and are invisible to the core-only unit tests. Linux-only: config
+# isolation relies on XDG_CONFIG_HOME.
+if(UNIX AND NOT APPLE)
+    add_test(NAME app_boot_smoke
+        COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/boot_smoke.py"
+            "$<TARGET_FILE:unabara>")
+    set_tests_properties(app_boot_smoke PROPERTIES TIMEOUT 120)
+endif()

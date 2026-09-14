@@ -16,6 +16,7 @@
                 "pointSize": 36,
                 "weight": 500
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -24,8 +25,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffe3edf4",
             "position": {
-                "x": 0.159615,
-                "y": 0.18125
+                "x": 0.5,
+                "y": 0.28125
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": true,
@@ -34,6 +35,7 @@
             "shadowType": "outline",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -51,6 +53,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -59,8 +62,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffe3edf4",
             "position": {
-                "x": 0.201923,
-                "y": 0.523214
+                "x": 0.5,
+                "y": 0.589286
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": true,
@@ -69,6 +72,7 @@
             "shadowType": "outline",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -86,6 +90,7 @@
                 "pointSize": 26,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -94,8 +99,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffe3edf4",
             "position": {
-                "x": 0.298077,
-                "y": 0.791071
+                "x": 0.5,
+                "y": 0.857143
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": true,
@@ -104,6 +109,7 @@
             "shadowType": "outline",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         }
@@ -126,5 +132,5 @@
     "defaultTextColor": "#ffffffff",
     "defaultValueColor": "#ffffffff",
     "templateName": "Social_Glass_Light",
-    "version": "1.1"
+    "version": "1.2"
 }

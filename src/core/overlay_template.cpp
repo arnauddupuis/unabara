@@ -10,13 +10,14 @@
 namespace Unabara {
 
 // 1.1 added the optional defaultPrimaryColor/defaultSecondaryColor scheme keys
-const QString OverlayTemplate::TEMPLATE_VERSION = "1.1";
+// 1.2 added per-cell geometry: hAlign/vAlign anchoring and an optional fixed size
+const QString OverlayTemplate::TEMPLATE_VERSION = "1.2";
 
 OverlayTemplate::OverlayTemplate()
     : m_templateName("Untitled Template")
     , m_backgroundImagePath(":/images/DC_Faces/unabara_round_ocean.png")
     , m_backgroundOpacity(1.0)
-    , m_defaultFont(QFont("Sans Serif", 12))
+    , m_defaultFont(QFont("DejaVu Sans", 12))
     , m_defaultLabelColor(ColorDefaults::text())
     , m_defaultValueColor(ColorDefaults::text())
     , m_defaultShadowEnabled(ShadowDefaults::enabled)
@@ -196,7 +197,7 @@ OverlayTemplate OverlayTemplate::fromJson(const QJsonObject& json)
     if (json.contains("defaultFont")) {
         QJsonObject fontJson = json["defaultFont"].toObject();
         QFont font;
-        font.setFamily(fontJson["family"].toString("Arial"));
+        font.setFamily(CellData::normalizedFontFamily(fontJson["family"].toString("Arial")));
         font.setPointSize(fontJson["pointSize"].toInt(12));
         font.setWeight(static_cast<QFont::Weight>(fontJson["weight"].toInt(QFont::Normal)));
         font.setItalic(fontJson["italic"].toBool(false));

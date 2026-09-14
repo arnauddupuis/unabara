@@ -16,6 +16,7 @@
                 "pointSize": 40,
                 "weight": 700
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -24,8 +25,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.283333,
-                "y": 0.427778
+                "x": 0.468889,
+                "y": 0.498889
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -34,6 +35,7 @@
             "shadowType": "offset",
             "showLabel": false,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -51,6 +53,7 @@
                 "pointSize": 17,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -59,8 +62,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.386667,
-                "y": 0.161111
+                "x": 0.5,
+                "y": 0.216667
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -69,6 +72,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -86,6 +90,7 @@
                 "pointSize": 17,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -94,8 +99,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.077778,
-                "y": 0.444444
+                "x": 0.154444,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -104,6 +109,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -121,6 +127,7 @@
                 "pointSize": 17,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -129,8 +136,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.761111,
-                "y": 0.444444
+                "x": 0.837778,
+                "y": 0.5
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -139,6 +146,7 @@
             "shadowType": "offset",
             "showLabel": true,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         },
@@ -156,6 +164,7 @@
                 "pointSize": 17,
                 "weight": 400
             },
+            "hAlign": "center",
             "hasCustomColor": true,
             "hasCustomFont": true,
             "hasCustomLabelColor": true,
@@ -164,8 +173,8 @@
             "hasCustomValueColor": true,
             "labelColor": "#ffffc24d",
             "position": {
-                "x": 0.366667,
-                "y": 0.722222
+                "x": 0.467778,
+                "y": 0.777778
             },
             "shadowColor": "#ff000000",
             "shadowEnabled": false,
@@ -175,6 +184,7 @@
             "showLabel": true,
             "tankIndex": 0,
             "textColor": "#ffffffff",
+            "vAlign": "middle",
             "valueColor": "#ffffffff",
             "visible": true
         }
@@ -197,5 +207,5 @@
     "defaultTextColor": "#ffffffff",
     "defaultValueColor": "#ffffffff",
     "templateName": "HUD_Sonar_Reticle_Amber",
-    "version": "1.1"
+    "version": "1.2"
 }

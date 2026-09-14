@@ -27,11 +27,15 @@ Item {
     // Counter-based drag detection (QML bindings can't track dependencies in loops)
     property int draggingCellCount: 0  // Incremented/decremented by cell delegates
     property bool anyDragging: draggingCellCount > 0
+    property int resizingCellCount: 0  // Same, for resize-handle drags
+    property bool anyResizing: resizingCellCount > 0
 
     // Signals
     signal cellSelected(string cellId)
     signal cellDeselected()
     signal cellPositionChanged(string cellId, point newPosition)
+    // Resize-handle commit: normalized anchor + normalized fixed size
+    signal cellGeometryChanged(string cellId, point newPosition, size newSize)
 
     // Function to check if two rectangles overlap
     function rectsOverlap(r1, r2) {
@@ -44,7 +48,6 @@ Item {
     // Function to detect all overlapping cells
     function detectOverlaps() {
         detectOverlapsCount++
-        console.log(">>> detectOverlaps called, count: ", detectOverlapsCount)
         var overlaps = {}
         var cells = []
 
@@ -74,16 +77,20 @@ Item {
         overlappingCells = overlaps
     }
 
-    // Function to detect alignment between the dragging cell and other cells
+    // Function to detect alignment between the active (dragging or resizing)
+    // cell and other cells. During a resize only the moving edges produce
+    // guides (the opposite edge is pinned, and centers shift at half speed).
     function detectAlignments() {
         var guides = []
 
-        // Find the dragging cell
+        // Find the active cell
         var draggingCell = null
+        var resizeMode = false
         for (var i = 0; i < cellRepeater.count; i++) {
             var cell = cellRepeater.itemAt(i)
-            if (cell && cell.dragging) {
+            if (cell && (cell.dragging || cell.resizing)) {
                 draggingCell = cell
+                resizeMode = cell.resizing
                 break
             }
         }
@@ -106,7 +113,7 @@ Item {
             if (!other || !other.cellVisible || other === draggingCell) continue
 
             // Top edge alignment
-            if (Math.abs(dc.y - other.y) < threshold) {
+            if ((!resizeMode || dc.resizeYe < 0) && Math.abs(dc.y - other.y) < threshold) {
                 guides.push({
                     type: "horizontal",
                     y: other.y,
@@ -116,7 +123,7 @@ Item {
             }
 
             // Bottom edge alignment
-            if (Math.abs((dc.y + dc.height) - (other.y + other.height)) < threshold) {
+            if ((!resizeMode || dc.resizeYe > 0) && Math.abs((dc.y + dc.height) - (other.y + other.height)) < threshold) {
                 guides.push({
                     type: "horizontal",
                     y: other.y + other.height,
@@ -126,7 +133,7 @@ Item {
             }
 
             // Left edge alignment
-            if (Math.abs(dc.x - other.x) < threshold) {
+            if ((!resizeMode || dc.resizeXe < 0) && Math.abs(dc.x - other.x) < threshold) {
                 guides.push({
                     type: "vertical",
                     x: other.x,
@@ -136,7 +143,7 @@ Item {
             }
 
             // Right edge alignment
-            if (Math.abs((dc.x + dc.width) - (other.x + other.width)) < threshold) {
+            if ((!resizeMode || dc.resizeXe > 0) && Math.abs((dc.x + dc.width) - (other.x + other.width)) < threshold) {
                 guides.push({
                     type: "vertical",
                     x: other.x + other.width,
@@ -148,7 +155,7 @@ Item {
             // Center-X alignment (vertical centers aligned)
             var dcCenterX = dc.x + dc.width / 2
             var otherCenterX = other.x + other.width / 2
-            if (Math.abs(dcCenterX - otherCenterX) < threshold) {
+            if (!resizeMode && Math.abs(dcCenterX - otherCenterX) < threshold) {
                 guides.push({
                     type: "vertical-center",
                     x: otherCenterX,
@@ -160,7 +167,7 @@ Item {
             // Center-Y alignment (horizontal centers aligned)
             var dcCenterY = dc.y + dc.height / 2
             var otherCenterY = other.y + other.height / 2
-            if (Math.abs(dcCenterY - otherCenterY) < threshold) {
+            if (!resizeMode && Math.abs(dcCenterY - otherCenterY) < threshold) {
                 guides.push({
                     type: "horizontal-center",
                     y: otherCenterY,
@@ -184,7 +191,6 @@ Item {
             source: {
                 if (!generator) return ""
                 var path = generator.templatePath
-                console.log("InteractiveOverlayPreview: Loading background image:", path)
 
                 // Handle different path formats:
                 // 1. Qt resource paths (:/...) should be converted to qrc:/ format
@@ -203,18 +209,15 @@ Item {
                     path = "file:///" + path
                 }
 
-                console.log("InteractiveOverlayPreview: Final image source:", path)
                 return path
             }
             fillMode: Image.PreserveAspectFit
             asynchronous: true
 
             onStatusChanged: {
-                console.log(">>> BG Image status:", status, "(0=Null,1=Ready,2=Loading,3=Error)")
                 if (status === Image.Error) {
                     console.error("Failed to load background image:", source)
                 } else if (status === Image.Ready) {
-                    console.log("Background image loaded successfully, size:", sourceSize.width, "x", sourceSize.height)
                 }
             }
 
@@ -310,7 +313,8 @@ Item {
                 Canvas {
                     id: alignmentCanvas
                     anchors.fill: parent
-                    visible: interactivePreview.anyDragging && interactivePreview.alignmentGuides.length > 0
+                    visible: (interactivePreview.anyDragging || interactivePreview.anyResizing)
+                             && interactivePreview.alignmentGuides.length > 0
                     z: 0.5  // Between grid and cells
 
                     // Repaint when visibility changes
@@ -364,8 +368,8 @@ Item {
                         cellType: model.cellType
                         cellVisible: model.visible
                         cellFont: {
-                            var scaleX = root.generator && root.generator.templateWidth > 0
-                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0
+                                ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
                             var f = model.font
                             // 1.8 matches the C++ getScaledFontSize scale factor in renderCellBasedOverlay
                             var scaledSize = f.pointSize * 1.8 * scaleX
@@ -382,8 +386,8 @@ Item {
                         // Scale pixel size to current container size
                         // calculatedSize is in pixels, scale proportionally to fit container
                         cellCalculatedSize: {
-                            var scaleX = root.generator.templateWidth > 0 ? cellContainer.width / root.generator.templateWidth : 1.0
-                            var scaleY = root.generator.templateHeight > 0 ? cellContainer.height / root.generator.templateHeight : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0 ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
+                            var scaleY = interactivePreview.generator && interactivePreview.generator.templateHeight > 0 ? cellContainer.height / interactivePreview.generator.templateHeight : 1.0
                             return Qt.size(
                                 model.calculatedSize.width * scaleX,
                                 model.calculatedSize.height * scaleY
@@ -399,12 +403,21 @@ Item {
                         shadowColor: model.shadowColor
                         shadowOpacity: model.shadowOpacity
                         shadowPx: {
-                            var scaleX = root.generator && root.generator.templateWidth > 0
-                                ? cellContainer.width / root.generator.templateWidth : 1.0
+                            var scaleX = interactivePreview.generator && interactivePreview.generator.templateWidth > 0
+                                ? cellContainer.width / interactivePreview.generator.templateWidth : 1.0
                             // 1.8 matches the C++ shadow scale in renderCellBasedOverlay
                             return Math.max(1, model.shadowSize * 1.8 * scaleX)
                         }
                         hasCustomShadow: model.hasCustomShadow
+
+                        // v1.2 geometry: anchor alignment + optional fixed size
+                        // (normalized in the model, scaled to container px here)
+                        hAlign: model.hAlign
+                        vAlign: model.vAlign
+                        hasFixedSize: model.hasFixedSize
+                        fixedSizePx: Qt.size(
+                            model.fixedSize.width * cellContainer.width,
+                            model.fixedSize.height * cellContainer.height)
 
                         // Selection state
                         selected: model.cellId === interactivePreview.selectedCellId
@@ -415,10 +428,10 @@ Item {
                         // Generator reference for snap-to-grid
                         generator: interactivePreview.generator
 
-                        // Position based on normalized coordinates
-                        // Convert normalized (0.0-1.0) to actual pixel position
-                        x: model.position.x * cellContainer.width
-                        y: model.position.y * cellContainer.height
+                        // Box position is derived inside OverlayCell from this
+                        // anchor point + alignment (so the cell can re-install
+                        // its own x/y bindings after a drag or resize).
+                        cellPosition: model.position
 
                         // Trigger overlap and alignment detection when position or size changes
                         onXChanged: {
@@ -429,8 +442,14 @@ Item {
                             Qt.callLater(interactivePreview.detectOverlaps)
                             Qt.callLater(interactivePreview.detectAlignments)
                         }
-                        onWidthChanged: Qt.callLater(interactivePreview.detectOverlaps)
-                        onHeightChanged: Qt.callLater(interactivePreview.detectOverlaps)
+                        onWidthChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
+                        onHeightChanged: {
+                            Qt.callLater(interactivePreview.detectOverlaps)
+                            Qt.callLater(interactivePreview.detectAlignments)
+                        }
 
                         // Track drag state for grid visibility
                         onDraggingChanged: {
@@ -442,11 +461,25 @@ Item {
                             }
                         }
 
-                        // Ensure counter is decremented if delegate is destroyed mid-drag
+                        // Track resize state the same way (drives the
+                        // alignment-guide canvas during handle drags)
+                        onResizingChanged: {
+                            if (resizing) {
+                                interactivePreview.resizingCellCount++
+                            } else {
+                                interactivePreview.resizingCellCount--
+                                interactivePreview.alignmentGuides = []
+                            }
+                        }
+
+                        // Ensure counters are decremented if delegate is destroyed mid-drag
                         // (e.g., when updateCellModel() recreates delegates during a drag)
                         Component.onDestruction: {
                             if (dragging) {
                                 interactivePreview.draggingCellCount--
+                            }
+                            if (resizing) {
+                                interactivePreview.resizingCellCount--
                             }
                         }
 
@@ -465,6 +498,23 @@ Item {
                         // Drag behavior
                         onPositionChanged: function(newPos) {
                             interactivePreview.cellPositionChanged(model.cellId, newPos)
+                        }
+
+                        // Resize-handle commit: convert the box rect (container
+                        // px) to a normalized anchor + normalized fixed size
+                        onGeometryCommitted: function(newRect) {
+                            var ax = newRect.x
+                                   + (model.hAlign === 1 ? newRect.width / 2
+                                    : model.hAlign === 2 ? newRect.width : 0)
+                            var ay = newRect.y
+                                   + (model.vAlign === 1 ? newRect.height / 2
+                                    : model.vAlign === 2 ? newRect.height : 0)
+                            interactivePreview.cellGeometryChanged(
+                                model.cellId,
+                                Qt.point(ax / cellContainer.width,
+                                         ay / cellContainer.height),
+                                Qt.size(newRect.width / cellContainer.width,
+                                        newRect.height / cellContainer.height))
                         }
                     }
                 }

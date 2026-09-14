@@ -16,18 +16,24 @@ Item {
     // Set when one of the three color buttons is clicked; consumed by the dialog's onAccepted.
     property string colorTarget: ""
 
+    // Same section rhythm as OverlayEditor's inspector: no extra inner
+    // margin (the sidebar ScrollView already pads by 4) and 20px between
+    // sections.
     ColumnLayout {
         id: mainColumn
         anchors.fill: parent
-        anchors.margins: 10
-        spacing: 12
+        spacing: 20
 
-        GroupBox {
+        // All sections but the last start collapsed so new users see at a
+        // glance that the inspector holds more than fits the first screen.
+        CollapsibleSection {
             title: qsTr("Background")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_background"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -69,12 +75,14 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Depth Curve")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_depth_curve"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -111,12 +119,14 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Deco Zone")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_deco_zone"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -158,12 +168,14 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Indicator")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_indicator"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -228,12 +240,14 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Output Resolution")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_output_resolution"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 rowSpacing: 8
                 columnSpacing: 8
@@ -266,12 +280,14 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Grid")
             Layout.fillWidth: true
+            expanded: false
+            settingsKey: "profile_grid"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
                 rowSpacing: 8
                 columnSpacing: 8
@@ -403,15 +419,29 @@ Item {
             }
         }
 
-        GroupBox {
+        CollapsibleSection {
             title: qsTr("Template Colors")
             Layout.fillWidth: true
+            settingsKey: "profile_template_colors"
 
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 2
                 columnSpacing: 10
                 rowSpacing: 8
+
+                // Plain-sight caption, not a tooltip: the beta panel showed the
+                // feature is invisible, and a tooltip can't fire on a disabled
+                // button anyway.
+                Label {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    opacity: 0.7
+                    text: root.generator && overlayGenerator && overlayGenerator.hasColorScheme
+                          ? qsTr("Recolors the profile with the overlay template's scheme: curve and deco zone from its primary color, indicator and grid from its secondary color.")
+                          : qsTr("The current overlay template carries no color scheme. Set one in the overlay editor's Template Management section.")
+                }
 
                 Button {
                     text: qsTr("Apply Template Colors")
@@ -422,20 +452,7 @@ Item {
                                                                overlayGenerator.secondaryColor)
                 }
 
-                Label { text: qsTr("On template load:") }
-                ComboBox {
-                    id: colorSchemePolicyCombo
-                    Layout.fillWidth: true
-                    model: [qsTr("Ask"), qsTr("Always apply"), qsTr("Never apply")]
-                    property var policies: ["ask", "always", "never"]
-                    currentIndex: {
-                        var idx = policies.indexOf(config ? config.profileColorSchemePolicy : "ask")
-                        return idx >= 0 ? idx : 0
-                    }
-                    onActivated: {
-                        if (config) config.profileColorSchemePolicy = policies[currentIndex]
-                    }
-                }
+                // The on-template-load policy is configured on the Settings tab.
             }
         }
 

@@ -11,8 +11,44 @@ Item {
     property var generator
     property var timeline: null
     property var dive: null
+    // Shared cell model owned by main.qml (also drives the canvas editor)
+    property var cellModel: null
     property bool hasSelection: root.generator ? root.generator.selectedCellId !== "" : false
     property string selectedCellId: root.generator ? root.generator.selectedCellId : ""
+
+    // A template picked in the Template combo failed to load (corrupt or
+    // unreadable .utp). main.qml owns the error dialog.
+    signal templateLoadFailed(string path)
+
+    // Editing-scope routing: with a cell selected, edits create per-cell
+    // overrides; with "All cells", they write the global defaults. The
+    // getters already read scope-aware values — these are their write-side
+    // counterparts, and every input handler must go through them.
+    function applyFont(font) {
+        if (!generator)
+            return
+        if (hasSelection && selectedCellId)
+            generator.setCellFont(selectedCellId, font)
+        else
+            generator.font = font
+    }
+
+    function applyShadow(enabled, type, color, size, opacity) {
+        if (!generator)
+            return
+        if (hasSelection && selectedCellId) {
+            // hasCustomShadow is one flag for all five shadow properties, so
+            // a per-cell edit pins the full effective group with the edited
+            // value swapped in
+            generator.setCellShadow(selectedCellId, enabled, type, color, size, opacity)
+        } else {
+            generator.shadowEnabled = enabled
+            generator.shadowType = type
+            generator.shadowColor = color
+            generator.shadowSize = size
+            generator.shadowOpacity = opacity
+        }
+    }
 
     // Reactive properties that update when selection or cells change
     property var currentFont: getCurrentFont()
@@ -29,24 +65,12 @@ Item {
     property int currentShadowSize: getCurrentShadowSize()
     property real currentShadowOpacity: getCurrentShadowOpacity()
     property bool currentHasCustomShadow: getSelectedCellHasCustomShadow()
+    // v1.2 cell geometry (per-cell only — no global default)
+    property int currentHAlign: getCurrentHAlign()
+    property int currentVAlign: getCurrentVAlign()
+    property bool currentAutoSize: getCurrentAutoSize()
 
     implicitHeight: mainColumn.implicitHeight
-
-    // Get cell properties from the repeater
-    function getCellProperty(cellId, propertyName) {
-        if (!cellId) return null
-
-        // Access the cell from the preview's repeater
-        if (interactivePreview && interactivePreview.cellRepeater) {
-            for (var i = 0; i < interactivePreview.cellRepeater.count; i++) {
-                var cell = interactivePreview.cellRepeater.itemAt(i)
-                if (cell && cell.cellId === cellId) {
-                    return cell[propertyName]
-                }
-            }
-        }
-        return null
-    }
 
     // Get the effective font (selected cell or global) - reads unscaled font from generator
     function getCurrentFont() {
@@ -81,24 +105,18 @@ Item {
     }
 
     function getSelectedCellHasCustomFont() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomFont")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomFont(selectedCellId)
     }
 
     function getSelectedCellHasCustomLabelColor() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomLabelColor")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomLabelColor(selectedCellId)
     }
 
     function getSelectedCellHasCustomValueColor() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomValueColor")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomValueColor(selectedCellId)
     }
 
     // Get the effective showLabel (selected cell or global)
@@ -113,10 +131,8 @@ Item {
     }
 
     function getSelectedCellHasCustomShowLabel() {
-        if (!hasSelection || !selectedCellId) return false
-
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomShowLabel")
-        return hasCustom === true
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomShowLabel(selectedCellId)
     }
 
     // Get the effective shadow settings (selected cell or global)
@@ -171,57 +187,67 @@ Item {
     }
 
     function getSelectedCellHasCustomShadow() {
-        if (!hasSelection || !selectedCellId) return false
+        if (!hasSelection || !selectedCellId || !generator) return false
+        return generator.getCellHasCustomShadow(selectedCellId)
+    }
 
-        var hasCustom = getCellProperty(selectedCellId, "hasCustomShadow")
-        return hasCustom === true
+    function getCurrentHAlign() {
+        if (!hasSelection || !selectedCellId || !generator) return 0
+        return generator.getCellHAlign(selectedCellId)
+    }
+
+    function getCurrentVAlign() {
+        if (!hasSelection || !selectedCellId || !generator) return 0
+        return generator.getCellVAlign(selectedCellId)
+    }
+
+    function getCurrentAutoSize() {
+        if (!hasSelection || !selectedCellId || !generator) return true
+        return !generator.getCellHasFixedSize(selectedCellId)
     }
 
     // Update reactive properties when selection or cells change
     onSelectedCellIdChanged: {
-        console.log("Selection changed to:", selectedCellId)
         updateCurrentProperties()
     }
 
     Connections {
         target: generator
         function onCellsChanged() {
-            console.log(">>> onCellsChanged triggered")
-            console.log("Cells changed, updating properties")
+            updateCurrentProperties()
+        }
+
+        // Geometry edits (alignment, resize, auto-size) ride this signal
+        function onCellLayoutChanged() {
             updateCurrentProperties()
         }
 
         function onFontChanged() {
             if (!hasSelection) {
-                console.log("Global font changed")
                 updateCurrentProperties()
             }
         }
 
         function onLabelColorChanged() {
             if (!hasSelection) {
-                console.log("Global label color changed")
                 updateCurrentProperties()
             }
         }
 
         function onValueColorChanged() {
             if (!hasSelection) {
-                console.log("Global value color changed")
                 updateCurrentProperties()
             }
         }
 
         function onShowLabelChanged() {
             if (!hasSelection) {
-                console.log("Global showLabel changed")
                 updateCurrentProperties()
             }
         }
 
         function onShadowChanged() {
             if (!hasSelection) {
-                console.log("Global shadow changed")
                 updateCurrentProperties()
             }
         }
@@ -229,7 +255,6 @@ Item {
 
     function updateCurrentProperties() {
         var newFont = getCurrentFont()
-        console.log("Updating properties - Font:", newFont ? newFont.family : "null", "Size:", newFont ? newFont.pointSize : "null")
         currentFont = newFont
         currentLabelColor = getCurrentLabelColor()
         currentValueColor = getCurrentValueColor()
@@ -244,11 +269,9 @@ Item {
         currentShadowSize = getCurrentShadowSize()
         currentShadowOpacity = getCurrentShadowOpacity()
         currentHasCustomShadow = getSelectedCellHasCustomShadow()
-    }
-
-    // Cell model for interactive preview
-    CellModel {
-        id: cellModel
+        currentHAlign = getCurrentHAlign()
+        currentVAlign = getCurrentVAlign()
+        currentAutoSize = getCurrentAutoSize()
     }
 
     ColumnLayout {
@@ -256,498 +279,103 @@ Item {
         width: parent.width
         spacing: 20
 
-        // Editing mode indicator
-        Rectangle {
+        // Cells list — replaces the old Display Options / CCR checkbox walls
+        // All sections but the last start collapsed so new users see at a
+        // glance that the inspector holds more than fits the first screen.
+        CollapsibleSection {
+            title: qsTr("Cells")
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            color: root.hasSelection ? Qt.rgba(0, 0.5, 0, 0.15) : palette.mid
-            border.color: root.hasSelection ? "lime" : palette.mid
-            border.width: 2
-            radius: 4
+            expanded: false
+            settingsKey: "overlay_cells"
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 12
-
-                Label {
-                    text: root.hasSelection ? "✓ Cell Selected:" : "⊞ Editing All Cells"
-                    font.bold: true
-                    color: root.hasSelection ? "lime" : palette.windowText
-                }
-
-                Label {
-                    text: root.hasSelection ? root.selectedCellId : ""
-                    font.family: "monospace"
-                    color: palette.windowText
-                    visible: root.hasSelection
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Button {
-                    text: "Deselect"
-                    visible: root.hasSelection
-                    onClicked: {
-                        if (root.generator) {
-                            root.generator.selectedCellId = ""
-                        }
-                    }
-                }
-            }
-        }
-
-        // Interactive overlay preview
-        Item {
-            id: previewContainer
-            Layout.fillWidth: true
-            Layout.preferredHeight: width * 0.5625  // 16:9 aspect ratio
-
-            function updateCellModel() {
-                console.log(">>> updateCellModel called")
-                if (root.generator && root.dive && root.timeline) {
-                    console.log("Updating cell model with current time: ", root.timeline.currentTime)
-                    cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
-                }
-            }
-
-            InteractiveOverlayPreview {
-                id: interactivePreview
-                anchors.fill: parent
+            CellsPanel {
+                Layout.fillWidth: true
                 generator: root.generator
                 dive: root.dive
-                timePoint: root.timeline ? root.timeline.currentTime : 0.0
-                cellModel: cellModel
-
-                // Sync preview selection when generator selection changes externally
-                // (e.g., from Deselect button or other UI)
-                Connections {
-                    target: root.generator
-                    function onSelectedCellIdChanged() {
-                        if (root.generator) {
-                            interactivePreview.selectedCellId = root.generator.selectedCellId
-                        }
-                    }
-                }
-
-                onCellSelected: function(cellId) {
-                    console.log("Cell selected:", cellId)
-                    // Update generator's selected cell
-                    if (root.generator) {
-                        root.generator.selectedCellId = cellId
-                    }
-                }
-
-                onCellDeselected: {
-                    console.log("Cell deselected")
-                    // Clear generator's selected cell
-                    if (root.generator) {
-                        root.generator.selectedCellId = ""
-                    }
-                }
-
-                onCellPositionChanged: function(cellId, newPosition) {
-                    console.log("Cell position changed:", cellId, "to", newPosition)
-                    // Update generator with new position
-                    if (root.generator) {
-                        root.generator.setCellPosition(cellId, newPosition)
-                        // Update cell model to reflect the change
-                        previewContainer.updateCellModel()
-                    }
-                }
-            }
-
-            // Update cell model when properties change
-            Connections {
-                target: root
-
-                function onGeneratorChanged() { previewContainer.updateCellModel() }
-                function onDiveChanged() {
-                    // Only initialize default layout if no cells exist yet
-                    // (don't wipe a loaded template)
-                    if (root.generator && root.dive && root.generator.cellCount() === 0) {
-                        root.generator.initializeDefaultCellLayout(root.dive)
-                    }
-                    // Hide tank pressure cells that exceed the dive's actual tank count
-                    if (root.generator && root.dive) {
-                        root.generator.adjustTankCellVisibility(root.dive)
-                    }
-                    previewContainer.updateCellModel()
-                }
-                function onTimelineChanged() { previewContainer.updateCellModel() }
-            }
-
-            Connections {
-                target: root.timeline
-                enabled: root.timeline !== null
-
-                function onCurrentTimeChanged() { previewContainer.updateCellModel() }
-            }
-
-            Connections {
-                target: root.generator
-                enabled: root.generator !== null
-
-                function onCellsChanged() { previewContainer.updateCellModel() }
-                function onCellLayoutChanged() { previewContainer.updateCellModel() }
-                function onFontChanged() {
-                    previewContainer.updateCellModel()
-                }
-                function onLabelColorChanged() {
-                    previewContainer.updateCellModel()
-                }
-                function onValueColorChanged() {
-                    previewContainer.updateCellModel()
-                }
-
-                // Toggle cell visibility without destroying the layout.
-                // setCellTypeVisible creates a default cell when the current
-                // template has none for that data type.
-                function onShowDepthChanged() {
-                    root.generator.setCellTypeVisible("depth", root.generator.showDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTemperatureChanged() {
-                    root.generator.setCellTypeVisible("temperature", root.generator.showTemperature)
-                    previewContainer.updateCellModel()
-                }
-                function onShowNDLChanged() {
-                    root.generator.setCellTypeVisible("ndl", root.generator.showNDL)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPressureChanged() {
-                    root.generator.setPressureCellsVisible(root.generator.showPressure, root.dive)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTimeChanged() {
-                    root.generator.setCellTypeVisible("time", root.generator.showTime)
-                    previewContainer.updateCellModel()
-                }
-                function onShowCNSChanged() {
-                    root.generator.setCellTypeVisible("cns", root.generator.showCNS)
-                    previewContainer.updateCellModel()
-                }
-                function onShowMeanDepthChanged() {
-                    root.generator.setCellTypeVisible("mean_depth", root.generator.showMeanDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowMaxDepthChanged() {
-                    root.generator.setCellTypeVisible("max_depth", root.generator.showMaxDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowGasChanged() {
-                    root.generator.setCellTypeVisible("gas", root.generator.showGas)
-                    previewContainer.updateCellModel()
-                }
-                function onShowTTSChanged() {
-                    root.generator.setCellTypeVisible("tts", root.generator.showTTS)
-                    previewContainer.updateCellModel()
-                }
-                function onShowStopDepthChanged() {
-                    root.generator.setCellTypeVisible("stop_depth", root.generator.showStopDepth)
-                    previewContainer.updateCellModel()
-                }
-                function onShowStopTimeChanged() {
-                    root.generator.setCellTypeVisible("stop_time", root.generator.showStopTime)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell1Changed() {
-                    root.generator.setCellTypeVisible("po2_cell1", root.generator.showPO2Cell1)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell2Changed() {
-                    root.generator.setCellTypeVisible("po2_cell2", root.generator.showPO2Cell2)
-                    previewContainer.updateCellModel()
-                }
-                function onShowPO2Cell3Changed() {
-                    root.generator.setCellTypeVisible("po2_cell3", root.generator.showPO2Cell3)
-                    previewContainer.updateCellModel()
-                }
-                function onShowCompositePO2Changed() {
-                    root.generator.setCellTypeVisible("composite_po2", root.generator.showCompositePO2)
-                    previewContainer.updateCellModel()
-                }
-            }
-
-            Connections {
-                target: config
-                enabled: config !== null
-
-                function onUnitSystemChanged() { previewContainer.updateCellModel() }
-            }
-
-            Component.onCompleted: {
-                Qt.callLater(previewContainer.updateCellModel)
-            }
-        }
-        
-        // Template Management
-        GroupBox {
-            title: qsTr("Template Management")
-            Layout.fillWidth: true
-
-            GridLayout {
-                anchors.fill: parent
-                columns: 2
-
-                // Background Image
-                Label { text: qsTr("Background Image:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Label {
-                        id: bgImageLabel
-                        Layout.fillWidth: true
-                        text: {
-                            if (!generator || !generator.templatePath) return qsTr("None")
-                            var path = generator.templatePath
-                            // Extract filename from path
-                            var parts = path.split("/")
-                            return parts[parts.length - 1]
-                        }
-                        elide: Text.ElideMiddle
-                    }
-
-                    Button {
-                        text: qsTr("Change...")
-                        onClicked: backgroundImageDialog.open()
-                    }
-                }
-
-                // Template selector
-                Label { text: qsTr("Template:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    ComboBox {
-                        id: templateSelector
-                        Layout.fillWidth: true
-                        model: root.generator ? root.generator.getAvailableTemplates() : []
-
-                        Component.onCompleted: {
-                            if (config && config.activeTemplatePath && root.generator) {
-                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
-                                if (idx >= 0) {
-                                    currentIndex = idx
-                                }
-                            }
-                        }
-
-                        onActivated: function(index) {
-                            if (root.generator) {
-                                var path = root.generator.getTemplatePath(index)
-                                if (path) {
-                                    root.generator.loadTemplateFromFile(path)
-                                    if (root.dive && root.timeline) {
-                                        cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Template directory
-                Label { text: qsTr("Template Directory:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    TextField {
-                        id: templateDirField
-                        Layout.fillWidth: true
-                        text: config ? config.templateDirectory : ""
-                        readOnly: true
-                    }
-
-                    Button {
-                        text: qsTr("Browse...")
-                        onClicked: templateDirDialog.open()
-                    }
-                }
-
-                // Background Opacity
-                Label { text: qsTr("Background Opacity:") }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Slider {
-                        id: opacitySlider
-                        Layout.fillWidth: true
-                        from: 0.0
-                        to: 1.0
-                        stepSize: 0.01
-                        value: generator ? generator.backgroundOpacity : 1.0
-
-                        onValueChanged: {
-                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
-                                generator.backgroundOpacity = value
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: Math.round(opacitySlider.value * 100) + "%"
-                        Layout.preferredWidth: 40
-                    }
-                }
-
-                // Profile color scheme carried by the template (optional).
-                // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
-                Label { text: qsTr("Primary Color:") }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-
-                    Button {
-                        id: primaryColorButton
-                        Layout.fillWidth: true
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            color: generator && generator.hasPrimaryColor
-                                   ? generator.primaryColor : "transparent"
-                            border.color: "#808080"
-                            border.width: generator && generator.hasPrimaryColor ? 0 : 1
-
-                            Label {
-                                anchors.centerIn: parent
-                                text: qsTr("not set")
-                                opacity: 0.6
-                                visible: !(generator && generator.hasPrimaryColor)
-                            }
-                        }
-
-                        onClicked: primaryColorDialog.open()
-                    }
-
-                    Button {
-                        text: "×"
-                        Layout.preferredWidth: 40
-                        enabled: generator && (generator.hasPrimaryColor || generator.hasSecondaryColor)
-                        opacity: enabled ? 1.0 : 0.3
-                        ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Remove the color scheme from this template")
-                        onClicked: {
-                            if (generator) generator.clearColorScheme()
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Secondary Color:") }
-                Button {
-                    id: secondaryColorButton
-                    Layout.fillWidth: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        color: generator && generator.hasSecondaryColor
-                               ? generator.secondaryColor : "transparent"
-                        border.color: "#808080"
-                        border.width: generator && generator.hasSecondaryColor ? 0 : 1
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: qsTr("not set")
-                            opacity: 0.6
-                            visible: !(generator && generator.hasSecondaryColor)
-                        }
-                    }
-
-                    onClicked: secondaryColorDialog.open()
-                }
-
-                // Action buttons
-                RowLayout {
-                    Layout.columnSpan: 2
-                    Layout.fillWidth: true
-                    spacing: 10
-
-                    Button {
-                        text: qsTr("Save Template...")
-                        Layout.fillWidth: true
-                        icon.name: "document-save"
-                        onClicked: saveTemplateDialog.open()
-                    }
-
-                    Button {
-                        text: qsTr("Load Template...")
-                        Layout.fillWidth: true
-                        icon.name: "document-open"
-                        onClicked: loadTemplateDialog.open()
-                    }
-
-                    Button {
-                        text: qsTr("Reset Layout")
-                        Layout.fillWidth: true
-                        icon.name: "edit-undo"
-                        onClicked: {
-                            if (root.generator && root.dive) {
-                                root.generator.initializeDefaultCellLayout(root.dive)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Grid Settings
-        GroupBox {
-            title: qsTr("Grid Settings")
-            Layout.fillWidth: true
-
-            GridLayout {
-                anchors.fill: parent
-                columns: 2
-
-                Label { text: qsTr("Snap to Grid:") }
-                CheckBox {
-                    id: snapToGridCheckBox
-                    checked: generator ? generator.snapToGrid : false
-                    onCheckedChanged: {
-                        if (generator) {
-                            generator.snapToGrid = checked
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Grid Spacing (px):") }
-                SpinBox {
-                    id: gridSpacingSpinBox
-                    from: 5
-                    to: 100
-                    stepSize: 5
-                    value: generator ? generator.gridSpacing : 10
-                    onValueModified: {
-                        if (generator) {
-                            generator.gridSpacing = value
-                        }
-                    }
-                }
-
-                Label { text: qsTr("Show Grid:") }
-                CheckBox {
-                    id: showGridCheckBox
-                    checked: generator ? generator.showGrid : false
-                    onCheckedChanged: {
-                        if (generator) {
-                            generator.showGrid = checked
-                        }
-                    }
-                }
+                cellModel: root.cellModel
             }
         }
 
         // Text settings
-        GroupBox {
-            title: root.hasSelection ?
-                qsTr("Text Settings - Cell: ") + root.selectedCellId :
-                qsTr("Text Settings - All Cells")
+        CollapsibleSection {
+            title: qsTr("Text")
             Layout.fillWidth: true
-            
+            expanded: false
+            settingsKey: "overlay_text"
+
+            // Editing scope: the controls below target either every cell or a
+            // single selected cell. The switcher makes the target explicit at
+            // the point of editing and stays in sync with canvas selection.
+            RowLayout {
+                Layout.fillWidth: true
+
+                Label {
+                    text: qsTr("Editing:")
+                    font.bold: true
+                }
+
+                ComboBox {
+                    id: scopeCombo
+                    Layout.fillWidth: true
+
+                    property var ids: []
+
+                    function rebuild() {
+                        var fresh = root.cellModel ? root.cellModel.visibleCellIds() : []
+                        // Reassigning the model resets currentIndex and
+                        // re-instantiates the popup's delegates; skip it when
+                        // the id list is unchanged (every timeline tick ends
+                        // up here via modelUpdated).
+                        var same = fresh.length === ids.length
+                        for (var i = 0; same && i < fresh.length; ++i)
+                            same = fresh[i] === ids[i]
+                        if (!same) {
+                            ids = fresh
+                            // Human-readable names (C++ is the single
+                            // id-to-name source, shared with CellsPanel);
+                            // selection still works on the parallel ids array.
+                            model = [qsTr("All cells")].concat(
+                                        ids.map(function(id) {
+                                            return root.generator
+                                                 ? root.generator.cellDisplayName(id) : id
+                                        }))
+                        }
+                        syncIndex()
+                    }
+
+                    function syncIndex() {
+                        // The generator drops the selection itself when the
+                        // selected cell is hidden or removed, so a selected
+                        // id is always in the visible list here.
+                        var sel = root.generator ? root.generator.selectedCellId : ""
+                        var idx = sel === "" ? 0 : ids.indexOf(sel) + 1
+                        currentIndex = idx > 0 ? idx : 0
+                    }
+
+                    Component.onCompleted: rebuild()
+
+                    onActivated: {
+                        if (root.generator)
+                            root.generator.selectedCellId =
+                                    currentIndex <= 0 ? "" : ids[currentIndex - 1]
+                    }
+
+                    Connections {
+                        target: root.cellModel
+                        enabled: root.cellModel !== null
+                        function onModelUpdated() { scopeCombo.rebuild() }
+                    }
+
+                    Connections {
+                        target: root.generator
+                        enabled: root.generator !== null
+                        function onSelectedCellIdChanged() { scopeCombo.syncIndex() }
+                    }
+                }
+            }
+
             GridLayout {
-                anchors.fill: parent
+                Layout.fillWidth: true
                 columns: 3
 
                 Label { text: qsTr("Font:") }
@@ -777,11 +405,9 @@ Item {
                     }
 
                     onActivated: {
-                        if (generator) {
-                            var font = root.currentFont
-                            font.family = currentText
-                            generator.font = font
-                        }
+                        var font = root.currentFont
+                        font.family = currentText
+                        root.applyFont(font)
                     }
                 }
 
@@ -816,11 +442,9 @@ Item {
                     }
 
                     onValueModified: {
-                        if (generator) {
-                            var font = root.currentFont
-                            font.pointSize = value
-                            generator.font = font
-                        }
+                        var font = root.currentFont
+                        font.pointSize = value
+                        root.applyFont(font)
                     }
                 }
                 // No reset button for size - it's part of the font property
@@ -841,11 +465,9 @@ Item {
                             }
                         }
                         onClicked: {
-                            if (generator) {
-                                var font = root.currentFont
-                                font.bold = checked
-                                generator.font = font
-                            }
+                            var font = root.currentFont
+                            font.bold = checked
+                            root.applyFont(font)
                         }
                     }
                     CheckBox {
@@ -859,11 +481,9 @@ Item {
                             }
                         }
                         onClicked: {
-                            if (generator) {
-                                var font = root.currentFont
-                                font.italic = checked
-                                generator.font = font
-                            }
+                            var font = root.currentFont
+                            font.italic = checked
+                            root.applyFont(font)
                         }
                     }
                 }
@@ -938,9 +558,12 @@ Item {
                         }
                     }
                     onClicked: {
-                        if (root.generator) {
+                        if (!root.generator)
+                            return
+                        if (root.hasSelection && root.selectedCellId)
+                            root.generator.setCellShowLabel(root.selectedCellId, checked)
+                        else
                             root.generator.showLabel = checked
-                        }
                     }
                 }
 
@@ -971,9 +594,9 @@ Item {
                         }
                     }
                     onClicked: {
-                        if (root.generator) {
-                            root.generator.shadowEnabled = checked
-                        }
+                        root.applyShadow(checked, root.currentShadowType,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         root.currentShadowOpacity)
                     }
                 }
 
@@ -1005,9 +628,9 @@ Item {
                         }
                     }
                     onActivated: {
-                        if (root.generator) {
-                            root.generator.shadowType = currentIndex
-                        }
+                        root.applyShadow(root.currentShadowEnabled, currentIndex,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         root.currentShadowOpacity)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -1043,9 +666,9 @@ Item {
                         }
                     }
                     onValueModified: {
-                        if (root.generator) {
-                            root.generator.shadowSize = value
-                        }
+                        root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                                         root.currentShadowColor, value,
+                                         root.currentShadowOpacity)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -1065,9 +688,9 @@ Item {
                         }
                     }
                     onMoved: {
-                        if (root.generator) {
-                            root.generator.shadowOpacity = value
-                        }
+                        root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                                         root.currentShadowColor, root.currentShadowSize,
+                                         value)
                     }
                 }
                 Item { Layout.preferredWidth: 40 }
@@ -1075,234 +698,355 @@ Item {
             }
         }
         
-        // Display options
-        GroupBox {
-            title: qsTr("Display Options")
+        // Cell layout (v1.2 geometry) — per-cell only: the anchor alignment
+        // and the auto/fixed size have no global default by design.
+        CollapsibleSection {
+            title: qsTr("Layout")
             Layout.fillWidth: true
-            
-            ColumnLayout {
-                anchors.fill: parent
-                
-                CheckBox {
-                    id: showDepthCheckbox
-                    text: qsTr("Show Depth")
-                    checked: generator ? generator.showDepth : true
-                    onCheckedChanged: {
-                        if (generator && generator.showDepth !== checked) {
-                            generator.showDepth = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showTempCheckbox
-                    text: qsTr("Show Temperature")
-                    checked: generator ? generator.showTemperature : true
-                    onCheckedChanged: {
-                        if (generator && generator.showTemperature !== checked) {
-                            generator.showTemperature = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showTimeCheckbox
-                    text: qsTr("Show Time")
-                    checked: generator ? generator.showTime : true
-                    onCheckedChanged: {
-                        if (generator && generator.showTime !== checked) {
-                            generator.showTime = checked
-                        }
-                    }
-                }
-                
-                CheckBox {
-                    id: showNDLCheckbox
-                    text: qsTr("Show No Decompression Limit")
-                    checked: generator ? generator.showNDL : true
-                    onCheckedChanged: {
-                        if (generator && generator.showNDL !== checked) {
-                            generator.showNDL = checked
+            expanded: false
+            settingsKey: "overlay_layout"
+
+            Label {
+                Layout.fillWidth: true
+                text: root.hasSelection
+                      ? qsTr("Cell: %1").arg(root.selectedCellId)
+                      : qsTr("Select a cell to edit its layout.")
+                opacity: root.hasSelection ? 1.0 : 0.6
+                elide: Text.ElideRight
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                // Needs a dive: the setters measure the cell's current box
+                // (text at the current time) to re-anchor it in place, and
+                // without one the alignment change would move the cell and
+                // the auto-size toggle would silently do nothing.
+                enabled: root.hasSelection && root.dive !== null
+
+                // Alignment picks which edge/center of the cell box pins to
+                // its position — e.g. a right-aligned cell keeps its right
+                // edge fixed as the value's digits change. The setters pass
+                // dive + time so the cell doesn't move when alignment changes.
+                Label { text: qsTr("Horizontal:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: [qsTr("Left"), qsTr("Center"), qsTr("Right")]
+                        delegate: Button {
+                            text: modelData
+                            Layout.fillWidth: true
+                            highlighted: root.currentHAlign === index
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: [
+                                qsTr("Anchor the left edge — the box grows rightward as content changes"),
+                                qsTr("Anchor the center — the box grows evenly in both directions"),
+                                qsTr("Anchor the right edge — the box grows leftward as content changes")
+                            ][index]
+                            onClicked: {
+                                if (root.generator && root.selectedCellId)
+                                    root.generator.setCellHAlign(
+                                        root.selectedCellId, index, root.dive,
+                                        root.timeline ? root.timeline.currentTime : 0.0)
+                            }
                         }
                     }
                 }
 
-                CheckBox {
-                    id: showTTSCheckbox
-                    text: qsTr("Show Time To Surface")
-                    checked: generator ? generator.showTTS : false
-                    onCheckedChanged: {
-                        if (generator && generator.showTTS !== checked) {
-                            generator.showTTS = checked
+                Label { text: qsTr("Vertical:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Repeater {
+                        model: [qsTr("Top"), qsTr("Middle"), qsTr("Bottom")]
+                        delegate: Button {
+                            text: modelData
+                            Layout.fillWidth: true
+                            highlighted: root.currentVAlign === index
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: [
+                                qsTr("Anchor the top edge"),
+                                qsTr("Anchor the vertical center"),
+                                qsTr("Anchor the bottom edge")
+                            ][index]
+                            onClicked: {
+                                if (root.generator && root.selectedCellId)
+                                    root.generator.setCellVAlign(
+                                        root.selectedCellId, index, root.dive,
+                                        root.timeline ? root.timeline.currentTime : 0.0)
+                            }
                         }
                     }
                 }
 
+                Label { text: qsTr("Size:") }
                 CheckBox {
-                    id: showStopDepthCheckbox
-                    text: qsTr("Show Deco Stop Depth")
-                    checked: generator ? generator.showStopDepth : true
-                    onCheckedChanged: {
-                        if (generator && generator.showStopDepth !== checked) {
-                            generator.showStopDepth = checked
+                    id: autoSizeCheckBox
+                    Layout.fillWidth: true
+                    text: qsTr("Auto size (fit content)")
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 500
+                    ToolTip.text: qsTr("Unchecking freezes the current box size; drag the handles on the canvas to adjust it")
+                    // A Binding element survives the imperative write a user
+                    // click performs (a plain `checked:` binding would be
+                    // broken by it) and re-asserts whenever the model value
+                    // changes — replacing the old Connections resync.
+                    Binding on checked {
+                        value: root.currentAutoSize
+                    }
+                    onClicked: {
+                        if (root.generator && root.selectedCellId)
+                            root.generator.setCellAutoSize(
+                                root.selectedCellId, checked, root.dive,
+                                root.timeline ? root.timeline.currentTime : 0.0)
+                        // One imperative re-read must stay: if the setter
+                        // DECLINED (nothing to measure), the model value did
+                        // not change, so the Binding has nothing new to
+                        // re-assert and the click's flip would stick.
+                        checked = root.currentAutoSize
+                    }
+                }
+            }
+        }
+
+        // Template Management
+        CollapsibleSection {
+            title: qsTr("Template")
+            Layout.fillWidth: true
+            settingsKey: "overlay_template"
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+
+                // Background Image
+                Label { text: qsTr("Background Image:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Label {
+                        id: bgImageLabel
+                        Layout.fillWidth: true
+                        text: {
+                            if (!generator || !generator.templatePath) return qsTr("None")
+                            var path = generator.templatePath
+                            // Extract filename from path
+                            var parts = path.split("/")
+                            return parts[parts.length - 1]
+                        }
+                        elide: Text.ElideMiddle
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: backgroundImageDialog.open()
+                    }
+                }
+
+                // Template selector
+                Label { text: qsTr("Template:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    ComboBox {
+                        id: templateSelector
+                        Layout.fillWidth: true
+                        model: root.generator ? root.generator.getAvailableTemplates() : []
+
+                        Component.onCompleted: {
+                            if (config && config.activeTemplatePath && root.generator) {
+                                var idx = root.generator.indexOfTemplatePath(config.activeTemplatePath)
+                                if (idx >= 0) {
+                                    currentIndex = idx
+                                }
+                            }
+                        }
+
+                        onActivated: function(index) {
+                            if (!root.generator)
+                                return
+                            var path = root.generator.getTemplatePath(index)
+                            if (!path)
+                                return
+                            // The combo has already moved to the clicked
+                            // entry; a failed load (corrupt/unreadable .utp
+                            // — loadTemplateFromFile returns false silently)
+                            // must put it back on the template that is
+                            // actually rendering, and tell the user.
+                            if (!root.generator.loadTemplateFromFile(path)) {
+                                var active = config ? config.activeTemplatePath : ""
+                                var idx = active ? root.generator.indexOfTemplatePath(active) : -1
+                                currentIndex = idx >= 0 ? idx : 0
+                                root.templateLoadFailed(path)
+                            }
+                            // No explicit cellModel refresh: templateChanged
+                            // already drives it through OverlayCanvas.
+                        }
+
+                        // The template directory is edited on the Settings
+                        // tab — refresh the list (and keep the active
+                        // template selected) when it changes.
+                        Connections {
+                            target: config
+                            enabled: config !== null
+                            function onTemplateDirectoryChanged() {
+                                if (!root.generator)
+                                    return
+                                root.generator.refreshTemplateList()
+                                templateSelector.model = root.generator.getAvailableTemplates()
+                                var idx = root.generator.indexOfTemplatePath(
+                                            config.activeTemplatePath)
+                                templateSelector.currentIndex = idx >= 0 ? idx : -1
+                            }
                         }
                     }
                 }
 
-                CheckBox {
-                    id: showStopTimeCheckbox
-                    text: qsTr("Show Deco Stop Time")
-                    checked: generator ? generator.showStopTime : true
-                    onCheckedChanged: {
-                        if (generator && generator.showStopTime !== checked) {
-                            generator.showStopTime = checked
+                // Background Opacity
+                Label { text: qsTr("Background Opacity:") }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Slider {
+                        id: opacitySlider
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.01
+                        value: generator ? generator.backgroundOpacity : 1.0
+
+                        onValueChanged: {
+                            if (generator && Math.abs(generator.backgroundOpacity - value) > 0.001) {
+                                generator.backgroundOpacity = value
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Math.round(opacitySlider.value * 100) + "%"
+                        Layout.preferredWidth: 40
+                    }
+                }
+
+                // Profile color scheme carried by the template (optional).
+                // Saved as defaultPrimaryColor/defaultSecondaryColor (v1.1).
+                Label {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    opacity: 0.7
+                    text: qsTr("Optional color scheme saved with the template: it can recolor the dive profile to match (curve and deco zone from the primary color, indicator and grid from the secondary).")
+                }
+                Label { text: qsTr("Primary Color:") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        id: primaryColorButton
+                        Layout.fillWidth: true
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Used for the profile curve and the deco zone")
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            color: generator && generator.hasPrimaryColor
+                                   ? generator.primaryColor : "transparent"
+                            border.color: "#808080"
+                            border.width: generator && generator.hasPrimaryColor ? 0 : 1
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: qsTr("not set")
+                                opacity: 0.6
+                                visible: !(generator && generator.hasPrimaryColor)
+                            }
+                        }
+
+                        onClicked: primaryColorDialog.open()
+                    }
+
+                    Button {
+                        text: "×"
+                        Layout.preferredWidth: 40
+                        enabled: generator && (generator.hasPrimaryColor || generator.hasSecondaryColor)
+                        opacity: enabled ? 1.0 : 0.3
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Remove the color scheme from this template")
+                        onClicked: {
+                            if (generator) generator.clearColorScheme()
                         }
                     }
                 }
 
-                CheckBox {
-                    id: showPressureCheckbox
-                    text: qsTr("Show Tank Pressure")
-                    checked: generator ? generator.showPressure : true
-                    onCheckedChanged: {
-                        if (generator && generator.showPressure !== checked) {
-                            generator.showPressure = checked
+                Label { text: qsTr("Secondary Color:") }
+                Button {
+                    id: secondaryColorButton
+                    Layout.fillWidth: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Used for the profile position indicator and the grid")
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: generator && generator.hasSecondaryColor
+                               ? generator.secondaryColor : "transparent"
+                        border.color: "#808080"
+                        border.width: generator && generator.hasSecondaryColor ? 0 : 1
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: qsTr("not set")
+                            opacity: 0.6
+                            visible: !(generator && generator.hasSecondaryColor)
                         }
                     }
+
+                    onClicked: secondaryColorDialog.open()
                 }
 
-                CheckBox {
-                    id: showCNSCheckbox
-                    text: qsTr("Show CNS")
-                    checked: generator ? generator.showCNS : false
-                    onCheckedChanged: {
-                        if (generator && generator.showCNS !== checked) {
-                            generator.showCNS = checked
-                        }
+                // Action buttons
+                RowLayout {
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        text: qsTr("Save Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-save"
+                        onClicked: saveTemplateDialog.open()
                     }
-                }
 
-                CheckBox {
-                    id: showMeanDepthCheckbox
-                    text: qsTr("Show Mean Depth")
-                    checked: generator ? generator.showMeanDepth : false
-                    onCheckedChanged: {
-                        if (generator && generator.showMeanDepth !== checked) {
-                            generator.showMeanDepth = checked
-                        }
+                    Button {
+                        text: qsTr("Load Template...")
+                        Layout.fillWidth: true
+                        icon.name: "document-open"
+                        onClicked: loadTemplateDialog.open()
                     }
-                }
 
-                CheckBox {
-                    id: showMaxDepthCheckbox
-                    text: qsTr("Show Max Depth")
-                    checked: generator ? generator.showMaxDepth : false
-                    onCheckedChanged: {
-                        if (generator && generator.showMaxDepth !== checked) {
-                            generator.showMaxDepth = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showGasCheckbox
-                    text: qsTr("Show Gas Mix")
-                    checked: generator ? generator.showGas : false
-                    onCheckedChanged: {
-                        if (generator && generator.showGas !== checked) {
-                            generator.showGas = checked
+                    Button {
+                        text: qsTr("Reset Layout")
+                        Layout.fillWidth: true
+                        icon.name: "edit-undo"
+                        onClicked: {
+                            if (root.generator && root.dive) {
+                                root.generator.initializeDefaultCellLayout(root.dive)
+                            }
                         }
                     }
                 }
             }
         }
 
-        // CCR Settings
-        GroupBox {
-            title: qsTr("CCR Settings")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-
-                CheckBox {
-                    id: showPO2Cell1Checkbox
-                    text: qsTr("Show Cell 1 PO2")
-                    checked: generator ? generator.showPO2Cell1 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell1 !== checked) {
-                            generator.showPO2Cell1 = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showPO2Cell2Checkbox
-                    text: qsTr("Show Cell 2 PO2")
-                    checked: generator ? generator.showPO2Cell2 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell2 !== checked) {
-                            generator.showPO2Cell2 = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showPO2Cell3Checkbox
-                    text: qsTr("Show Cell 3 PO2")
-                    checked: generator ? generator.showPO2Cell3 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showPO2Cell3 !== checked) {
-                            generator.showPO2Cell3 = checked
-                        }
-                    }
-                }
-
-                CheckBox {
-                    id: showCompositePO2Checkbox
-                    text: qsTr("Show Composite PO2")
-                    checked: generator ? generator.showCompositePO2 : false
-                    onCheckedChanged: {
-                        if (generator && generator.showCompositePO2 !== checked) {
-                            generator.showCompositePO2 = checked
-                        }
-                    }
-                }
-            }
-        }
-
-        // Units Settings
-        GroupBox {
-            title: qsTr("Units")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-
-                RadioButton {
-                    id: metricUnitsRadio
-                    text: qsTr("Metric (m, °C, bar)")
-                    checked: config ? config.unitSystem === Units.Metric : true
-                    onCheckedChanged: {
-                        if (checked && config && config.unitSystem !== Units.Metric) {
-                            config.unitSystem = Units.Metric
-                        }
-                    }
-                }
-
-                RadioButton {
-                    id: imperialUnitsRadio
-                    text: qsTr("Imperial (ft, °F, psi)")
-                    checked: config ? config.unitSystem === Units.Imperial : false
-                    onCheckedChanged: {
-                        if (checked && config && config.unitSystem !== Units.Imperial) {
-                            config.unitSystem = Units.Imperial
-                        }
-                    }
-                }
-            }
-        }
     }
+
     
     // Dialogs
     FileDialog {
@@ -1313,22 +1057,6 @@ Item {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
                 generator.templatePath = localPath
-            }
-        }
-    }
-
-    FolderDialog {
-        id: templateDirDialog
-        title: qsTr("Select Template Directory")
-        onAccepted: {
-            if (config) {
-                var localPath = mainWindow.urlToLocalFile(selectedFolder.toString())
-
-                config.templateDirectory = localPath
-                if (generator) {
-                    generator.refreshTemplateList()
-                    templateSelector.model = generator.getAvailableTemplates()
-                }
             }
         }
     }
@@ -1380,7 +1108,12 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.labelColor = selectedColor
+            if (!generator)
+                return
+            if (root.hasSelection && root.selectedCellId)
+                generator.setCellLabelColor(root.selectedCellId, selectedColor)
+            else
+                generator.labelColor = selectedColor
         }
     }
 
@@ -1397,7 +1130,12 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.valueColor = selectedColor
+            if (!generator)
+                return
+            if (root.hasSelection && root.selectedCellId)
+                generator.setCellValueColor(root.selectedCellId, selectedColor)
+            else
+                generator.valueColor = selectedColor
         }
     }
 
@@ -1414,7 +1152,9 @@ Item {
         }
 
         onAccepted: {
-            if (generator) generator.shadowColor = selectedColor
+            root.applyShadow(root.currentShadowEnabled, root.currentShadowType,
+                             selectedColor, root.currentShadowSize,
+                             root.currentShadowOpacity)
         }
     }
 
@@ -1427,10 +1167,8 @@ Item {
         onAccepted: {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
-                console.log("Saving template to:", localPath)
                 var success = generator.saveTemplateToFile(localPath)
                 if (success) {
-                    console.log("Template saved successfully!")
                     // Refresh ComboBox and select the saved template
                     generator.refreshTemplateList()
                     var idx = generator.indexOfTemplatePath(localPath)
@@ -1453,10 +1191,8 @@ Item {
         onAccepted: {
             if (generator) {
                 var localPath = mainWindow.urlToLocalFile(selectedFile.toString())
-                console.log("Loading template from:", localPath)
                 var success = generator.loadTemplateFromFile(localPath)
                 if (success) {
-                    console.log("Template loaded successfully!")
                     // Update cell model to reflect loaded template
                     if (root.timeline && root.dive) {
                         cellModel.updateFromGenerator(root.generator, root.dive, root.timeline.currentTime)

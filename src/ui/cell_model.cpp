@@ -68,6 +68,14 @@ QVariant CellModel::data(const QModelIndex &index, int role) const
         return cell.shadowOpacity();
     case HasCustomShadowRole:
         return cell.hasCustomShadow();
+    case HAlignRole:
+        return static_cast<int>(cell.hAlign());
+    case VAlignRole:
+        return static_cast<int>(cell.vAlign());
+    case FixedSizeRole:
+        return cell.fixedSize();
+    case HasFixedSizeRole:
+        return cell.hasFixedSize();
     default:
         return QVariant();
     }
@@ -97,6 +105,10 @@ QHash<int, QByteArray> CellModel::roleNames() const
     roles[ShadowSizeRole] = "shadowSize";
     roles[ShadowOpacityRole] = "shadowOpacity";
     roles[HasCustomShadowRole] = "hasCustomShadow";
+    roles[HAlignRole] = "hAlign";
+    roles[VAlignRole] = "vAlign";
+    roles[FixedSizeRole] = "fixedSize";
+    roles[HasFixedSizeRole] = "hasFixedSize";
     return roles;
 }
 
@@ -135,11 +147,40 @@ void CellModel::updateFromGenerator(OverlayGenerator* generator, DiveData* dive,
     m_dive = dive;
     m_timePoint = timePoint;
 
-    beginResetModel();
-    m_cells = generator->cells();
-    endResetModel();
+    const QVector<Unabara::CellData> fresh = generator->cells();
+
+    // Same cells in the same order — the common case (a timeline tick, a
+    // font/color edit, a drag commit) — is an in-place update. A model reset
+    // destroys and recreates every delegate, which is expensive for the
+    // canvas (shadow copies, blur effects, resize handles) and cancels an
+    // in-progress drag. Only a changed cell list needs the reset.
+    bool sameShape = fresh.size() == m_cells.size();
+    for (int i = 0; sameShape && i < fresh.size(); ++i) {
+        sameShape = fresh[i].cellId() == m_cells[i].cellId();
+    }
+
+    if (sameShape) {
+        m_cells = fresh;
+        if (!m_cells.isEmpty()) {
+            emit dataChanged(index(0), index(m_cells.size() - 1));
+        }
+    } else {
+        beginResetModel();
+        m_cells = fresh;
+        endResetModel();
+    }
 
     emit modelUpdated();
+}
+
+QStringList CellModel::visibleCellIds() const
+{
+    QStringList ids;
+    for (const auto& cell : m_cells) {
+        if (cell.visible())
+            ids << cell.cellId();
+    }
+    return ids;
 }
 
 void CellModel::updateCellPosition(const QString& cellId, const QPointF& position)
@@ -235,10 +276,14 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
     }
 
     case Unabara::CellType::Time: {
-        int totalSeconds = static_cast<int>(m_timePoint);
+        // Use the data point's timestamp with unpadded minutes, exactly like
+        // OverlayGenerator::generateCellDisplayText — the C++ render is the
+        // export ground truth, and the Edit canvas must show the same text
+        // (they historically diverged: "00:00" here vs "0:10" in exports).
+        int totalSeconds = static_cast<int>(dataPoint.timestamp);
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
-        QString value = QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+        QString value = QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
         return format("DIVE TIME", value);
     }
 

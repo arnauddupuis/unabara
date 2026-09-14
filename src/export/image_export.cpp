@@ -1,25 +1,21 @@
 #include "include/export/image_export.h"
+#include "include/export/export_math.h"
 #include <QDir>
-#include <QDateTime>
-#include <QStandardPaths>
-#include <QRegularExpression>
 #include <QCoreApplication>
-#include <QThread>
 #include <QDebug>
-#include <QFileInfo>
 
 ImageExporter::ImageExporter(QObject *parent)
     : QObject(parent)
     , m_frameRate(10.0)  // Default 10 frames per second
     , m_progress(0)
     , m_busy(false)
+    , m_cancelRequested(false)
 {
-    // Set default export path to Pictures/Unabara folder
-    m_exportPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Unabara";
-    QDir dir;
-    if (!dir.exists(m_exportPath)) {
-        dir.mkpath(m_exportPath);
-    }
+    // m_exportPath is the directory frames are written to: main.qml points it
+    // at the per-dive sub-directory returned by createDefaultExportDir()
+    // before each export. m_baseDirectory (what that subfolder is created
+    // under) is bound from QML — the exporter never touches the settings
+    // store itself. No directory is created here.
 }
 
 void ImageExporter::setExportPath(const QString &path)
@@ -27,6 +23,14 @@ void ImageExporter::setExportPath(const QString &path)
     if (m_exportPath != path) {
         m_exportPath = path;
         emit exportPathChanged();
+    }
+}
+
+void ImageExporter::setBaseDirectory(const QString &path)
+{
+    if (m_baseDirectory != path) {
+        m_baseDirectory = path;
+        emit baseDirectoryChanged();
     }
 }
 
@@ -63,13 +67,28 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         return false;
     }
 
+    // An empty path would make QDir resolve to the working directory: frames
+    // would land there and a cancellation's cleanup would delete files from —
+    // and try to rmdir — whatever directory the app was launched in.
+    if (!ExportMath::isValidExportPath(m_exportPath)) {
+        emit exportError(tr("No export directory is set"));
+        return false;
+    }
+
     m_busy = true;
+    m_cancelRequested = false;
     emit busyChanged();
 
+    // Capture the destination for the whole run: the exportPath property is
+    // writable from QML and the loop below pumps the event loop, so a
+    // mid-run write must not redirect later frames — or the cancellation
+    // cleanup — to a different directory.
+    const QString exportDir = m_exportPath;
+
     // Create the export directory if it doesn't exist
-    QDir dir(m_exportPath);
+    QDir dir(exportDir);
     if (!dir.exists() && !dir.mkpath(".")) {
-        emit exportError(tr("Failed to create export directory: %1").arg(m_exportPath));
+        emit exportError(tr("Failed to create export directory: %1").arg(exportDir));
         m_busy = false;
         emit busyChanged();
         return false;
@@ -78,14 +97,20 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     // Notify that export has started
     emit exportStarted();
 
-    // Let the generator stage any export-only state (e.g. overlay hides its
-    // editor-only cell backgrounds).
+    // Let the generator stage any export-only state (IFrameGenerator
+    // contract; currently a no-op for both generators).
     gen->beginExport();
 
     // Calculate the number of frames to generate
     double timeStep = 1.0 / m_frameRate;
-    int totalFrames = qRound((endTime - startTime) * m_frameRate);
+    // The loop below always writes at least one frame (time == startTime),
+    // so never let a sub-frame range divide the progress by zero
+    int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
     int processedFrames = 0;
+    // Exactly the files this run writes — cancellation cleanup removes these
+    // and nothing else (never a name pattern, which could hit files from an
+    // earlier export into the same directory).
+    QStringList framesWritten;
 
     qDebug() << "Exporting images from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
@@ -101,9 +126,8 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         }
 
         // Create a filename with the frame number
-        QString frameNumberStr = QString("%1").arg(processedFrames, 6, 10, QChar('0'));
-        QString filename = QString("frame_%1.png").arg(frameNumberStr);
-        QString filePath = QDir(m_exportPath).filePath(filename);
+        const QString fileName = ExportMath::frameFileName(processedFrames);
+        QString filePath = QDir(exportDir).filePath(fileName);
 
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
@@ -113,6 +137,7 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
             emit busyChanged();
             return false;
         }
+        framesWritten.append(fileName);
 
         // Update progress
         processedFrames++;
@@ -121,6 +146,17 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
 
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
+
+        // The Cancel button's click is delivered by the processEvents() call
+        // above; cancelExport() runs there and sets the flag we poll here.
+        if (m_cancelRequested) {
+            gen->endExport();
+            ExportMath::removeWrittenFiles(exportDir, framesWritten);
+            m_busy = false;
+            emit busyChanged();
+            emit exportCancelled();
+            return false;
+        }
     }
 
     gen->endExport();
@@ -131,9 +167,16 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
 
     m_busy = false;
     emit busyChanged();
-    emit exportFinished(true, m_exportPath);
+    emit exportFinished(true, exportDir);
 
     return true;
+}
+
+void ImageExporter::cancelExport()
+{
+    if (m_busy) {
+        m_cancelRequested = true;
+    }
 }
 
 QString ImageExporter::createDefaultExportDir(DiveData* dive,
@@ -144,9 +187,16 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive,
         return QString();
     }
 
-    // Create a unique directory for this dive
-    QString dirName = generateUniqueDirectoryName(dive, videoFilePath, contentType);
-    QString path = QDir(m_exportPath).filePath(dirName);
+    // Create a unique directory for this dive under the QML-bound base
+    // directory (not m_exportPath: main.qml points that at the created
+    // sub-directory for the frame writer, so using it as the base would nest
+    // every subsequent export one level deeper).
+    if (!ExportMath::isValidExportPath(m_baseDirectory)) {
+        qWarning() << "createDefaultExportDir: no base directory set";
+        return QString();
+    }
+    QString dirName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
+    QString path = QDir(m_baseDirectory).filePath(dirName);
 
     QDir dir;
     if (!dir.mkpath(path)) {
@@ -155,62 +205,4 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive,
     }
 
     return path;
-}
-
-QString ImageExporter::generateUniqueDirectoryName(DiveData* dive,
-                                                   const QString &videoFilePath,
-                                                   const QString &contentType)
-{
-    QString baseName;
-
-    // Use dive date and name to create the directory name
-    QDateTime diveTime = dive->startTime();
-    if (diveTime.isValid()) {
-        baseName = diveTime.toString("yyyy-MM-dd_HHmmss");
-    } else {
-        baseName = QDateTime::currentDateTime().toString("yyyy-MM-dd_HHmmss");
-    }
-
-    // Add dive name if available
-    if (!dive->diveName().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->diveName());
-    }
-
-    // Add location if available
-    if (!dive->location().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->location());
-    }
-
-    // Add video filename stem if a video is imported
-    if (!videoFilePath.isEmpty()) {
-        QString videoStem = QFileInfo(videoFilePath).completeBaseName();
-        if (!videoStem.isEmpty()) {
-            baseName += "_" + sanitizeFileName(videoStem);
-        }
-    }
-
-    // Append the content-type tag (e.g. "dive_computer" / "dive_profile")
-    // so exports of different overlays for the same dive don't collide.
-    if (!contentType.isEmpty()) {
-        baseName += "_" + sanitizeFileName(contentType);
-    }
-
-    return baseName;
-}
-
-QString ImageExporter::sanitizeFileName(const QString &fileName)
-{
-    // Replace invalid file name characters with underscores
-    QString result = fileName;
-    
-    // Replace characters that aren't allowed in file names
-    QRegularExpression regex("[\\\\/:*?\"<>|]");
-    result.replace(regex, "_");
-    
-    // Limit length
-    if (result.length() > 50) {
-        result = result.left(47) + "...";
-    }
-    
-    return result;
 }

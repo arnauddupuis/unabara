@@ -34,6 +34,11 @@ public:
     
     // Helper functions
     Q_INVOKABLE QString urlToLocalFile(const QString &urlString);
+    // Inverse of urlToLocalFile for dialogs' currentFolder/currentFile: never
+    // build "file://" + path by hand — on Windows "file://C:/x" parses the
+    // drive letter as a host.
+    Q_INVOKABLE QUrl localFileToUrl(const QString &path);
+    Q_INVOKABLE void revealInFileManager(const QString &path);
 
     
 public slots:

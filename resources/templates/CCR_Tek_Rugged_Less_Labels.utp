@@ -11,7 +11,7 @@
             "cellType": "Depth",
             "font": {
                 "bold": true,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 23,
                 "weight": 700
@@ -36,7 +36,7 @@
             "cellType": "Temperature",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 22,
                 "weight": 400
@@ -60,7 +60,7 @@
             "cellType": "NDL",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 15,
                 "weight": 400
@@ -84,7 +84,7 @@
             "cellType": "Time",
             "font": {
                 "bold": true,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 24,
                 "weight": 700
@@ -108,7 +108,7 @@
             "cellType": "PO2Cell1",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -133,7 +133,7 @@
             "cellType": "PO2Cell2",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -158,7 +158,7 @@
             "cellType": "PO2Cell3",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -183,7 +183,7 @@
             "cellType": "CompositePO2",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 16,
                 "weight": 400
@@ -207,7 +207,7 @@
             "cellType": "StopDepth",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 11,
                 "weight": 400
@@ -231,7 +231,7 @@
             "cellType": "StopTime",
             "font": {
                 "bold": false,
-                "family": "Sans Serif",
+                "family": "DejaVu Sans",
                 "italic": false,
                 "pointSize": 11,
                 "weight": 400
@@ -249,7 +249,7 @@
     ],
     "defaultFont": {
         "bold": false,
-        "family": "Sans Serif",
+        "family": "DejaVu Sans",
         "italic": false,
         "pointSize": 14,
         "weight": 400

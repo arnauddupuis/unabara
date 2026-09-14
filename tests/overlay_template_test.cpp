@@ -5,6 +5,7 @@
 #include <QtTest>
 
 #include <QFont>
+#include <QJsonArray>
 #include <QJsonObject>
 
 #include "include/core/overlay_template.h"
@@ -57,6 +58,46 @@ private slots:
         QVERIFY(restored.hasDefaultPrimaryColor());
         QVERIFY(restored.hasDefaultSecondaryColor());
         QCOMPARE(restored.cellCount(), 1);
+    }
+
+    void versionIs12AndGeometrySurvivesRoundTrip()
+    {
+        // 1.2 added per-cell geometry; the template must both stamp the new
+        // version and carry the geometry through the toJson/fromJson path that
+        // undo snapshots and Save Template use
+        OverlayTemplate templ;
+        templ.setTemplateName(QStringLiteral("Geometry"));
+        CellData cell(QStringLiteral("tank_0"), CellType::Pressure);
+        cell.setHAlign(Unabara::HAlign::Right);
+        cell.setVAlign(Unabara::VAlign::Middle);
+        cell.setFixedSize(QSizeF(0.3, 0.15));
+        templ.addCell(cell);
+
+        const QJsonObject json = templ.toJson();
+        QCOMPARE(json[QStringLiteral("version")].toString(), QStringLiteral("1.2"));
+
+        const OverlayTemplate restored = OverlayTemplate::fromJson(json);
+        const CellData* back = restored.getCellData(QStringLiteral("tank_0"));
+        QVERIFY(back);
+        QCOMPARE(back->hAlign(), Unabara::HAlign::Right);
+        QCOMPARE(back->vAlign(), Unabara::VAlign::Middle);
+        QVERIFY(back->hasFixedSize());
+        QCOMPARE(back->fixedSize(), QSizeF(0.3, 0.15));
+
+        // Cells in pre-1.2 files load with the legacy anchor and auto-size
+        QJsonObject legacy;
+        legacy[QStringLiteral("version")] = QStringLiteral("1.1");
+        legacy[QStringLiteral("templateName")] = QStringLiteral("Legacy");
+        QJsonObject legacyCell;
+        legacyCell[QStringLiteral("cellId")] = QStringLiteral("depth");
+        legacyCell[QStringLiteral("cellType")] = QStringLiteral("Depth");
+        legacy[QStringLiteral("cells")] = QJsonArray{legacyCell};
+        const CellData* legacyBack =
+            OverlayTemplate::fromJson(legacy).getCellData(QStringLiteral("depth"));
+        QVERIFY(legacyBack);
+        QCOMPARE(legacyBack->hAlign(), Unabara::HAlign::Left);
+        QCOMPARE(legacyBack->vAlign(), Unabara::VAlign::Top);
+        QVERIFY(!legacyBack->hasFixedSize());
     }
 
     void missingSchemeKeysLeaveFlagsFalse()

@@ -42,3 +42,15 @@ jobs:
     - name: Run unit tests
       working-directory: build
       run: ctest --output-on-failure
+
+    # The golden-render test writes the hashes it computed for this runner's
+    # Qt. Until tests/golden/renders.sha256 has a section for the CI Qt, the
+    # test is advisory — download this artifact and commit its contents into
+    # the manifest to turn on enforcement (see tests/golden/golden_renders.py).
+    - name: Upload computed golden-render hashes
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: golden-renders-qt-${{ env.QT_VERSION }}
+        path: build/tests/golden_renders/renders.candidate.sha256
+        if-no-files-found: ignore

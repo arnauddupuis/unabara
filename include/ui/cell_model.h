@@ -39,7 +39,11 @@ public:
         ShadowColorRole,
         ShadowSizeRole,
         ShadowOpacityRole,
-        HasCustomShadowRole
+        HasCustomShadowRole,
+        HAlignRole,
+        VAlignRole,
+        FixedSizeRole,
+        HasFixedSizeRole
     };
 
     explicit CellModel(QObject *parent = nullptr);
@@ -51,6 +55,8 @@ public:
 
     // Cell management
     Q_INVOKABLE void updateFromGenerator(OverlayGenerator* generator, DiveData* dive, double timePoint);
+    // Ids of the currently visible cells, in paint order (for the editing-scope selector)
+    Q_INVOKABLE QStringList visibleCellIds() const;
     Q_INVOKABLE void updateCellPosition(const QString& cellId, const QPointF& position);
     Q_INVOKABLE void updateCellFont(const QString& cellId, const QFont& font);
     Q_INVOKABLE void updateCellVisible(const QString& cellId, bool visible);

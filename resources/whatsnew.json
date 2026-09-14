@@ -1,0 +1,47 @@
+{
+    "releases": [
+        {
+            "version": "0.3.0",
+            "highlights": [
+                {
+                    "title": "FIT support",
+                    "description": "Unabara can now import and process .fit files from Garmin/Suunto computers.",
+                    "showMe": "import_button"
+                },
+                {
+                    "title": "One canvas, two views",
+                    "description": "The overlay tab is now a single large canvas. Edit mode is where you arrange things — drag cells, snap them to the grid, and resize them with the corner handles (the Layout section controls alignment and auto-size). Render mode shows the exact pixels your export will produce.",
+                    "showMe": "canvas"
+                },
+                {
+                    "title": "The Cells panel replaces the Display Options checkboxes",
+                    "description": "Every cell of the template is listed in the sidebar's Cells section: the eye icon shows or hides it, clicking selects it on the canvas, and badges mark cells with their own font, color or shadow overrides.",
+                    "showMe": "canvas"
+                },
+                {
+                    "title": "The timeline does more than you may think",
+                    "description": "It zooms, pans, and can be collapsed from its header chevron. The range you zoom into is what \"Export only visible time range\" exports — the export dialog now shows the exact times next to each range option.",
+                    "showMe": "timeline"
+                },
+                {
+                    "title": "A real Settings tab",
+                    "description": "Units, template directory, update checks and export defaults now live in their own tab — including the management of your saved camera profiles, which previously could not be edited anywhere.",
+                    "showMe": "settings"
+                },
+                {
+                    "title": "Templates can theme the dive profile",
+                    "description": "Templates carry an optional primary/secondary color scheme. Apply it to the dive profile — curve and deco zone take the primary color, indicator and grid the secondary — from the Dive Profile tab's Template Colors section.",
+                    "showMe": "profile"
+                }
+            ],
+            "changes": [
+                "Notifications appear as brief toasts instead of pop-up dialogs; export success includes an \"Open folder\" shortcut.",
+                "Exports can be cancelled at any point, including during video encoding.",
+                "Both editor sidebars collapse to give the canvas the full width.",
+                "Export is available from the Video Preview tab (overlays export with transparency — composited export comes in v0.4).",
+                "DejaVu Sans is bundled as the default overlay font, so templates render identically on Linux, macOS and Windows.",
+                "New data cells: TTS, CNS, mean and max depth, gas, deco stop depth and time, and CCR PO2 sensors."
+            ]
+        }
+    ]
+}

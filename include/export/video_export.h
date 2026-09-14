@@ -14,7 +14,10 @@ class VideoExporter : public QObject
 {
     Q_OBJECT
     
-    Q_PROPERTY(QString exportPath READ exportPath WRITE setExportPath NOTIFY exportPathChanged)
+    // Base directory the output file lands in (createDefaultExportFile /
+    // generateUniqueFileName). Bound from QML (config.lastExportPath) so the
+    // exporter itself has no dependency on the settings store.
+    Q_PROPERTY(QString baseDirectory READ baseDirectory WRITE setBaseDirectory NOTIFY baseDirectoryChanged)
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     Q_PROPERTY(int videoBitrate READ videoBitrate WRITE setVideoBitrate NOTIFY videoBitrateChanged)
     Q_PROPERTY(QString videoCodec READ videoCodec WRITE setVideoCodec NOTIFY videoCodecChanged)
@@ -36,7 +39,7 @@ public:
     Q_ENUM(VideoCodec)
     
     // Getters
-    QString exportPath() const { return m_exportPath; }
+    QString baseDirectory() const { return m_baseDirectory; }
     double frameRate() const { return m_frameRate; }
     int videoBitrate() const { return m_videoBitrate; }
     QString videoCodec() const { return m_videoCodec; }
@@ -45,7 +48,7 @@ public:
     QSize customResolution() const { return m_customResolution; }
     
     // Setters
-    void setExportPath(const QString &path);
+    void setBaseDirectory(const QString &path);
     void setFrameRate(double fps);
     void setVideoBitrate(int bitrate);
     void setVideoCodec(const QString &codec);
@@ -56,6 +59,12 @@ public:
     // ProfileGenerator work transparently from QML.
     Q_INVOKABLE bool exportVideo(DiveData* dive, QObject* generator,
                                 double startTime, double endTime);
+
+    // Request cancellation of a running export, whichever phase it is in.
+    // Frame generation: the loop polls a flag (its processEvents() is what
+    // delivers this call) and unwinds. Encoding: FFmpeg is terminated and
+    // onFFmpegFinished() completes the cancellation. Either way the partial
+    // output is removed and exportCancelled() is emitted — not exportError().
     Q_INVOKABLE void cancelExport();
 
     // Helper methods
@@ -76,7 +85,7 @@ public:
     Q_INVOKABLE QString getFileExtensionForCodec(const QString &codec);
     
 signals:
-    void exportPathChanged();
+    void baseDirectoryChanged();
     void frameRateChanged();
     void videoBitrateChanged();
     void videoCodecChanged();
@@ -85,6 +94,7 @@ signals:
     void exportStarted();
     void exportFinished(bool success, const QString &path);
     void exportError(const QString &errorMessage);
+    void exportCancelled();
     void statusUpdate(const QString &message);
     void customResolutionChanged();
     
@@ -94,12 +104,13 @@ private slots:
     void updateEncodingProgress();
     
 private:
-    QString m_exportPath;
+    QString m_baseDirectory;
     double m_frameRate;
     int m_videoBitrate;
     QString m_videoCodec;
     int m_progress;
     bool m_busy;
+    bool m_cancelRequested;
     QSize m_customResolution;
     QString m_lastOutputPath;
     QString m_pendingOutputPath;
@@ -112,6 +123,10 @@ private:
     
     QProcess* m_ffmpegProcess;
     QTimer* m_progressTimer;
+    // Fallback SIGKILL escalation armed by cancelExport(); must be disarmed
+    // the moment the process finishes — m_ffmpegProcess is reused across
+    // export runs, so a stale timer would kill the NEXT export.
+    QTimer* m_killTimer = nullptr;
     QTemporaryDir m_tempDir;
     // QThread* m_workerThread;
     // QObject* m_worker;
@@ -128,7 +143,6 @@ private:
     QString generateFFmpegCommand(const QString &inputPattern, 
                                  const QString &outputFile);
     QString getFormatOptions(const QString &codec);
-    QString sanitizeFileName(const QString &fileName);
     QString generateUniqueFileName(DiveData* dive,
                                    const QString &extension,
                                    const QString &videoFilePath = QString(),

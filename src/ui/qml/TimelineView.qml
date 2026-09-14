@@ -28,7 +28,23 @@ Item {
     // would clobber the derived position. Dragging the zone/cursor still adjusts
     // videoOffset (the sync gesture).
     property bool videoSyncMode: false
-    
+
+    // Manual, session-only collapse: hides the canvas + data readout, leaving
+    // the header row. Deliberately not persisted and never set
+    // programmatically — the timeline is central to navigation and video
+    // sync, so every session starts expanded and only the user's click on
+    // the header chevron collapses it.
+    property bool collapsed: false
+
+    // Slim, icon-only header buttons that fit the 32px header row.
+    component TimelineButton: ToolButton {
+        padding: 4
+        icon.width: 16
+        icon.height: 16
+        ToolTip.visible: hovered
+        ToolTip.delay: 500
+    }
+
     // Reference to C++ Timeline object
     Timeline {
         id: timeline
@@ -50,71 +66,93 @@ Item {
         // Toolbar for timeline controls
         Rectangle {
             Layout.fillWidth: true
-            height: 40
+            height: 32
             color: palette.mid
-            
+
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 5
-                
-                Button {
+                anchors.leftMargin: 4
+                anchors.rightMargin: 6
+                spacing: 2
+
+                // Same chevron glyphs as CollapsibleSection so the timeline
+                // reads as collapsible the way inspector sections do.
+                TimelineButton {
+                    text: root.collapsed ? "▸" : "▾"
+                    font.bold: true
+                    ToolTip.text: root.collapsed ? qsTr("Show the timeline")
+                                                 : qsTr("Hide the timeline")
+                    onClicked: root.collapsed = !root.collapsed
+                }
+
+                TimelineButton {
                     icon.name: "go-first"
                     ToolTip.text: qsTr("Go to Start")
                     onClicked: timeline.goToStart()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "go-previous"
                     ToolTip.text: qsTr("Move Left")
                     onClicked: timeline.moveLeft()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "zoom-out"
                     ToolTip.text: qsTr("Zoom Out")
                     onClicked: timeline.zoomOut()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "zoom-original"
                     ToolTip.text: qsTr("Reset Zoom")
                     onClicked: timeline.resetZoom()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "zoom-in"
                     ToolTip.text: qsTr("Zoom In")
                     onClicked: timeline.zoomIn()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "go-next"
                     ToolTip.text: qsTr("Move Right")
                     onClicked: timeline.moveRight()
                 }
-                
-                Button {
+
+                TimelineButton {
                     icon.name: "go-last"
                     ToolTip.text: qsTr("Go to End")
                     onClicked: timeline.goToEnd()
                 }
-                
+
                 Item { Layout.fillWidth: true }
-                
+
                 Label {
                     text: qsTr("Time: ") + formatTime(timeline.currentTime)
                     color: palette.windowText
                     font.bold: true
-                    
+
                     function formatTime(seconds) {
                         let mins = Math.floor(seconds / 60)
                         let secs = Math.floor(seconds % 60)
                         return mins + ":" + (secs < 10 ? "0" : "") + secs
                     }
                 }
-                
+
+                // Explicit sync-mode hint: the only prior signal was the
+                // resize cursor over the video band, which is easy to miss.
+                Label {
+                    visible: root.videoSyncMode
+                    text: qsTr("cursor follows video — drag the orange band to sync")
+                    color: "#ff8c00"
+                    font.italic: true
+                    elide: Text.ElideRight
+                    Layout.maximumWidth: 360
+                    Layout.leftMargin: 12
+                }
+
                 Item { Layout.fillWidth: true }
                 
                 // Video offset controls (visible when video is loaded)
@@ -131,7 +169,8 @@ Item {
                         id: videoOffsetSpinBox
                         from: -18000
                         to: 18000
-                        
+                        Layout.maximumHeight: 28
+
                         Component.onCompleted: {
                             // Set initial value without creating a binding
                             value = timeline.videoOffset
@@ -175,9 +214,10 @@ Item {
         // Main timeline view
         Item {
             id: timelineView
+            visible: !root.collapsed
             Layout.fillWidth: true
             Layout.fillHeight: true
-            
+
             // Draw the depth profile
             Canvas {
                 id: depthCanvas

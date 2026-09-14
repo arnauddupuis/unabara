@@ -53,8 +53,6 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     // Cell selection for per-cell editing
     Q_PROPERTY(QString selectedCellId READ selectedCellId WRITE setSelectedCellId NOTIFY selectedCellIdChanged)
 
-    // Cell background visibility (editor only, not for export/preview)
-    Q_PROPERTY(bool showCellBackgrounds READ showCellBackgrounds WRITE setShowCellBackgrounds NOTIFY showCellBackgroundsChanged)
 
     // Snap-to-grid settings
     Q_PROPERTY(bool snapToGrid READ snapToGrid WRITE setSnapToGrid NOTIFY snapToGridChanged)
@@ -109,8 +107,6 @@ public:
     // Cell selection getter
     QString selectedCellId() const { return m_selectedCellId; }
 
-    // Cell background visibility
-    bool showCellBackgrounds() const { return m_showCellBackgrounds; }
 
     // Snap-to-grid getters
     bool snapToGrid() const { return m_snapToGrid; }
@@ -161,8 +157,6 @@ public:
     // Cell selection setter
     void setSelectedCellId(const QString& cellId);
 
-    // Cell background visibility setter
-    void setShowCellBackgrounds(bool show);
 
     // Snap-to-grid setters
     void setSnapToGrid(bool enabled);
@@ -175,6 +169,40 @@ public:
     QVector<Unabara::CellData> cells() const { return m_cells; }
     Q_INVOKABLE int cellCount() const { return m_cells.size(); }
     Q_INVOKABLE void setCellPosition(const QString& cellId, const QPointF& pos);
+    // Normalized fixed size; an invalid/empty size reverts the cell to
+    // auto-sizing from its content (v1.2 geometry)
+    Q_INVOKABLE void setCellFixedSize(const QString& cellId, const QSizeF& size);
+    // Atomic position + fixed-size commit (a resize moves both): ONE
+    // cellLayoutChanged, so downstream costs — model refresh, cache
+    // invalidation, undo snapshot — happen once by construction instead of
+    // relying on debounce timing to coalesce two setter emissions.
+    Q_INVOKABLE void setCellGeometry(const QString& cellId, const QPointF& pos,
+                                     const QSizeF& size);
+    // Translated human-readable name for a cell id (delegates to
+    // CellData::displayName) — for QML lists that show cells.
+    Q_INVOKABLE QString cellDisplayName(const QString& cellId) const;
+
+    // v1.2 cell geometry (alignment values use the Unabara::HAlign/VAlign
+    // enum order: 0 = left/top, 1 = center/middle, 2 = right/bottom)
+    Q_INVOKABLE int getCellHAlign(const QString& cellId) const;
+    Q_INVOKABLE int getCellVAlign(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasFixedSize(const QString& cellId) const;
+    // Change the anchor edge. When a dive is provided, the stored position is
+    // re-derived from the cell's current on-screen box so changing alignment
+    // never moves the cell — it only changes which edge stays fixed later.
+    // Pixel-exact on every axis: Center/Right/Middle/Bottom via the epsilon
+    // floor in cellGeometry; Left/Top (whose render path keeps the plain
+    // pre-1.2 truncation for byte-compat) by baking the same epsilon into
+    // the stored anchor value, which survives the multiply-back and .utp
+    // JSON round trips (locked in by overlay_geometry_test).
+    Q_INVOKABLE void setCellHAlign(const QString& cellId, int align,
+                                   DiveData* dive = nullptr, double timePoint = 0.0);
+    Q_INVOKABLE void setCellVAlign(const QString& cellId, int align,
+                                   DiveData* dive = nullptr, double timePoint = 0.0);
+    // true reverts to auto-sizing; false freezes the current measured box as
+    // the fixed size (needs the dive to measure — the box doesn't change)
+    Q_INVOKABLE void setCellAutoSize(const QString& cellId, bool autoSize,
+                                     DiveData* dive = nullptr, double timePoint = 0.0);
     Q_INVOKABLE QFont getCellFont(const QString& cellId) const;
     Q_INVOKABLE QColor getCellLabelColor(const QString& cellId) const;
     Q_INVOKABLE QColor getCellValueColor(const QString& cellId) const;
@@ -182,7 +210,16 @@ public:
     Q_INVOKABLE void setCellLabelColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellValueColor(const QString& cellId, const QColor& color);
     Q_INVOKABLE void setCellShowLabel(const QString& cellId, bool show);
+    // Freezes the full shadow group on the cell (hasCustomShadow is one flag
+    // for all five properties, so a per-cell edit must pin every value)
+    Q_INVOKABLE void setCellShadow(const QString& cellId, bool enabled, int type,
+                                   const QColor& color, int size, double opacity);
     Q_INVOKABLE bool getCellShowLabel(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomFont(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomLabelColor(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomValueColor(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomShowLabel(const QString& cellId) const;
+    Q_INVOKABLE bool getCellHasCustomShadow(const QString& cellId) const;
     Q_INVOKABLE bool getCellShadowEnabled(const QString& cellId) const;
     Q_INVOKABLE int getCellShadowType(const QString& cellId) const;
     Q_INVOKABLE QColor getCellShadowColor(const QString& cellId) const;
@@ -214,6 +251,28 @@ public:
     Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
     Q_INVOKABLE void refreshTemplateList();
 
+    // Hit-test for the Render-mode preview: returns the id of the topmost
+    // visible cell whose rendered rect (same metrics as
+    // renderCellBasedOverlay) contains the normalized position, or "" if none.
+    Q_INVOKABLE QString cellIdAt(DiveData* dive, double timePoint,
+                                 const QPointF& normalizedPos) const;
+
+    // Anchor-resolved cell geometry at template resolution (v1.2): the outer
+    // box (background/hit-test rect, padding included) and the inner rect the
+    // text block is drawn into. Single source of truth for renderCellBasedOverlay,
+    // cellIdAt and the tooling.
+    struct CellGeometry {
+        QRectF box;
+        QRectF textRect;
+    };
+    CellGeometry cellGeometry(const Unabara::CellData& cell, const QFontMetrics& fm,
+                              const QString& displayText,
+                              double width, double height) const;
+
+    // All visible cells' resolved boxes for a time point, in paint order
+    // (used by render_utp --rects; template resolution pixels)
+    QVector<QPair<QString, QRectF>> cellRects(DiveData* dive, double timePoint) const;
+
     // Generate overlay for a specific time point
     Q_INVOKABLE QImage generateOverlay(DiveData* dive, double timePoint);
 
@@ -222,8 +281,6 @@ public:
 
     // IFrameGenerator
     QImage generate(DiveData* dive, double timePoint) override { return generateOverlay(dive, timePoint); }
-    void beginExport() override;
-    void endExport() override;
     
 signals:
     void templateChanged();
@@ -263,8 +320,6 @@ signals:
     void templateSaved(const QString& filePath);
     void templateLoaded(const QString& filePath);
 
-    // Cell background signal
-    void showCellBackgroundsChanged();
 
     // Snap-to-grid signals
     void snapToGridChanged();
@@ -314,8 +369,6 @@ private:
     // Cell selection
     QString m_selectedCellId;
 
-    // Cell background visibility
-    bool m_showCellBackgrounds;
 
     // Template listing cache
     QStringList m_templateNames;
@@ -330,11 +383,31 @@ private:
     QColor m_primaryColor;
     QColor m_secondaryColor;
 
-    // Export-pass state stash (saved by beginExport, restored by endExport)
-    bool m_savedShowCellBackgrounds = true;
 
     // Seed a cell's label/value colors from the globals (isCustom = false)
     void seedCellColors(Unabara::CellData& cell) const;
+
+    // The font (already scaled to template pixels) and display text a cell
+    // renders with at a data point. Single source of truth for
+    // renderCellBasedOverlay and cellBoxFor: both must measure the same text
+    // with the same font, or hit-testing and re-anchoring drift from the pixels.
+    struct CellRenderInputs {
+        QFont renderFont;
+        QString displayText;
+    };
+    CellRenderInputs cellRenderInputs(const Unabara::CellData& cell,
+                                      const DiveDataPoint& dataPoint,
+                                      DiveData* dive) const;
+
+    // One cell's anchor-resolved box at template resolution (shared by
+    // cellRects and the alignment/auto-size re-anchoring setters)
+    QRectF cellBoxFor(const Unabara::CellData& cell, const DiveDataPoint& dataPoint,
+                      DiveData* dive) const;
+
+    // Clear the selection when the selected cell no longer exists or is no
+    // longer visible. Otherwise the inspector keeps editing an invisible or
+    // missing cell while the UI says "All cells".
+    void dropStaleSelection();
 
     // Helper methods for drawing
     int getScaledFontSize(const QFont& baseFont, double scale = 1.0) const;

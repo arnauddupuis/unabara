@@ -17,25 +17,43 @@ ApplicationWindow {
     
     // URL of the currently loaded video file (file:// URL, set on video import)
     property url currentVideoUrl: ""
+    // Release notes that were unseen when this session started. Non-empty
+    // only on the first launch after an update; keeps the toolbar's
+    // "What's New" recall button alive for the whole session even though
+    // closing the dialog stamps the notes as seen.
+    property var whatsNewStartupNotes: []
     // UTC seconds since epoch from video file metadata; -1 if unavailable
     property double videoCreationTime: -1
 
     // Template-editor undo/redo.
     // StandardKey resolves the platform-native binding.
+    // Disabled while an export runs: Shortcut is not blocked by popup
+    // modality, and the image export loop pumps events, so an undo mid-export
+    // would change the layout partway through the frame sequence.
     Shortcut {
         sequences: [StandardKey.Undo]
+        enabled: !imageExporter.busy && !videoExporter.busy
         onActivated: undoManager.undo()
     }
     Shortcut {
         sequences: [StandardKey.Redo]
+        enabled: !imageExporter.busy && !videoExporter.busy
         onActivated: undoManager.redo()
     }
 
     // Models and objects
     ImageExporter {
         id: imageExporter
-        
+        // Where per-dive export subfolders are created. The exporter itself
+        // never reads the settings store — this binding is its only source.
+        baseDirectory: config ? config.lastExportPath : ""
+
         onExportStarted: {
+            // The generators are not thread-safe: playback keeps the image
+            // provider rendering on its worker thread while the export
+            // renders on the GUI thread. Export is reachable from the
+            // Video Preview tab, so stop the player first.
+            videoSyncPlayer.pause()
             exportProgressDialog.open()
         }
         
@@ -46,9 +64,10 @@ ApplicationWindow {
         onExportFinished: function(success, path) {
             exportProgressDialog.close()
             if (success) {
-                messageDialog.title = qsTr("Export Completed")
-                messageDialog.message = qsTr("Images exported successfully to:\n") + path
-                messageDialog.open()
+                toast.show(qsTr("Image sequence exported to %1").arg(path.split("/").pop()), {
+                    actionText: qsTr("Open folder"),
+                    onAction: function() { mainWindow.revealInFileManager(path) }
+                })
             }
         }
         
@@ -58,13 +77,21 @@ ApplicationWindow {
             messageDialog.message = errorMessage
             messageDialog.open()
         }
+
+        onExportCancelled: {
+            exportProgressDialog.close()
+            toast.show(qsTr("Export cancelled — partial frames removed."))
+        }
     }
     
     // Video exporter
     VideoExporter {
         id: videoExporter
-        
+        // Same contract as ImageExporter.baseDirectory
+        baseDirectory: config ? config.lastExportPath : ""
+
         onExportStarted: {
+            videoSyncPlayer.pause()  // see ImageExporter.onExportStarted
             videoExportProgressDialog.open()
         }
         
@@ -79,9 +106,10 @@ ApplicationWindow {
         onExportFinished: function(success, path) {
             videoExportProgressDialog.close()
             if (success) {
-                messageDialog.title = qsTr("Export Completed")
-                messageDialog.message = qsTr("Video exported successfully to:\n") + path
-                messageDialog.open()
+                toast.show(qsTr("Video exported to %1").arg(path.split("/").pop()), {
+                    actionText: qsTr("Open folder"),
+                    onAction: function() { mainWindow.revealInFileManager(path) }
+                })
             }
         }
         
@@ -90,6 +118,11 @@ ApplicationWindow {
             messageDialog.title = qsTr("Export Error")
             messageDialog.message = errorMessage
             messageDialog.open()
+        }
+
+        onExportCancelled: {
+            videoExportProgressDialog.close()
+            toast.show(qsTr("Export cancelled."))
         }
     }
 
@@ -125,6 +158,48 @@ ApplicationWindow {
         }
     }
     
+    // Fallback for video imports whose metadata never arrives: after a grace
+    // period, settle the duration (and the timecode auto-sync) ourselves.
+    // Declared once here — the previous Qt.createQmlObject per import leaked
+    // a Timer and its closure every time a video was imported.
+    Timer {
+        id: videoMetadataFallbackTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            // If we get here, metadata loading probably failed
+            console.log("Metadata loading timed out, checking duration");
+            
+            // If duration hasn't been set, use a default
+            if (timelineView.timeline.videoDuration <= 0) {
+                console.log("Setting default video duration");
+                // Get the actual duration from metadata player if possible
+                if (metadataPlayer.duration > 0) {
+                    timelineView.setVideoDuration(metadataPlayer.duration / 1000);
+                } else {
+                    console.log("Using fallback 60 second duration");
+                    timelineView.setVideoDuration(60); // Default to 1 minute
+                }
+                // Auto-sync video offset from timecode if available
+                let synced = false
+                if (mainWindow.currentDive && timelineView.videoPath !== "") {
+                    let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
+                    if (tc >= 0) {
+                        let ds = mainWindow.currentDive.startTime
+                        let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
+                        timelineView.timeline.videoOffset = tc - dsSecs
+                        synced = true
+                    }
+                }
+                if (!synced) {
+                    timelineView.timeline.videoOffset = 0.0
+                }
+            } else {
+                console.log("Duration already set to:", timelineView.timeline.videoDuration);
+            }
+        }
+    }
+
     // Hidden MediaPlayer to get video metadata
     MediaPlayer {
         id: metadataPlayer
@@ -236,9 +311,17 @@ ApplicationWindow {
         }
     }
     
+    // Update info arriving while the What's New notes are open is held back
+    // so the two startup modals never stack; the notes' onClosed releases it.
+    property var pendingUpdateInfo: null
+
     Connections {
         target: updateChecker
         function onUpdateAvailable(latestVersion, releaseUrl) {
+            if (whatsNewDialog.visible) {
+                window.pendingUpdateInfo = { version: latestVersion, url: releaseUrl }
+                return
+            }
             updateDialog.latestVersion = latestVersion
             updateDialog.releaseUrl = releaseUrl
             updateDialog.open()
@@ -273,21 +356,42 @@ ApplicationWindow {
     Component.onCompleted: {
         // Check if FFmpeg is available and show a notification if not
         if (!videoExporter.isFFmpegAvailable()) {
-            messageDialog.title = qsTr("FFmpeg Not Found")
-            messageDialog.message = qsTr("FFmpeg was not found on your system. The video export feature will be disabled.\n\n" +
-                               "To enable video export, please install FFmpeg and restart the application.")
-            messageDialog.open()
+            toast.show(qsTr("FFmpeg was not found — video export is disabled. Install FFmpeg and restart Unabara to enable it."),
+                       { duration: 12000 })
         }
 
-        // Check for updates
-        updateChecker.checkForUpdates()
+        // Check for updates (user-controllable from the Settings tab)
+        if (config.checkUpdatesOnStartup) {
+            updateChecker.checkForUpdates()
+        }
+
+        // "What's New": a brand-new install gets silently stamped (nothing
+        // to diff against — the whole app is new to them); an existing
+        // config sees the notes for versions newer than the last dismissal.
+        if (config.firstRun) {
+            config.whatsNewSeenVersion = appVersion
+        } else {
+            var pendingNotes = whatsNew.pendingReleases(config.whatsNewSeenVersion)
+            if (pendingNotes.length > 0) {
+                window.whatsNewStartupNotes = pendingNotes
+                whatsNewDialog.releases = pendingNotes
+                whatsNewDialog.open()
+            }
+        }
     }
     
+    // Shared cell model: drives both the canvas editor (tab 0) and the
+    // overlay editor sidebar. Owned here so one refresh serves both.
+    CellModel {
+        id: overlayCellModel
+    }
+
     // Main UI layout
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
             ToolButton {
+                id: importButton
                 text: qsTr("Import")
                 icon.name: "document-open"
                 onClicked: importMenu.open()
@@ -309,36 +413,50 @@ ApplicationWindow {
             ToolButton {
                 // Exports whichever overlay the currently active tab represents.
                 // Tab 0 = dive computer overlay, Tab 1 = dive profile. Tab 2
-                // (video preview placeholder) has nothing to export yet, so
-                // the button is disabled there.
+                // (video preview) opens the dialog with a content chooser and
+                // defaults the range to the imported video. Only the Settings
+                // tab has nothing to export.
                 text: {
                     if (contentTabs.currentIndex === 1) return qsTr("Export Profile")
+                    if (contentTabs.currentIndex === 2) return qsTr("Export...")
                     return qsTr("Export Overlay")
                 }
                 icon.name: "document-save"
-                enabled: mainWindow.hasActiveDive && contentTabs.currentIndex !== 2
+                enabled: mainWindow.hasActiveDive && contentTabs.currentIndex !== 3
+                ToolTip.visible: hovered && contentTabs.currentIndex === 2
+                ToolTip.delay: 500
+                ToolTip.text: qsTr("Overlays export with transparency — composite them over your footage in your video editor.")
                 onClicked: {
-                    if (contentTabs.currentIndex === 1) {
+                    exportImagesDialog.chooseContent = contentTabs.currentIndex === 2
+                    if (contentTabs.currentIndex === 2) {
+                        // The dialog offers the dive-computer/profile choice;
+                        // start from the dive computer overlay. Set the
+                        // parameters explicitly too — the radio's change
+                        // handler doesn't fire when it is already checked.
+                        exportContentComputer.checked = true
+                        exportImagesDialog.targetGenerator = overlayGenerator
+                        exportImagesDialog.contentType = "dive_computer"
+                        exportImagesDialog.title = qsTr("Export Overlay for Video")
+                        if (exportVideoRangeOnly.enabled)
+                            exportVideoRangeOnly.checked = true
+                    } else if (contentTabs.currentIndex === 1) {
                         exportImagesDialog.targetGenerator = profileGenerator
                         exportImagesDialog.contentType = "dive_profile"
                         exportImagesDialog.title = qsTr("Export Dive Profile")
+                        // Don't inherit a "video range" left over from a
+                        // Video-tab export — each entry point picks its
+                        // natural default range.
+                        exportFullDive.checked = true
                     } else {
                         exportImagesDialog.targetGenerator = overlayGenerator
                         exportImagesDialog.contentType = "dive_computer"
                         exportImagesDialog.title = qsTr("Export Dive Computer Overlay")
+                        exportFullDive.checked = true
                     }
                     exportImagesDialog.open()
                 }
             }
             
-            ToolButton {
-                text: qsTr("Overlay Editor")
-                icon.name: "configure"
-                checkable: true
-                checked: overlayEditorPanel.visible
-                onClicked: overlayEditorPanel.visible = !overlayEditorPanel.visible
-            }
-
             ToolButton {
                 text: qsTr("Edit")
                 icon.name: "edit-undo"
@@ -359,6 +477,19 @@ ApplicationWindow {
                 }
             }
 
+            ToolButton {
+                // Session-only recall of the update notes: visible only on
+                // the first launch after an update, so a user who left the
+                // dialog via "Show me" can get back to it. The permanent
+                // entry point is on the Settings tab.
+                text: qsTr("What's New")
+                icon.name: "help-about"
+                visible: window.whatsNewStartupNotes.length > 0
+                onClicked: {
+                    whatsNewDialog.releases = window.whatsNewStartupNotes
+                    whatsNewDialog.open()
+                }
+            }
 
             Item { Layout.fillWidth: true }
             
@@ -395,6 +526,7 @@ ApplicationWindow {
                     TabButton { text: qsTr("Dive Computer Overlay") }
                     TabButton { text: qsTr("Dive Profile") }
                     TabButton { text: qsTr("Video Preview") }
+                    TabButton { text: qsTr("Settings") }
                 }
 
                 StackLayout {
@@ -402,167 +534,134 @@ ApplicationWindow {
                     Layout.fillHeight: true
                     currentIndex: contentTabs.currentIndex
 
-                    // Tab 1: Overlay (existing flow — preview + editor)
+                    // Tab 1: Overlay — unified canvas (Edit/Render modes) + editor sidebar
                     SplitView {
                         id: mainContentArea
                         orientation: Qt.Horizontal
 
-            // Main preview area
-            Item {
-                id: previewArea
-                SplitView.fillWidth: true
-                SplitView.minimumWidth: 400
-
-                // Overlay preview
-                Rectangle {
-                    id: overlayPreview
-                    anchors.centerIn: parent
-                    width: parent.width * 0.8
-                    height: parent.height * 0.8
-                    color: palette.dark
-                    visible: mainWindow.hasActiveDive
-
-                    Image {
-                        id: previewImage
-                        anchors.fill: parent
-                        fillMode: Image.PreserveAspectFit
-                        cache: false
-                        asynchronous: true
-                    
-                    // Add a timer to handle the update with proper delay
-                    Timer {
-                        id: updateTimer
-                        interval: 100  // Short delay to ensure property changes are processed
-                        repeat: false
-                        onTriggered: {
-                            // Force complete source refresh with two-step approach
-                            previewImage.source = ""
-                            Qt.callLater(function() {
-                                previewImage.source = "image://overlay/preview/" + Date.now() // Use current time for unique URL
-                                console.log("Preview source updated: " + previewImage.source)
-                            })
-                        }
-                    }
-                    
-                    // This would be updated when the timeline position changes or settings change
-                    property var updatePreview: function() {
-                        if (mainWindow.hasActiveDive && timelineView.visible) {
-                            // Use timer to delay update slightly
-                            updateTimer.restart()
-                        }
-                    }
-                    
-                    Component.onCompleted: {
-                        // Set initial source with a short delay
-                        Qt.callLater(function() {
-                            source = "image://overlay/preview/" + Date.now()
-                        })
-                    }
-                    
-                    // Monitor changes to overlay generator properties
-                    Connections {
-                        target: overlayGenerator
-
-                        function onShowDepthChanged() { previewImage.updatePreview() }
-                        function onShowTemperatureChanged() { previewImage.updatePreview() }
-                        function onShowTimeChanged() { previewImage.updatePreview() }
-                        function onShowNDLChanged() { previewImage.updatePreview() }
-                        function onShowPressureChanged() { previewImage.updatePreview() }
-                        function onTemplateChanged() { previewImage.updatePreview() }
-                        function onFontChanged() { previewImage.updatePreview() }
-                        function onLabelColorChanged() { previewImage.updatePreview() }
-                        function onValueColorChanged() { previewImage.updatePreview() }
-                        function onBackgroundOpacityChanged() { previewImage.updatePreview() }
-                        function onShadowChanged() { previewImage.updatePreview() }
-                        function onShowLabelChanged() { previewImage.updatePreview() }
-                        // Per-cell edits (font, color, showLabel, shadow on a selected
-                        // cell) only emit cellsChanged — refresh the preview for those too
-                        function onCellsChanged() { previewImage.updatePreview() }
-                    }
-                    
-                    // Monitor changes to config properties (unit system only)
-                    Connections {
-                        target: config
-
-                        function onUnitSystemChanged() { previewImage.updatePreview() }
-                    }
-
-                    // Monitor changes to overlay generator CCR properties
-                    Connections {
-                        target: overlayGenerator
-
-                        function onShowPO2Cell1Changed() { previewImage.updatePreview() }
-                        function onShowPO2Cell2Changed() { previewImage.updatePreview() }
-                        function onShowPO2Cell3Changed() { previewImage.updatePreview() }
-                        function onShowCompositePO2Changed() { previewImage.updatePreview() }
-                    }
-                    
-                    // Add status changes monitoring
-                    onStatusChanged: {
-                        if (status === Image.Error) {
-                            console.error("Error loading preview image")
-                        } else if (status === Image.Ready) {
-                            console.log("Preview image loaded successfully")
-                        }
-                    }
-                }
-            }
-            
-                // Placeholder when no dive is loaded
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width * 0.6
-                    height: parent.height * 0.4
-                    color: palette.window
-                    radius: 10
-                    visible: !mainWindow.hasActiveDive
-
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: 20
-
-                        Label {
-                            text: qsTr("No Dive Data Loaded")
-                            font.pixelSize: 24
-                            Layout.alignment: Qt.AlignHCenter
+                        OverlayCanvas {
+                            id: overlayCanvas
+                            SplitView.fillWidth: true
+                            SplitView.minimumWidth: 400
+                            generator: overlayGenerator
+                            dive: mainWindow.currentDive
+                            timeline: timelineView.timeline
+                            cellModel: overlayCellModel
+                            tabActive: contentTabs.currentIndex === 0
+                            onImportRequested: importDiveLogFileDialog.open()
                         }
 
-                        Button {
-                            text: qsTr("Import Dive Log")
-                            Layout.alignment: Qt.AlignHCenter
-                            onClicked: importDiveLogFileDialog.open()
+                        // Overlay Editor Panel. Collapsible from its own
+                        // header (replaces the old toolbar-wide toggle);
+                        // collapsed it shrinks to a slim strip so the expand
+                        // chevron stays discoverable.
+                        Rectangle {
+                            id: overlayEditorPanel
+                            SplitView.preferredWidth: 420
+                            SplitView.minimumWidth: collapsed ? collapsedWidth : 300
+                            SplitView.maximumWidth: collapsed ? collapsedWidth : Infinity
+                            color: palette.window
+                            border.color: palette.mid
+                            border.width: 1
+
+                            property bool collapsed: false
+                            readonly property int collapsedWidth: 40
+                            property real expandedWidth: 420
+                            onCollapsedChanged: {
+                                // SplitView writes preferredWidth when the user
+                                // drags the handle, so restore it imperatively.
+                                if (collapsed) {
+                                    expandedWidth = width
+                                    overlayEditorPanel.SplitView.preferredWidth = collapsedWidth
+                                } else {
+                                    overlayEditorPanel.SplitView.preferredWidth = expandedWidth
+                                }
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                spacing: 0
+
+                                // Clickable header bar — same affordance as the
+                                // inspector's collapsible sections (visible bar,
+                                // hover highlight, full-row hit area). The beta
+                                // panel found the bare chevron button invisible
+                                // while the section idiom was understood by all.
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 32
+                                    radius: 4
+                                    color: overlayEditorHeaderMouse.containsMouse ? palette.midlight : palette.mid
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Label {
+                                            text: overlayEditorPanel.collapsed ? "«" : "»"
+                                            font.bold: true
+                                        }
+
+                                        Label {
+                                            text: qsTr("Overlay Editor")
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            visible: !overlayEditorPanel.collapsed
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: overlayEditorHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: overlayEditorPanel.collapsed = !overlayEditorPanel.collapsed
+                                    }
+
+                                    ToolTip.visible: overlayEditorHeaderMouse.containsMouse
+                                    ToolTip.delay: 500
+                                    ToolTip.text: overlayEditorPanel.collapsed
+                                                  ? qsTr("Show the overlay editor")
+                                                  : qsTr("Hide the overlay editor")
+                                }
+
+                                ScrollView {
+                                    id: overlayEditorScroll
+                                    visible: !overlayEditorPanel.collapsed
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.margins: 4
+                                    clip: true
+                                    contentWidth: availableWidth
+                                    contentHeight: overlayEditor.implicitHeight
+
+                                    OverlayEditor {
+                                        id: overlayEditor
+                                        width: overlayEditorScroll.availableWidth
+                                        generator: overlayGenerator
+                                        onTemplateLoadFailed: function(path) {
+                                            messageDialog.title = qsTr("Template Error")
+                                            messageDialog.message = qsTr("Could not load the template:\n%1\n\nThe file may be corrupt or unreadable. The previous template is still active.").arg(path)
+                                            messageDialog.open()
+                                        }
+                                        timeline: timelineView.timeline
+                                        dive: mainWindow.currentDive
+                                        cellModel: overlayCellModel
+                                    }
+                                }
+
+                                // Keeps the header pinned to the top while the
+                                // ScrollView is hidden (a lone layout child
+                                // gets vertically centered otherwise).
+                                Item {
+                                    visible: overlayEditorPanel.collapsed
+                                    Layout.fillHeight: true
+                                }
+                            }
                         }
-                    }
-                }
-            }
-
-            // Overlay Editor Panel
-            Rectangle {
-                id: overlayEditorPanel
-                SplitView.preferredWidth: 750
-                SplitView.minimumWidth: 300
-                // Removed maximumWidth to allow free resizing
-                visible: true  // Start with overlay editor visible
-                color: palette.window
-                border.color: palette.mid
-                border.width: 1
-
-                ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: 5
-                    clip: true
-                    contentWidth: overlayEditorPanel.width - 10
-                    contentHeight: overlayEditor.implicitHeight
-
-                    OverlayEditor {
-                        id: overlayEditor
-                        width: overlayEditorPanel.width - 10
-                        generator: overlayGenerator
-                        timeline: timelineView.timeline
-                        dive: mainWindow.currentDive
-                    }
-                }
-            }
                     } // end Tab 1 SplitView (mainContentArea)
 
                     // Tab 2: Dive Profile — preview (depth curve + indicator) + editor sidebar
@@ -737,26 +836,96 @@ ApplicationWindow {
                             }
                         }
 
-                        // Editor sidebar
+                        // Editor sidebar — same collapse behavior as the
+                        // overlay editor panel on tab 0.
                         Rectangle {
                             id: profileEditorPanel
                             SplitView.preferredWidth: 400
-                            SplitView.minimumWidth: 280
+                            SplitView.minimumWidth: collapsed ? collapsedWidth : 280
+                            SplitView.maximumWidth: collapsed ? collapsedWidth : Infinity
                             color: palette.window
                             border.color: palette.mid
                             border.width: 1
 
-                            ScrollView {
-                                anchors.fill: parent
-                                anchors.margins: 5
-                                clip: true
-                                contentWidth: profileEditorPanel.width - 10
-                                contentHeight: profileEditor.implicitHeight
+                            property bool collapsed: false
+                            readonly property int collapsedWidth: 40
+                            property real expandedWidth: 400
+                            onCollapsedChanged: {
+                                if (collapsed) {
+                                    expandedWidth = width
+                                    profileEditorPanel.SplitView.preferredWidth = collapsedWidth
+                                } else {
+                                    profileEditorPanel.SplitView.preferredWidth = expandedWidth
+                                }
+                            }
 
-                                ProfileEditor {
-                                    id: profileEditor
-                                    width: profileEditorPanel.width - 10
-                                    generator: profileGenerator
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                spacing: 0
+
+                                // Clickable header bar — see the overlay editor
+                                // panel header above for the rationale.
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 32
+                                    radius: 4
+                                    color: profileEditorHeaderMouse.containsMouse ? palette.midlight : palette.mid
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Label {
+                                            text: profileEditorPanel.collapsed ? "«" : "»"
+                                            font.bold: true
+                                        }
+
+                                        Label {
+                                            text: qsTr("Profile Editor")
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                            visible: !profileEditorPanel.collapsed
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: profileEditorHeaderMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: profileEditorPanel.collapsed = !profileEditorPanel.collapsed
+                                    }
+
+                                    ToolTip.visible: profileEditorHeaderMouse.containsMouse
+                                    ToolTip.delay: 500
+                                    ToolTip.text: profileEditorPanel.collapsed
+                                                  ? qsTr("Show the profile editor")
+                                                  : qsTr("Hide the profile editor")
+                                }
+
+                                ScrollView {
+                                    id: profileEditorScroll
+                                    visible: !profileEditorPanel.collapsed
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.margins: 4
+                                    clip: true
+                                    contentWidth: availableWidth
+                                    contentHeight: profileEditor.implicitHeight
+
+                                    ProfileEditor {
+                                        id: profileEditor
+                                        width: profileEditorScroll.availableWidth
+                                        generator: profileGenerator
+                                    }
+                                }
+
+                                Item {
+                                    visible: profileEditorPanel.collapsed
+                                    Layout.fillHeight: true
                                 }
                             }
                         }
@@ -780,16 +949,48 @@ ApplicationWindow {
                             timelineView.timeline.currentTime = t
                         }
                     }
+
+                    // Tab 3: application settings
+                    SettingsPanel {
+                        id: settingsPanel
+                        onChooseExportDirectory: exportDestinationDialog.open()
+                        onShowWhatsNew: {
+                            whatsNewDialog.releases = whatsNew.allReleases()
+                            whatsNewDialog.open()
+                        }
+                    }
                 } // end StackLayout
             } // end ColumnLayout
         } // end tabContainer Item
 
-        // Timeline area
+        // Timeline area. Collapse state lives on the TimelineView (its header
+        // chevron); this pane follows it so the SplitView actually gives the
+        // space back. Session-only by design — never persisted, never
+        // triggered programmatically.
         Rectangle {
             id: timelineArea
             SplitView.preferredHeight: 200
-            SplitView.minimumHeight: 150
+            SplitView.minimumHeight: timelineView.collapsed ? collapsedHeight : 150
+            SplitView.maximumHeight: timelineView.collapsed ? collapsedHeight : Infinity
             color: palette.mid
+
+            readonly property int collapsedHeight: 32
+            property real expandedHeight: 200
+
+            Connections {
+                target: timelineView
+                function onCollapsedChanged() {
+                    // SplitView writes preferredHeight when the user drags the
+                    // handle, so restore it imperatively (same pattern as the
+                    // editor sidebars).
+                    if (timelineView.collapsed) {
+                        timelineArea.expandedHeight = timelineArea.height
+                        timelineArea.SplitView.preferredHeight = timelineArea.collapsedHeight
+                    } else {
+                        timelineArea.SplitView.preferredHeight = timelineArea.expandedHeight
+                    }
+                }
+            }
 
             TimelineView {
                 id: timelineView
@@ -797,14 +998,6 @@ ApplicationWindow {
                 visible: mainWindow.hasActiveDive
                 videoSyncMode: contentTabs.currentIndex === 2 && timeline.videoPath !== ""
 
-                onCurrentTimeChanged: {
-                    // The overlay tab's preview is the only consumer here; skip the
-                    // work when it isn't the active tab (currentTime also moves
-                    // during video playback on the Video Preview tab).
-                    if (contentTabs.currentIndex === 0 && previewImage.status === Image.Ready) {
-                        previewImage.updatePreview()
-                    }
-                }
                 
                 // Function to set video duration
                 function setVideoDuration(duration) {
@@ -823,6 +1016,18 @@ ApplicationWindow {
         }
     }
     
+    // Non-blocking notifications. Informational messages (export done, video
+    // imported, FFmpeg missing) surface here; errors and decisions stay modal.
+    ToastNotification {
+        id: toast
+        // In the popup overlay, above modal dialogs and their dim — the
+        // startup FFmpeg toast and the What's New dialog open in the same
+        // tick, and in contentItem the toast would expire unseen behind it.
+        parent: Overlay.overlay
+        anchors.fill: parent
+        z: 1000
+    }
+
     // Dialogs
     FileDialog {
         id: importDiveLogFileDialog
@@ -845,6 +1050,17 @@ ApplicationWindow {
         }
     }
     
+    FolderDialog {
+        id: exportDestinationDialog
+        title: qsTr("Select Export Directory")
+        currentFolder: config ? mainWindow.localFileToUrl(config.lastExportPath) : ""
+        onAccepted: {
+            // Persisted immediately; the exporters read it at export time and
+            // the Settings tab shows the same value.
+            config.lastExportPath = mainWindow.urlToLocalFile(selectedFolder.toString())
+        }
+    }
+
     FileDialog {
         id: importVideoFileDialog
         title: qsTr("Import Video")
@@ -861,54 +1077,15 @@ ApplicationWindow {
             // First set the video path in timeline
             timelineView.setVideoPath(filePath);
             
-            // Setup a fallback timer in case metadata loading fails
-            let metadataTimer = Qt.createQmlObject(
-                'import QtQuick; Timer { interval: 3000; repeat: false; }',
-                importVideoFileDialog
-            );
-            
-            metadataTimer.triggered.connect(function() {
-                // If we get here, metadata loading probably failed
-                console.log("Metadata loading timed out, checking duration");
-                
-                // If duration hasn't been set, use a default
-                if (timelineView.timeline.videoDuration <= 0) {
-                    console.log("Setting default video duration");
-                    // Get the actual duration from metadata player if possible
-                    if (metadataPlayer.duration > 0) {
-                        timelineView.setVideoDuration(metadataPlayer.duration / 1000);
-                    } else {
-                        console.log("Using fallback 60 second duration");
-                        timelineView.setVideoDuration(60); // Default to 1 minute
-                    }
-                    // Auto-sync video offset from timecode if available
-                    let synced = false
-                    if (mainWindow.currentDive && timelineView.videoPath !== "") {
-                        let tc = videoExporter.extractVideoTimecode(timelineView.videoPath)
-                        if (tc >= 0) {
-                            let ds = mainWindow.currentDive.startTime
-                            let dsSecs = ds.getHours() * 3600 + ds.getMinutes() * 60 + ds.getSeconds()
-                            timelineView.timeline.videoOffset = tc - dsSecs
-                            synced = true
-                        }
-                    }
-                    if (!synced) {
-                        timelineView.timeline.videoOffset = 0.0
-                    }
-                } else {
-                    console.log("Duration already set to:", timelineView.timeline.videoDuration);
-                }
-            });
-            
             // Then use MediaPlayer to determine video duration
             metadataPlayer.source = selectedFile;
             // metadataPlayer.play();  // Start playback to initialize metadata
-            metadataTimer.start();
+            videoMetadataFallbackTimer.restart();
             
-            // Show message about successful import
-            messageDialog.title = qsTr("Video Imported");
-            messageDialog.message = qsTr("Video imported successfully. You can now adjust its position on the timeline by dragging the orange rectangle.\n\nYou can also use the Video Preview tab to improve the synchronization of the video with the dive time line.");
-            messageDialog.open();
+            // Notify without interrupting: the user's next step is on the
+            // timeline or the Video Preview tab, not in a dialog.
+            toast.show(qsTr("Video imported — drag the orange band on the timeline, or use the Video Preview tab, to sync it with the dive."),
+                       { duration: 8000 });
         }
     }
     
@@ -927,6 +1104,27 @@ ApplicationWindow {
         //     different overlays for the same dive don't collide.
         property var targetGenerator: overlayGenerator
         property string contentType: "dive_computer"
+        //   chooseContent: true when invoked from the Video Preview tab, where
+        //     no single overlay is implied — the dialog then shows a
+        //     "What to Export" radio group that drives the two properties
+        //     above. False for the per-tab invocations, which set them
+        //     directly.
+        property bool chooseContent: false
+
+        // The range options show the actual times they cover ("12:30 – 28:00")
+        // so the link between the timeline state and the export is explicit
+        // (beta panel: nobody connected "visible time range" to the timeline).
+        function formatRangeTime(seconds) {
+            var s = Math.max(0, Math.round(seconds))
+            var h = Math.floor(s / 3600)
+            var m = Math.floor((s % 3600) / 60)
+            var ss = s % 60
+            var mmss = m + ":" + (ss < 10 ? "0" : "") + ss
+            return h > 0 ? h + ":" + (m < 10 ? "0" : "") + mmss : mmss
+        }
+        function formatRange(start, end) {
+            return formatRangeTime(start) + " – " + formatRangeTime(end)
+        }
 
         // Use implicitHeight instead of fixed height to adapt to content
         implicitHeight: contentColumn.implicitHeight + 140 // Add padding for dialog margins
@@ -1034,8 +1232,11 @@ ApplicationWindow {
                 }
             }
             onAccepted: {
-                handleExport();
+                // Close first: the image export runs synchronously inside
+                // handleExport(), and the progress dialog (and the success
+                // toast) would otherwise stack on this still-open modal.
                 exportImagesDialog.accept();
+                handleExport();
             }
             onRejected: exportImagesDialog.reject()
             padding: 10
@@ -1078,7 +1279,79 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 20
             spacing: 20
-            
+
+            // Destination: the base directory exports land in. Changing it
+            // here writes config.lastExportPath, which the exporters read at
+            // export time — the per-dive sub-folder/file naming is unchanged.
+            GroupBox {
+                title: qsTr("Destination")
+                Layout.fillWidth: true
+
+                RowLayout {
+                    anchors.fill: parent
+
+                    TextField {
+                        Layout.fillWidth: true
+                        text: config ? config.lastExportPath : ""
+                        readOnly: true
+
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: qsTr("Each export creates an automatically named sub-folder or file inside this directory.")
+                    }
+
+                    Button {
+                        text: qsTr("Change...")
+                        onClicked: exportDestinationDialog.open()
+                    }
+                }
+            }
+
+            // Which overlay to export — only offered from the Video Preview
+            // tab. The change handlers are gated on chooseContent so a stale
+            // radio state can't clobber the parameters set by the tab-0/1
+            // Export buttons.
+            GroupBox {
+                title: qsTr("What to Export")
+                Layout.fillWidth: true
+                visible: exportImagesDialog.chooseContent
+
+                ColumnLayout {
+                    anchors.fill: parent
+
+                    RadioButton {
+                        id: exportContentComputer
+                        text: qsTr("Dive computer overlay")
+                        checked: true
+                        onCheckedChanged: {
+                            if (checked && exportImagesDialog.chooseContent) {
+                                exportImagesDialog.targetGenerator = overlayGenerator
+                                exportImagesDialog.contentType = "dive_computer"
+                            }
+                        }
+                    }
+
+                    RadioButton {
+                        id: exportContentProfile
+                        text: qsTr("Dive profile")
+                        onCheckedChanged: {
+                            if (checked && exportImagesDialog.chooseContent) {
+                                exportImagesDialog.targetGenerator = profileGenerator
+                                exportImagesDialog.contentType = "dive_profile"
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: palette.placeholderText
+                        text: qsTr("Overlays export with transparency — composite them over your footage in your video editor. Direct composited export is planned for v0.4.")
+                    }
+                }
+            }
+
             // Export type selection
             GroupBox {
                 title: qsTr("Export Format")
@@ -1119,26 +1392,34 @@ ApplicationWindow {
                     
                     RadioButton {
                         id: exportFullDive
-                        text: qsTr("Export full dive")
+                        text: mainWindow.hasActiveDive
+                              ? qsTr("Export full dive (%1)").arg(
+                                    exportImagesDialog.formatRange(0, mainWindow.currentDive.durationSeconds))
+                              : qsTr("Export full dive")
                         checked: true
                     }
-                    
+
+                    // The three range radios share this ColumnLayout, so
+                    // autoExclusive already keeps them mutually exclusive —
+                    // no manual enabled/checked cross-wiring (it locked the
+                    // visible-range option out whenever the video range was
+                    // pre-selected, e.g. exporting from the Video Preview tab).
                     RadioButton {
-                        text: qsTr("Export only visible time range")
+                        text: qsTr("Export only visible time range (%1)").arg(
+                                  exportImagesDialog.formatRange(timelineView.visibleStartTime,
+                                                                 timelineView.visibleEndTime))
                         id: exportRangeOnly
-                        enabled: !exportVideoRangeOnly.checked
                     }
-                    
+
                     RadioButton {
-                        text: qsTr("Export only video time range")
+                        text: enabled
+                              ? qsTr("Export only video time range (%1)").arg(
+                                    exportImagesDialog.formatRange(timelineView.timeline.videoOffset,
+                                                                   timelineView.timeline.videoOffset
+                                                                   + timelineView.timeline.videoDuration))
+                              : qsTr("Export only video time range")
                         id: exportVideoRangeOnly
                         enabled: timelineView.videoPath !== "" && timelineView.timeline.videoDuration > 0
-                        
-                        onCheckedChanged: {
-                            if (checked) {
-                                exportRangeOnly.checked = false;
-                            }
-                        }
                     }
                 }
             }
@@ -1158,7 +1439,7 @@ ApplicationWindow {
                     
                     SpinBox {
                         id: frameRateSpinBox
-                        value: 10
+                        value: config ? Math.round(config.frameRate) : 10
                         from: 1
                         to: 60
                         
@@ -1453,7 +1734,7 @@ ApplicationWindow {
         property int value: 0
         
         onRejected: {
-            // TODO: Implement export cancellation
+            imageExporter.cancelExport()
         }
         
         ColumnLayout {
@@ -1690,6 +1971,114 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+    }
+
+    WhatsNewDialog {
+        id: whatsNewDialog
+
+        // "Show me" closes the notes, lands the user in the area the entry
+        // talks about, and pulses a highlight around it. Zone tours
+        // (planned) will hook in here.
+        onShowMeRequested: function(target) {
+            close()
+            switch (target) {
+            case "canvas":
+                contentTabs.currentIndex = 0
+                showMeFlash.flash(overlayCanvas)
+                break
+            case "timeline":
+                contentTabs.currentIndex = 0
+                showMeFlash.flash(timelineView)
+                break
+            case "profile":
+                contentTabs.currentIndex = 1
+                showMeFlash.flash(profileEditorPanel)
+                break
+            case "video":
+                contentTabs.currentIndex = 2
+                showMeFlash.flash(videoSyncPlayer)
+                break
+            case "settings":
+                contentTabs.currentIndex = 3
+                showMeFlash.flash(settingsPanel)
+                break
+            case "import_button":
+                showMeFlash.flash(importButton)   // toolbar is visible on every tab — no tab switch
+                break
+            }
+        }
+
+        // Any dismissal counts as "seen" for the running version — including
+        // manual opens from the Settings tab, where it's a no-op re-stamp.
+        onClosed: {
+            config.whatsNewSeenVersion = appVersion
+            // Release an update notice that arrived while the notes were open
+            if (window.pendingUpdateInfo) {
+                updateDialog.latestVersion = window.pendingUpdateInfo.version
+                updateDialog.releaseUrl = window.pendingUpdateInfo.url
+                window.pendingUpdateInfo = null
+                updateDialog.open()
+            }
+        }
+    }
+
+    // "Show me" target highlight: an Unabara-blue border pulsing slowly
+    // twice over ~2 seconds, then gone. Lives in the window overlay layer
+    // (not the content item) so it can also draw over toolbar targets —
+    // the header stacks above regular content children.
+    Rectangle {
+        id: showMeFlash
+        parent: Overlay.overlay
+        visible: false
+        opacity: 0
+        color: "transparent"
+        border.color: "#3498db"
+        border.width: 4
+        radius: 4
+        z: 1000
+
+        property Item target: null
+
+        function flash(item) {
+            target = item
+            // Measure only after the tab switch has propagated visibility
+            // and geometry.
+            Qt.callLater(begin)
+        }
+
+        function begin() {
+            if (!target || !target.visible)
+                return
+            var pos = target.mapToItem(showMeFlash.parent, 0, 0)
+            x = pos.x - 3
+            y = pos.y - 3
+            width = target.width + 6
+            height = target.height + 6
+            visible = true
+            flashAnimation.restart()
+        }
+
+        SequentialAnimation {
+            id: flashAnimation
+            loops: 2
+
+            NumberAnimation {
+                target: showMeFlash
+                property: "opacity"
+                from: 0.0; to: 1.0
+                duration: 500
+                easing.type: Easing.InOutQuad
+            }
+            NumberAnimation {
+                target: showMeFlash
+                property: "opacity"
+                from: 1.0; to: 0.0
+                duration: 500
+                easing.type: Easing.InOutQuad
+            }
+
+            onFinished: showMeFlash.visible = false
         }
     }
 }

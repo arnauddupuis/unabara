@@ -8,6 +8,8 @@
 // Usage:
 //   render_utp <template.utp|:/templates/X.utp> <out.png> [--time <seconds>]
 //   render_utp --measure <fontFamily> <pointSize> <text>   ("\n" splits lines)
+//   render_utp --rects <template.utp> [--time <seconds>]   (anchor-resolved cell boxes)
+//   render_utp --qt-version                                (runtime Qt version, for golden tests)
 //
 // Build with -DUNABARA_BUILD_TOOLS=ON. Runs offscreen; no display needed.
 
@@ -83,7 +85,8 @@ DiveData* makeSyntheticDive()
 }
 
 // Mirrors OverlayGenerator: pixelSize = int(pointSize * 1.33 * 1.8), then
-// QFontMetrics::boundingRect(0,0,1000,1000, AlignHCenter|TextWordWrap).
+// QFontMetrics::boundingRect over an unbounded rect, AlignHCenter, no soft
+// wrap ('\n' is the only line break — matches how drawText renders).
 // Cell footprint on canvas = bounds + 8 px in each dimension.
 int runMeasure(const QString& family, int pointSize, QString text)
 {
@@ -91,8 +94,8 @@ int runMeasure(const QString& family, int pointSize, QString text)
     QFont font(family, pointSize);
     font.setPixelSize(static_cast<int>(pointSize * 1.33 * 1.8));
     QFontMetrics fm(font);
-    const QRect bounds = fm.boundingRect(QRect(0, 0, 1000, 1000),
-                                         Qt::AlignHCenter | Qt::TextWordWrap, text);
+    const QRect bounds = fm.boundingRect(QRect(0, 0, 1000000, 1000000),
+                                         Qt::AlignHCenter, text);
     printf("text_w=%d text_h=%d cell_w=%d cell_h=%d line_spacing=%d family_resolved=%s\n",
            bounds.width(), bounds.height(),
            bounds.width() + 8, bounds.height() + 8,
@@ -112,12 +115,24 @@ int main(int argc, char* argv[])
     app.setOrganizationName(QStringLiteral("UnabaraProject"));
     app.setApplicationName(QStringLiteral("UnabaraRenderTool"));
 
-    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf"}) {
+    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf",
+                                 ":/fonts/DejaVuSans.ttf", ":/fonts/DejaVuSans-Bold.ttf",
+                                 ":/fonts/DejaVuSans-Oblique.ttf", ":/fonts/DejaVuSans-BoldOblique.ttf"}) {
         if (QFontDatabase::addApplicationFont(QLatin1String(fontPath)) == -1)
             qWarning() << "Failed to register bundled font" << fontPath;
     }
+    // Same legacy-family mapping as the app (see src/main.cpp): templates
+    // saved by older versions say "Sans Serif", which only exists on Linux.
+    QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     const QStringList args = app.arguments();
+
+    // Runtime (linked) Qt version — the golden-render test uses it to decide
+    // whether the committed manifest applies to this environment.
+    if (args.size() == 2 && args[1] == QStringLiteral("--qt-version")) {
+        printf("%s\n", qVersion());
+        return 0;
+    }
 
     if (args.size() == 5 && args[1] == QStringLiteral("--measure"))
         return runMeasure(args[2], args[3].toInt(), args[4]);
@@ -126,8 +141,9 @@ int main(int argc, char* argv[])
         fprintf(stderr,
                 "Usage:\n"
                 "  %s <template.utp> <out.png> [--time <seconds>]\n"
-                "  %s --measure <fontFamily> <pointSize> <text>\n",
-                argv[0], argv[0]);
+                "  %s --measure <fontFamily> <pointSize> <text>\n"
+                "  %s --rects <template.utp> [--time <seconds>]\n",
+                argv[0], argv[0], argv[0]);
         return 2;
     }
 
@@ -136,6 +152,24 @@ int main(int argc, char* argv[])
     if (timeIdx > 0 && timeIdx + 1 < args.size())
         timePoint = args[timeIdx + 1].toDouble();
 
+    // Anchor-resolved cell boxes (v1.2 geometry: alignment + optional fixed
+    // size applied), in paint order, at template resolution.
+    if (args[1] == QStringLiteral("--rects")) {
+        OverlayGenerator generator;
+        if (!generator.loadTemplateFromFile(args[2])) {
+            fprintf(stderr, "Failed to load template: %s\n", qPrintable(args[2]));
+            return 1;
+        }
+        DiveData* dive = makeSyntheticDive();
+        const auto rects = generator.cellRects(dive, timePoint);
+        for (const auto& r : rects) {
+            printf("cell=%s x=%.1f y=%.1f w=%.1f h=%.1f\n",
+                   qPrintable(r.first), r.second.x(), r.second.y(),
+                   r.second.width(), r.second.height());
+        }
+        return 0;
+    }
+
     OverlayGenerator generator;
     if (!generator.loadTemplateFromFile(args[1])) {
         fprintf(stderr, "Failed to load template: %s\n", qPrintable(args[1]));
@@ -143,8 +177,8 @@ int main(int argc, char* argv[])
     }
 
     DiveData* dive = makeSyntheticDive();
-    // Same path as the real exporters: beginExport() disables the editor-only
-    // cell backgrounds so the output matches what users actually export.
+    // Same path as the real exporters: the begin/endExport pair is part of
+    // the IFrameGenerator contract (currently a no-op for OverlayGenerator).
     generator.beginExport();
     const QImage overlay = generator.generateOverlay(dive, timePoint);
     generator.endExport();

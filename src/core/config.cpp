@@ -22,7 +22,7 @@ Config* Config::instance()
 Config::Config(QObject *parent)
     : QObject(parent)
     , m_settings("UnabaraProject", "Unabara")
-    , m_font("Sans Serif", 12)
+    , m_font("DejaVu Sans", 12)
     , m_labelColor(Unabara::ColorDefaults::text())
     , m_valueColor(Unabara::ColorDefaults::text())
     , m_backgroundOpacity(1.0)
@@ -96,6 +96,9 @@ void Config::setLastExportPath(const QString &path)
 {
     if (m_lastExportPath != path) {
         m_lastExportPath = path;
+        // User-facing setting (Settings tab / export dialog): persist now,
+        // not only at exit
+        persistNow("paths/lastExport", m_lastExportPath);
         emit lastExportPathChanged();
     }
 }
@@ -332,10 +335,15 @@ Units::UnitSystem Config::unitSystem() const
     return m_unitSystem;
 }
 
+// Settings-tab rule: everything edited on the Settings tab persists
+// immediately (like setLastExportPath / setTemplateDirectory /
+// setCheckUpdatesOnStartup), so a crash never loses a deliberate choice.
+// Editor-state setters (fonts, colors, toggles) still rely on the exit hook.
 void Config::setUnitSystem(Units::UnitSystem system)
 {
     if (m_unitSystem != system) {
         m_unitSystem = system;
+        persistNow("overlay/unitSystem", static_cast<int>(m_unitSystem));
         emit unitSystemChanged();
     }
 }
@@ -344,6 +352,7 @@ void Config::setFrameRate(double fps)
 {
     if (m_frameRate != fps) {
         m_frameRate = fps;
+        persistNow("export/frameRate", m_frameRate);
         emit frameRateChanged();
     }
 }
@@ -362,7 +371,7 @@ void Config::setTemplateDirectory(const QString &path)
         if (!dir.exists()) {
             dir.mkpath(".");
         }
-        saveConfig();
+        persistNow("paths/templateDirectory", m_templateDirectory);
         emit templateDirectoryChanged();
     }
 }
@@ -377,7 +386,7 @@ void Config::setActiveTemplatePath(const QString &path)
 {
     if (m_activeTemplatePath != path) {
         m_activeTemplatePath = path;
-        saveConfig();
+        persistNow("overlay/activeTemplate", m_activeTemplatePath);
         emit activeTemplatePathChanged();
     }
 }
@@ -392,9 +401,45 @@ void Config::setProfileColorSchemePolicy(const QString &policy)
 {
     if (m_profileColorSchemePolicy != policy) {
         m_profileColorSchemePolicy = policy;
-        saveConfig();
+        persistNow("profile/colorSchemePolicy", m_profileColorSchemePolicy);
         emit profileColorSchemePolicyChanged();
     }
+}
+
+// Update check at startup
+bool Config::checkUpdatesOnStartup() const
+{
+    return m_checkUpdatesOnStartup;
+}
+
+void Config::setCheckUpdatesOnStartup(bool check)
+{
+    if (m_checkUpdatesOnStartup != check) {
+        m_checkUpdatesOnStartup = check;
+        persistNow("app/checkUpdatesOnStartup", m_checkUpdatesOnStartup);
+        emit checkUpdatesOnStartupChanged();
+    }
+}
+
+QString Config::whatsNewSeenVersion() const
+{
+    return m_whatsNewSeenVersion;
+}
+
+void Config::setWhatsNewSeenVersion(const QString &version)
+{
+    if (m_whatsNewSeenVersion != version) {
+        m_whatsNewSeenVersion = version;
+        // Saved eagerly (like the update-check toggle): the stamp must
+        // survive even if the session ends without the exit-time saveConfig.
+        persistNow("app/whatsNewSeenVersion", m_whatsNewSeenVersion);
+        emit whatsNewSeenVersionChanged();
+    }
+}
+
+bool Config::firstRun() const
+{
+    return m_firstRun;
 }
 
 // CCR settings implementation
@@ -635,6 +680,10 @@ void Config::setProfileGridShowLabels(bool show)
 
 void Config::loadConfig()
 {
+    // Must be sampled before anything is written: an empty settings store
+    // means a brand-new install (drives the first-run vs update-notes gate).
+    m_firstRun = m_settings.allKeys().isEmpty();
+
     // Load general settings
     m_lastImportPath = m_settings.value("paths/lastImport", 
                                         QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
@@ -644,8 +693,10 @@ void Config::loadConfig()
     // Load overlay settings
     m_templatePath = m_settings.value("overlay/template", ":/images/DC_Faces/unabara_round_ocean.png").toString();
     
-    // Load font
-    QString fontFamily = m_settings.value("overlay/fontFamily", "Sans Serif").toString();
+    // Load font (legacy "Sans Serif" is rewritten to the bundled default —
+    // on Linux fontconfig resolves the alias before Qt's substitution runs)
+    QString fontFamily = Unabara::CellData::normalizedFontFamily(
+        m_settings.value("overlay/fontFamily", "DejaVu Sans").toString());
     int fontSize = m_settings.value("overlay/fontSize", 12).toInt();
     bool fontBold = m_settings.value("overlay/fontBold", false).toBool();
     bool fontItalic = m_settings.value("overlay/fontItalic", false).toBool();
@@ -754,6 +805,10 @@ void Config::loadConfig()
     m_profileGridLineWidth = m_settings.value("profile/gridLineWidth", 1).toInt();
     m_profileGridShowLabels = m_settings.value("profile/gridShowLabels", true).toBool();
     m_profileColorSchemePolicy = m_settings.value("profile/colorSchemePolicy", "ask").toString();
+    // NOTE: not under a "general" group — QSettings escapes that reserved
+    // section name in ini files ("%General") and the value doesn't round-trip.
+    m_checkUpdatesOnStartup = m_settings.value("app/checkUpdatesOnStartup", true).toBool();
+    m_whatsNewSeenVersion = m_settings.value("app/whatsNewSeenVersion", QString()).toString();
 
     // Load per-video overlay layouts
     {
@@ -779,6 +834,16 @@ void Config::loadConfig()
                     lastDoc.object().toVariantMap());
             }
         }
+    }
+
+    // Load inspector section expand/collapse states
+    {
+        m_sectionExpanded.clear();
+        m_settings.beginGroup("ui/sections");
+        const QStringList sectionKeys = m_settings.childKeys();
+        for (const QString &key : sectionKeys)
+            m_sectionExpanded.insert(key, m_settings.value(key).toBool());
+        m_settings.endGroup();
     }
 
     // Load camera pairings from JSON
@@ -889,23 +954,52 @@ void Config::saveConfig()
     m_settings.setValue("profile/gridLineWidth", m_profileGridLineWidth);
     m_settings.setValue("profile/gridShowLabels", m_profileGridShowLabels);
     m_settings.setValue("profile/colorSchemePolicy", m_profileColorSchemePolicy);
+    m_settings.setValue("app/checkUpdatesOnStartup", m_checkUpdatesOnStartup);
+    m_settings.setValue("app/whatsNewSeenVersion", m_whatsNewSeenVersion);
 
     // Save per-video overlay layouts
+    writeVideoOverlayLayouts();
+
+    // Save inspector section expand/collapse states
     {
-        QJsonObject root;
-        for (auto it = m_videoOverlayLayouts.constBegin();
-             it != m_videoOverlayLayouts.constEnd(); ++it) {
-            root.insert(it.key(), QJsonObject::fromVariantMap(it.value().toVariantMap()));
+        m_settings.beginGroup("ui/sections");
+        for (auto it = m_sectionExpanded.constBegin();
+             it != m_sectionExpanded.constEnd(); ++it) {
+            m_settings.setValue(it.key(), it.value());
         }
-        m_settings.setValue("video/overlayLayouts",
-                            QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)));
-        const QJsonObject lastObj =
-            QJsonObject::fromVariantMap(m_lastUsedVideoOverlayLayout.toVariantMap());
-        m_settings.setValue("video/lastOverlayLayout",
-                            QString::fromUtf8(QJsonDocument(lastObj).toJson(QJsonDocument::Compact)));
+        m_settings.endGroup();
     }
 
-    // Save camera pairings as compact JSON
+    // Save camera pairings
+    writeCameraPairings();
+
+    // Force write to disk
+    m_settings.sync();
+}
+
+void Config::persistNow(const QString &key, const QVariant &value)
+{
+    m_settings.setValue(key, value);
+    m_settings.sync();
+}
+
+void Config::writeVideoOverlayLayouts()
+{
+    QJsonObject root;
+    for (auto it = m_videoOverlayLayouts.constBegin();
+         it != m_videoOverlayLayouts.constEnd(); ++it) {
+        root.insert(it.key(), QJsonObject::fromVariantMap(it.value().toVariantMap()));
+    }
+    m_settings.setValue("video/overlayLayouts",
+                        QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)));
+    const QJsonObject lastObj =
+        QJsonObject::fromVariantMap(m_lastUsedVideoOverlayLayout.toVariantMap());
+    m_settings.setValue("video/lastOverlayLayout",
+                        QString::fromUtf8(QJsonDocument(lastObj).toJson(QJsonDocument::Compact)));
+}
+
+void Config::writeCameraPairings()
+{
     QJsonArray pairingsArray;
     for (auto it = m_cameraPairings.constBegin(); it != m_cameraPairings.constEnd(); ++it) {
         QJsonObject obj;
@@ -913,12 +1007,8 @@ void Config::saveConfig()
         obj["calibrationConstant"] = it.value();
         pairingsArray.append(obj);
     }
-    QJsonDocument pairingsDoc(pairingsArray);
     m_settings.setValue("video/cameraPairings",
-                        QString::fromUtf8(pairingsDoc.toJson(QJsonDocument::Compact)));
-
-    // Force write to disk
-    m_settings.sync();
+                        QString::fromUtf8(QJsonDocument(pairingsArray).toJson(QJsonDocument::Compact)));
 }
 
 QStringList Config::cameraPairingNames() const
@@ -933,14 +1023,16 @@ void Config::addOrUpdateCameraPairing(const QString &name, double calibrationCon
         return;
     }
     m_cameraPairings.insert(name, calibrationConstant);
-    saveConfig();
+    writeCameraPairings();
+    m_settings.sync();
     emit cameraPairingsChanged();
 }
 
 void Config::removeCameraPairing(const QString &name)
 {
     if (m_cameraPairings.remove(name) > 0) {
-        saveConfig();
+        writeCameraPairings();
+        m_settings.sync();
         emit cameraPairingsChanged();
     }
 }
@@ -967,6 +1059,31 @@ void Config::setVideoOverlayLayout(const QString &videoPath, const QVariantMap &
     VideoOverlayLayout parsed = VideoOverlayLayout::fromVariantMap(layout);
     m_videoOverlayLayouts.insert(videoPath, parsed);
     m_lastUsedVideoOverlayLayout = parsed;
-    saveConfig();
+    writeVideoOverlayLayouts();
+    m_settings.sync();
     emit videoOverlayLayoutChanged(videoPath);
+}
+
+// ---- Inspector section expand/collapse states ----------------------------
+
+bool Config::sectionExpanded(const QString &key, bool defaultExpanded) const
+{
+    return m_sectionExpanded.value(key, defaultExpanded);
+}
+
+void Config::setSectionExpanded(const QString &key, bool expanded)
+{
+    if (key.isEmpty())
+        return;
+    // The keys live flat inside one QSettings group; a '/' would create a
+    // nested group that the childKeys() restore never reads back, so the
+    // state would silently fail to round-trip.
+    if (key.contains(QLatin1Char('/'))) {
+        qWarning() << "Config::setSectionExpanded: key must not contain '/':" << key;
+        return;
+    }
+    // In-memory only; persisted by the saveConfig() hook at app exit like
+    // the rest of the settings (collapse toggles are too frequent to sync
+    // to disk on every click).
+    m_sectionExpanded.insert(key, expanded);
 }

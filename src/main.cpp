@@ -26,6 +26,7 @@
 #include "include/core/config.h"
 #include "include/core/units.h"
 #include "include/core/update_checker.h"
+#include "include/core/whatsnew.h"
 
 // Global image provider
 OverlayImageProvider* g_imageProvider = nullptr;
@@ -40,13 +41,25 @@ int main(int argc, char *argv[])
     app.setOrganizationName("UnabaraProject");
     app.setWindowIcon(QIcon(":/images/unabara-icon.png"));
 
-    // Bundled OFL fonts used by the HUD/Social template family. Must be
-    // registered before the OverlayGenerator is constructed — it loads the
-    // active template (which may reference these families) in its constructor.
-    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf"}) {
+    // Bundled fonts. Must be registered before the OverlayGenerator is
+    // constructed — it loads the active template (which may reference these
+    // families) in its constructor. Orbitron/Share Tech Mono (OFL) serve the
+    // HUD/Social template family; DejaVu Sans is the default overlay font —
+    // "Sans Serif" is a fontconfig alias that only exists on Linux, so the
+    // default must be a real bundled family to render identically everywhere.
+    for (const char* fontPath : {":/fonts/Orbitron.ttf", ":/fonts/ShareTechMono-Regular.ttf",
+                                 ":/fonts/DejaVuSans.ttf", ":/fonts/DejaVuSans-Bold.ttf",
+                                 ":/fonts/DejaVuSans-Oblique.ttf", ":/fonts/DejaVuSans-BoldOblique.ttf"}) {
         if (QFontDatabase::addApplicationFont(QLatin1String(fontPath)) == -1)
             qWarning() << "Failed to register bundled font" << fontPath;
     }
+
+    // Legacy "Sans Serif" families are rewritten to the bundled default when
+    // templates/settings load (CellData::normalizedFontFamily) — on Linux
+    // fontconfig resolves the alias before this substitution would run, so
+    // load-time rewriting is what makes rendering distro-independent. The
+    // substitution stays as a safety net for paths that bypass the loaders.
+    QFont::insertSubstitution(QStringLiteral("Sans Serif"), QStringLiteral("DejaVu Sans"));
 
     qInfo() << "Starting Unabara version" << UNABARA_VERSION_STR;
     
@@ -128,13 +141,12 @@ int main(int argc, char *argv[])
     QObject::connect(overlayGenerator, &OverlayGenerator::showCompositePO2Changed,  invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellsChanged,             invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellLayoutChanged,        invalidateOverlay);
-    QObject::connect(overlayGenerator, &OverlayGenerator::showCellBackgroundsChanged, invalidateOverlay);
     QObject::connect(Config::instance(), &Config::unitSystemChanged,                invalidateOverlay);
 
     // Undo/redo: record a snapshot when template *content* changes. This tracks
     // only the signals that map to what exportTemplate() serializes — not the
     // full invalidate set above, which also fires on editor-only / display state
-    // (showCellBackgrounds, unit system, show* toggles whose real cell mutation
+    // (unit system, show* toggles whose real cell mutation
     // already arrives via cellsChanged/cellLayoutChanged) and would otherwise
     // produce no-op undo entries.
     undoManager->trackSignal(SIGNAL(cellsChanged()));
@@ -218,6 +230,11 @@ int main(int argc, char *argv[])
     // Create update checker and expose to QML
     UpdateChecker updateChecker;
     engine.rootContext()->setContextProperty("updateChecker", &updateChecker);
+
+    // Release notes for the "What's New" dialog
+    WhatsNew whatsNew(QStringLiteral(UNABARA_VERSION_STR));
+    whatsNew.loadFromFile(QStringLiteral(":/whatsnew.json"));
+    engine.rootContext()->setContextProperty("whatsNew", &whatsNew);
     
     // Load the main QML file
     const QUrl url(QStringLiteral("qrc:/main.qml"));

@@ -1,11 +1,14 @@
 #include "include/export/video_export.h"
+#include "include/export/export_math.h"
 #include <QDateTime>
 #include <QStandardPaths>
 #include <QRegularExpression>
 #include <QCoreApplication>
+#include <QFile>
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
+#include <QPointer>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -16,15 +19,13 @@ VideoExporter::VideoExporter(QObject *parent)
     , m_videoCodec("vp9") // Default VP9 codec (supports transparency for compositing)
     , m_progress(0)
     , m_busy(false)
+    , m_cancelRequested(false)
     , m_ffmpegProcess(nullptr)
 {
-    // Set default export path to Videos/Unabara folder
-    m_exportPath = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + "/Unabara";
-    QDir dir;
-    if (!dir.exists(m_exportPath)) {
-        dir.mkpath(m_exportPath);
-    }
-    
+    // The base directory the output file lands in is bound from QML
+    // (config.lastExportPath) — the exporter never touches the settings
+    // store itself. No directory is created here.
+
     // Create the temporary directory
     if (!m_tempDir.isValid()) {
         qWarning() << "Failed to create temporary directory for frame storage";
@@ -49,11 +50,11 @@ VideoExporter::~VideoExporter()
     delete m_ffmpegProcess;
 }
 
-void VideoExporter::setExportPath(const QString &path)
+void VideoExporter::setBaseDirectory(const QString &path)
 {
-    if (m_exportPath != path) {
-        m_exportPath = path;
-        emit exportPathChanged();
+    if (m_baseDirectory != path) {
+        m_baseDirectory = path;
+        emit baseDirectoryChanged();
     }
 }
 
@@ -205,17 +206,24 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         return false;
     }
     
+    if (!ExportMath::isValidExportPath(m_baseDirectory)) {
+        emit exportError(tr("No export directory is set"));
+        return false;
+    }
+
     m_busy = true;
+    m_cancelRequested = false;
     emit busyChanged();
-    
+
     // Notify that export has started
     emit exportStarted();
     emit statusUpdate(tr("Generating frames..."));
-    
+
     // Create the export directory if it doesn't exist
-    QDir dir(m_exportPath);
+    QDir dir(m_baseDirectory);
     if (!dir.exists() && !dir.mkpath(".")) {
-        emit exportError(tr("Failed to create export directory: %1").arg(m_exportPath));
+        emit exportError(tr("Failed to create export directory: %1")
+                             .arg(m_baseDirectory));
         m_busy = false;
         emit busyChanged();
         return false;
@@ -250,6 +258,12 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         cleanupTempFiles();
         m_busy = false;
         emit busyChanged();
+        // generateFrames() already emitted exportError() for real failures;
+        // a cancellation gets its own signal (the UI shows it as a toast,
+        // not an error dialog).
+        if (m_cancelRequested) {
+            emit exportCancelled();
+        }
         return false;
     }
     
@@ -269,24 +283,38 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
 
 void VideoExporter::cancelExport()
 {
-    if (m_busy && m_ffmpegProcess) {
-        // Terminate the FFmpeg process gracefully first
-        m_ffmpegProcess->terminate();
-        
-        // Wait a bit for graceful termination
-        if (!m_ffmpegProcess->waitForFinished(3000)) {
-            // If it doesn't terminate gracefully, force kill it
-            m_ffmpegProcess->kill();
-        }
-        
-        emit exportError(tr("Export cancelled by user"));
-        
-        // Clean up any temporary files
-        cleanupTempFiles();
-        
-        m_busy = false;
-        emit busyChanged();
+    if (!m_busy || m_cancelRequested) {
+        return;
     }
+    m_cancelRequested = true;
+
+    if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
+        // Encoding phase: ask FFmpeg to stop and return immediately. The
+        // normal finished() delivery runs onFFmpegFinished(), which completes
+        // the cancellation (partial-file removal, temp cleanup,
+        // exportCancelled()). No blocking wait on the GUI thread, and no
+        // re-entering the UI from inside the Cancel button's handler. If
+        // FFmpeg ignores SIGTERM, escalate to kill() after a grace period.
+        m_ffmpegProcess->terminate();
+        // Tracked (not a fire-and-forget singleShot): m_ffmpegProcess is
+        // reused across runs, so this timer must be disarmed in
+        // onFFmpegFinished() — otherwise a prompt termination followed by a
+        // new export within 3 s would get that new process killed.
+        if (!m_killTimer) {
+            m_killTimer = new QTimer(this);
+            m_killTimer->setSingleShot(true);
+            m_killTimer->setInterval(3000);
+            connect(m_killTimer, &QTimer::timeout, this, [this]() {
+                if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
+                    m_ffmpegProcess->kill();
+                }
+            });
+        }
+        m_killTimer->start();
+    }
+    // Frame-generation phase: nothing more to do here — this call was
+    // delivered by the generation loop's processEvents(), and the loop
+    // polls m_cancelRequested and unwinds through exportVideo().
 }
 
 void VideoExporter::cleanupTempFiles()
@@ -311,16 +339,19 @@ void VideoExporter::cleanupTempFiles()
 bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
                                  double startTime, double endTime)
 {
-    // Calculate the number of frames to generate
+    // Calculate the number of frames to generate. The loop below always
+    // writes at least one frame, so a degenerate (zero-length) range must
+    // not divide the progress computation by zero (same guard as
+    // ImageExporter::exportImageRange).
     double timeStep = 1.0 / m_frameRate;
-    int totalFrames = qRound((endTime - startTime) * m_frameRate);
+    int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
     int processedFrames = 0;
 
     qDebug() << "Generating frames from" << startTime << "to" << endTime
              << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
 
-    // Stage any export-only generator state (e.g. overlay's editor-only
-    // cell backgrounds get hidden for the duration of this loop).
+    // Stage any export-only generator state (IFrameGenerator contract;
+    // currently a no-op for both generators).
     generator->beginExport();
 
     // Clear any previous temp files and ensure the temp directory exists
@@ -343,9 +374,7 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
         }
 
         // Create a filename with the frame number
-        QString frameNumberStr = QString("%1").arg(processedFrames, 6, 10, QChar('0'));
-        QString filename = QString("frame_%1.png").arg(frameNumberStr);
-        QString filePath = QDir(tempDirPath).filePath(filename);
+        QString filePath = QDir(tempDirPath).filePath(ExportMath::frameFileName(processedFrames));
 
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
@@ -361,6 +390,13 @@ bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
 
         // Process events to keep UI responsive
         QCoreApplication::processEvents();
+
+        // A Cancel click is delivered by the processEvents() call above;
+        // cancelExport() sets the flag we poll here.
+        if (m_cancelRequested) {
+            generator->endExport();
+            return false;
+        }
     }
 
     generator->endExport();
@@ -392,22 +428,22 @@ bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
     args << "-y"
          << "-progress" << "-" // Output progress info to stdout
          << "-stats" // Show stats
-         << "-framerate" << QString::number(m_frameRate) 
-         << "-i" << QString("%1/frame_%06d.png").arg(m_tempDir.path());
-    
+         << "-framerate" << QString::number(m_frameRate)
+         << "-i" << QString("%1/%2").arg(m_tempDir.path(), ExportMath::framePattern());
+
     // Add scale filter if custom resolution is set
     if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
         args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
     }
-    
+
     // Add codec-specific options
     QString formatOptions = getFormatOptions(m_videoCodec);
     QStringList formatArgs = formatOptions.split(" ", Qt::SkipEmptyParts);
     args.append(formatArgs);
-    
+
     // Add output file
     args << outputPath;
-    
+
     // Log the full command for debugging
     QString cmdLog = ffmpegPath;
     for (const QString &arg : args) {
@@ -545,9 +581,26 @@ void VideoExporter::processFFmpegOutput()
 void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     m_progressTimer->stop();
-    
+    if (m_killTimer) {
+        m_killTimer->stop();
+    }
+
+    if (m_cancelRequested) {
+        // Cancelled mid-encode: the exit status only reflects the kill we
+        // sent, so don't report it as an FFmpeg error. Discard the
+        // partially-written output file — a truncated video is useless.
+        if (!m_lastOutputPath.isEmpty()) {
+            QFile::remove(m_lastOutputPath);
+        }
+        cleanupTempFiles();
+        m_busy = false;
+        emit busyChanged();
+        emit exportCancelled();
+        return;
+    }
+
     bool success = false;
-    
+
     if (exitStatus == QProcess::CrashExit) {
         qWarning().noquote() << "FFmpeg crashed. Captured output tail:\n" << m_ffmpegOutputTail;
         emit exportError(tr("FFmpeg process crashed"));
@@ -906,67 +959,18 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
                                               const QString &videoFilePath,
                                               const QString &contentType)
 {
-    QString baseName;
-
-    // Use dive date and name to create the file name
-    QDateTime diveTime = dive->startTime();
-    if (diveTime.isValid()) {
-        baseName = diveTime.toString("yyyy-MM-dd_HHmmss");
-    } else {
-        baseName = QDateTime::currentDateTime().toString("yyyy-MM-dd_HHmmss");
-    }
-
-    // Add dive name if available
-    if (!dive->diveName().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->diveName());
-    }
-
-    // Add location if available
-    if (!dive->location().isEmpty()) {
-        baseName += "_" + sanitizeFileName(dive->location());
-    }
-
-    // Add video filename stem if a video is imported
-    if (!videoFilePath.isEmpty()) {
-        QString videoStem = QFileInfo(videoFilePath).completeBaseName();
-        if (!videoStem.isEmpty()) {
-            baseName += "_" + sanitizeFileName(videoStem);
-        }
-    }
-
-    // Append the content-type tag (e.g. "dive_computer" / "dive_profile")
-    // so two exports of the same dive land in distinct files.
-    if (!contentType.isEmpty()) {
-        baseName += "_" + sanitizeFileName(contentType);
-    }
-
-    // Add extension
+    // Shared base-name builder (same naming as ImageExporter's directories),
+    // plus the codec-derived extension.
+    QString baseName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
     baseName += "." + extension;
 
-    // Create full path - make sure the directory exists before returning the file path
-    QString dirPath = m_exportPath;
-    QDir dir(dirPath);
+    // Create full path under the QML-bound base export directory - make
+    // sure the directory exists before returning the file path
+    QDir dir(m_baseDirectory);
     if (!dir.exists()) {
         dir.mkpath(".");
     }
 
     // Create and return the full path
-    return QDir(dirPath).filePath(baseName);
-}
-
-QString VideoExporter::sanitizeFileName(const QString &fileName)
-{
-    // Replace invalid file name characters with underscores
-    QString result = fileName;
-    
-    // Replace characters that aren't allowed in file names
-    QRegularExpression regex("[\\\\/:*?\"<>|]");
-    result.replace(regex, "_");
-    
-    // Limit length
-    if (result.length() > 50) {
-        result = result.left(47) + "...";
-    }
-    
-    return result;
+    return QDir(m_baseDirectory).filePath(baseName);
 }

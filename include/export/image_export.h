@@ -13,6 +13,10 @@ class ImageExporter : public QObject
     Q_OBJECT
     
     Q_PROPERTY(QString exportPath READ exportPath WRITE setExportPath NOTIFY exportPathChanged)
+    // Base directory that createDefaultExportDir() creates per-dive subfolders
+    // under. Bound from QML (config.lastExportPath) so the exporter itself has
+    // no dependency on the settings store.
+    Q_PROPERTY(QString baseDirectory READ baseDirectory WRITE setBaseDirectory NOTIFY baseDirectoryChanged)
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
@@ -22,12 +26,14 @@ public:
     
     // Getters
     QString exportPath() const { return m_exportPath; }
+    QString baseDirectory() const { return m_baseDirectory; }
     double frameRate() const { return m_frameRate; }
     int progress() const { return m_progress; }
     bool isBusy() const { return m_busy; }
     
     // Setters
     void setExportPath(const QString &path);
+    void setBaseDirectory(const QString &path);
     void setFrameRate(double fps);
     
     // Export methods. `generator` is accepted as a QObject* so QML can pass
@@ -39,6 +45,12 @@ public:
     Q_INVOKABLE bool exportImageRange(DiveData* dive, QObject* generator,
                                       double startTime, double endTime);
 
+    // Request cancellation of a running export. The export loop runs on the
+    // GUI thread and pumps the event loop between frames, which is what
+    // delivers this call; the loop then stops, removes the frames written so
+    // far and emits exportCancelled().
+    Q_INVOKABLE void cancelExport();
+
     // Create default export directory. `contentType` (e.g. "dive_computer",
     // "dive_profile") is appended to the directory name so that exports of
     // different overlays for the same dive end up in distinct directories.
@@ -48,24 +60,22 @@ public:
     
 signals:
     void exportPathChanged();
+    void baseDirectoryChanged();
     void frameRateChanged();
     void progressChanged();
     void busyChanged();
     void exportStarted();
     void exportFinished(bool success, const QString &path);
     void exportError(const QString &errorMessage);
-    
+    void exportCancelled();
+
 private:
     QString m_exportPath;
+    QString m_baseDirectory;
     double m_frameRate;
     int m_progress;
     bool m_busy;
-    
-    // Helper methods
-    QString generateUniqueDirectoryName(DiveData* dive,
-                                        const QString &videoFilePath = QString(),
-                                        const QString &contentType = QString());
-    QString sanitizeFileName(const QString &fileName);
+    bool m_cancelRequested;
 };
 
 #endif // IMAGE_EXPORT_H

@@ -55,8 +55,10 @@ set(PROJECT_SOURCES
     src/generators/profile_gen.cpp
     src/generators/profile_image_provider.cpp
     src/generators/frame_cache.cpp
+    src/export/export_math.cpp
     src/export/image_export.cpp
     src/core/update_checker.cpp
+    src/core/whatsnew.cpp
     src/export/video_export.cpp
     resources.qrc
 )
@@ -86,8 +88,10 @@ set(PROJECT_HEADERS
     include/generators/profile_gen.h
     include/generators/profile_image_provider.h
     include/generators/frame_cache.h
+    include/export/export_math.h
     include/export/image_export.h
     include/core/update_checker.h
+    include/core/whatsnew.h
     include/export/video_export.h
     "${CMAKE_CURRENT_BINARY_DIR}/include/version.h"
 )
@@ -147,9 +151,11 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # Developer tools (headless template renderer used when authoring bundled
-# templates) — not part of user builds or release artifacts.
+# templates) — not part of user builds or release artifacts. Also built with
+# the tests: the golden-render regression test drives render_utp.
 option(UNABARA_BUILD_TOOLS "Build developer tools" OFF)
-if(UNABARA_BUILD_TOOLS)
+option(UNABARA_BUILD_TESTS "Build the unit tests" OFF)
+if(UNABARA_BUILD_TOOLS OR UNABARA_BUILD_TESTS)
     qt_add_executable(render_utp
         tools/render_utp/main.cpp
         src/core/dive_data.cpp
@@ -171,7 +177,6 @@ if(UNABARA_BUILD_TOOLS)
     target_link_libraries(render_utp PRIVATE Qt::Core Qt::Gui)
 endif()
 
-option(UNABARA_BUILD_TESTS "Build the unit tests" OFF)
 if(UNABARA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

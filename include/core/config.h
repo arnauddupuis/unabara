@@ -57,6 +57,17 @@ class Config : public QObject
     // "ask" (default), "always" (apply silently), "never"
     Q_PROPERTY(QString profileColorSchemePolicy READ profileColorSchemePolicy WRITE setProfileColorSchemePolicy NOTIFY profileColorSchemePolicyChanged)
 
+    // Whether to query GitHub for a newer version at application startup
+    Q_PROPERTY(bool checkUpdatesOnStartup READ checkUpdatesOnStartup WRITE setCheckUpdatesOnStartup NOTIFY checkUpdatesOnStartupChanged)
+
+    // Last app version whose "What's New" notes the user has seen (empty =
+    // never). Compared against the running version at startup.
+    Q_PROPERTY(QString whatsNewSeenVersion READ whatsNewSeenVersion WRITE setWhatsNewSeenVersion NOTIFY whatsNewSeenVersionChanged)
+
+    // True when no settings file existed at startup: a brand-new install,
+    // which gets the first-run experience rather than an update diff.
+    Q_PROPERTY(bool firstRun READ firstRun CONSTANT)
+
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
@@ -164,6 +175,15 @@ public:
     QString profileColorSchemePolicy() const;
     void setProfileColorSchemePolicy(const QString &policy);
 
+    // Update check at startup
+    bool checkUpdatesOnStartup() const;
+    void setCheckUpdatesOnStartup(bool check);
+
+    // "What's New" tracking
+    QString whatsNewSeenVersion() const;
+    void setWhatsNewSeenVersion(const QString &version);
+    bool firstRun() const;
+
     // Export settings
     double frameRate() const;
     void setFrameRate(double fps);
@@ -244,6 +264,14 @@ public:
     Q_INVOKABLE void setVideoOverlayLayout(const QString &videoPath,
                                            const QVariantMap &layout);
 
+    // Inspector section expand/collapse persistence, keyed by a stable
+    // section id (e.g. "overlay_template"). `defaultExpanded` is returned
+    // for a section that was never toggled, so each QML section declares
+    // its own first-run default. Keys must not contain '/' (QSettings
+    // treats it as a group separator).
+    Q_INVOKABLE bool sectionExpanded(const QString &key, bool defaultExpanded) const;
+    Q_INVOKABLE void setSectionExpanded(const QString &key, bool expanded);
+
 signals:
     void lastImportPathChanged();
     void lastExportPathChanged();
@@ -269,6 +297,8 @@ signals:
     void templateDirectoryChanged();
     void activeTemplatePathChanged();
     void profileColorSchemePolicyChanged();
+    void checkUpdatesOnStartupChanged();
+    void whatsNewSeenVersionChanged();
 
     // CCR signals
     void showPO2Cell1Changed();
@@ -336,6 +366,9 @@ private:
     QString m_templateDirectory;
     QString m_activeTemplatePath;
     QString m_profileColorSchemePolicy;
+    bool m_checkUpdatesOnStartup;
+    QString m_whatsNewSeenVersion;
+    bool m_firstRun = false;
     
     // CCR settings
     bool m_showPO2Cell1;
@@ -369,11 +402,23 @@ private:
 
     // Per-video overlay layouts, keyed by absolute video path.
     QHash<QString, VideoOverlayLayout> m_videoOverlayLayouts;
+    QHash<QString, bool> m_sectionExpanded;
     // Layout to seed a new video that has no saved entry yet.
     VideoOverlayLayout m_lastUsedVideoOverlayLayout;
 
     // Load configuration from disk
     void loadConfig();
+
+    // Eager persistence for Settings-tab / dialog-driven setters: write the
+    // one key that changed and sync, instead of a full saveConfig() — a full
+    // rewrite per keystroke (frame-rate spinner arrows) would also flush
+    // unrelated in-memory state early, e.g. the section-collapse states that
+    // deliberately wait for the exit hook.
+    void persistNow(const QString &key, const QVariant &value);
+    // Serialization shared by saveConfig() and the eager JSON-blob setters
+    // (camera pairings, per-video overlay layouts). No sync of their own.
+    void writeVideoOverlayLayouts();
+    void writeCameraPairings();
 };
 
 #endif // CONFIG_H

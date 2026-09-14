@@ -8,10 +8,14 @@ script derives BOTH sides from it:
   * the background art  -> resources/images/HUD/<name>.svg + .png (via inkscape)
   * the cell layout     -> resources/templates/<Name>.utp
 
-Cell positions are computed with the exact font math of
-OverlayGenerator::renderCellBasedOverlay (pixelSize = int(pt*1.33*1.8),
-QFontMetrics bounds + 8px padding, top-left anchored) by shelling out to
-`render_utp --measure` (build with -DUNABARA_BUILD_TOOLS=ON first).
+Since .utp 1.2 the cells are center-anchored (hAlign=center, vAlign=middle):
+the stored position IS the slot center, and the renderer keeps the box
+centered there whatever width the live data has — no more drift off the
+slot art when values are wider or narrower than the design samples.
+`render_utp --measure` (build with -DUNABARA_BUILD_TOOLS=ON first) is still
+used to record each cell's nominal calculatedSize with the exact font math
+of OverlayGenerator::renderCellBasedOverlay (pixelSize = int(pt*1.33*1.8),
+QFontMetrics bounds + 8px padding).
 
 Usage:  python3 tools/hud_templates/build_templates.py [--svg-only|--utp-only]
 """
@@ -98,18 +102,26 @@ def cell(
     visible=True,
     tank_index=-1,
     shadow=None,
+    size=None,
 ):
-    """Build one .utp cell dict, positioned so the rendered text block for
-    `sample` is centered on (cx, cy)."""
+    """Build one .utp cell dict anchored on the slot center (cx, cy).
+
+    v1.2 geometry: the position is the center itself and the renderer keeps
+    the box centered on it, so the live box stays in the slot art however
+    wide the real data renders. `sample` only feeds calculatedSize.
+    `size` (background px, optional) emits a fixed box instead of auto-sizing
+    from content — used where the box was hand-drawn with the resize handles."""
     w, h = measure(family, pt, sample if show_label else sample.split("\n")[-1])
     cw, ch = canvas
-    x = max(0.0, min(1.0, (cx - w / 2.0) / cw))
-    y = max(0.0, min(1.0, (cy - h / 2.0) / ch))
+    x = max(0.0, min(1.0, cx / cw))
+    y = max(0.0, min(1.0, cy / ch))
     sh = shadow if shadow is not None else SHADOW_OFF
     c = {
         "cellId": cell_id,
         "cellType": cell_type,
         "position": {"x": round(x, 6), "y": round(y, 6)},
+        "hAlign": "center",
+        "vAlign": "middle",
         "visible": visible,
         "calculatedSize": {"width": w, "height": h},
         "font": font_json(family, pt, weight),
@@ -129,6 +141,11 @@ def cell(
         "shadowOpacity": sh["opacity"],
         "hasCustomShadow": shadow is not None,
     }
+    if size is not None:
+        c["size"] = {
+            "width": round(size[0] / cw, 6),
+            "height": round(size[1] / ch, 6),
+        }
     if tank_index >= 0:
         c["tankIndex"] = tank_index
     return c
@@ -147,9 +164,10 @@ def template_json(
 ):
     # v1.1: defaultPrimaryColor/defaultSecondaryColor let the app offer to
     # theme the dive profile with the template's color scheme
+    # v1.2: per-cell hAlign/vAlign (this family center-anchors every cell)
     sh = shadow if shadow is not None else SHADOW_OFF
     return {
-        "version": "1.1",
+        "version": "1.2",
         "defaultPrimaryColor": primary_color or label_color,
         "defaultSecondaryColor": secondary_color or value_color,
         "templateName": name,
@@ -458,6 +476,10 @@ def sonar_svg(p):
 def sonar_cells(p):
     # Cell centers hand-tuned in the template editor (Aug 2026) — they sit
     # slightly off the geometric slot centers to compensate for glyph bearings.
+    # v1.2 note: the tank center is the cell's OLD on-screen center under the
+    # 2-tank reference dive (the pre-1.2 file stored a top-left computed from
+    # the wider 1-tank sample label, which shifted the render left) — kept so
+    # the regenerated template ships pixel-equal to the approved look.
     cv = (SR_W, SR_H)
     lc, vc = p["label"], p["value"]
     return [
@@ -492,7 +514,7 @@ def sonar_cells(p):
         cell(
             "tank_0",
             "Pressure",
-            464,
+            421,
             700,
             MONO,
             17,
@@ -554,17 +576,21 @@ def neon_deck_svg(p):
 
 
 def neon_deck_cells(p):
-    # Depth center and right-column nudges hand-tuned in the template editor
-    # (Aug 2026). Note: the editor's font controls silently reset Orbitron
-    # weight 600 -> 400 when a cell's text settings are touched — keep 600.
+    # All centers and the fixed box sizes hand-tuned in the app (Aug 2026,
+    # post-v1.2: cells were dragged/resized with the new handles and saved
+    # from HUD_Neon_Deck_Cyan). The tank pressure font was dropped 19 -> 18pt
+    # in the same pass. Note: the editor's font controls silently reset
+    # Orbitron weight 600 -> 400 when a cell's text settings are touched (the
+    # tuning save did exactly that to the depth cell) — the script keeps 600
+    # on purpose; the centered fixed box makes the position weight-agnostic.
     cv = (ND_W, ND_H)
     lc, vc = p["label"], p["value"]
     return [
         cell(
             "depth",
             "Depth",
-            263,
-            355,
+            290,
+            386,
             ORBITRON,
             34,
             S["depth"],
@@ -573,33 +599,38 @@ def neon_deck_cells(p):
             vc,
             weight=600,
             show_label=False,
+            size=(359, 291),
         ),
-        cell("time", "Time", 655, 260, MONO, 19, S["time"], cv, lc, vc),
+        cell("time", "Time", 655, 268, MONO, 19, S["time"], cv, lc, vc,
+             size=(235, 175)),
         cell(
             "temperature",
             "Temperature",
-            915,
-            260,
+            912,
+            266,
             MONO,
             19,
             S["temperature"],
             cv,
             lc,
             vc,
+            size=(223, 171),
         ),
-        cell("ndl", "NDL", 662, 455, MONO, 19, S["ndl"], cv, lc, vc),
+        cell("ndl", "NDL", 659, 455, MONO, 19, S["ndl"], cv, lc, vc,
+             size=(242, 170)),
         cell(
             "tank_0",
             "Pressure",
-            935,
+            907,
             455,
             MONO,
-            19,
+            18,
             S["tank1"],
             cv,
             lc,
             vc,
             tank_index=0,
+            size=(234, 169),
         ),
     ]
 
@@ -631,10 +662,11 @@ def data_rail_svg(p):
 def data_rail_cells(p):
     cv = (DR_W, DR_H)
     lc, vc = p["label"], p["value"]
-    # Tank pair x-centers hand-tuned in the template editor (Aug 2026: T2's
-    # wider trimix label needed room).
+    # Tank pair centers hand-tuned in the app (Aug 2026, post-v1.2: dragged
+    # in the editor and saved from HUD_Data_Rail_Amber; the tank row also
+    # moved down a touch, so it has its own cy).
     cx, lft, rgt = 205, 118, 292
-    tank_lft, tank_rgt = 115, 300
+    tank_lft, tank_rgt, tank_cy = 116, 286, 970
     return [
         cell(
             "depth", "Depth", cx, 165, ORBITRON, 24, S["depth"], cv, lc, vc, weight=600
@@ -665,7 +697,7 @@ def data_rail_cells(p):
             "tank_0",
             "Pressure",
             tank_lft,
-            965,
+            tank_cy,
             MONO,
             12,
             S["tank_pair0"],
@@ -678,7 +710,7 @@ def data_rail_cells(p):
             "tank_1",
             "Pressure",
             tank_rgt,
-            965,
+            tank_cy,
             MONO,
             12,
             S["tank_pair1"],

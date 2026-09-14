@@ -4,11 +4,18 @@
         <file alias="main.qml">src/ui/qml/main.qml</file>
         <file alias="TimelineView.qml">src/ui/qml/TimelineView.qml</file>
         <file alias="OverlayEditor.qml">src/ui/qml/OverlayEditor.qml</file>
+        <file alias="OverlayCanvas.qml">src/ui/qml/OverlayCanvas.qml</file>
+        <file alias="CollapsibleSection.qml">src/ui/qml/CollapsibleSection.qml</file>
+        <file alias="CellsPanel.qml">src/ui/qml/CellsPanel.qml</file>
+        <file alias="SettingsPanel.qml">src/ui/qml/SettingsPanel.qml</file>
+        <file alias="ToastNotification.qml">src/ui/qml/ToastNotification.qml</file>
         <file alias="InteractiveOverlayPreview.qml">src/ui/qml/InteractiveOverlayPreview.qml</file>
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>
         <file alias="VideoSyncPlayer.qml">src/ui/qml/VideoSyncPlayer.qml</file>
         <file alias="VideoOverlayItem.qml">src/ui/qml/VideoOverlayItem.qml</file>
+        <file alias="WhatsNewDialog.qml">src/ui/qml/WhatsNewDialog.qml</file>
+        <file alias="whatsnew.json">resources/whatsnew.json</file>
         <file>resources/styles/style.qss</file>
         <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
         <file alias="templates/OC_Rec_NoTanks_Titanium.utp">resources/templates/OC_Rec_NoTanks_Titanium.utp</file>
@@ -37,6 +44,11 @@
         <file alias="fonts/ShareTechMono-Regular.ttf">resources/fonts/ShareTechMono-Regular.ttf</file>
         <file alias="fonts/OFL-Orbitron.txt">resources/fonts/OFL-Orbitron.txt</file>
         <file alias="fonts/OFL-ShareTechMono.txt">resources/fonts/OFL-ShareTechMono.txt</file>
+        <file alias="fonts/DejaVuSans.ttf">resources/fonts/DejaVuSans.ttf</file>
+        <file alias="fonts/DejaVuSans-Bold.ttf">resources/fonts/DejaVuSans-Bold.ttf</file>
+        <file alias="fonts/DejaVuSans-Oblique.ttf">resources/fonts/DejaVuSans-Oblique.ttf</file>
+        <file alias="fonts/DejaVuSans-BoldOblique.ttf">resources/fonts/DejaVuSans-BoldOblique.ttf</file>
+        <file alias="fonts/LICENSE-DejaVu.txt">resources/fonts/LICENSE-DejaVu.txt</file>
         <file alias="images/unabara-icon.png">resources/images/unabara-icon.png</file>
         <file alias="images/DC_Faces/unabara_round_ocean.png">resources/images/DC_Faces/unabara_round_ocean.png</file>
         <file alias="images/DC_Faces/unabara_round_titanium.png">resources/images/DC_Faces/unabara_round_titanium.png</file>

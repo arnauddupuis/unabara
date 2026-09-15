@@ -37,6 +37,9 @@ jobs:
     name: Build & unit tests (Linux, Qt 6.8)
     runs-on: ubuntu-latest
     steps:
+    - name: Show runner CPU (golden renders are SIMD-tier-sensitive)
+      run: grep -m1 "model name" /proc/cpuinfo
+
     - uses: actions/checkout@v4
 
     - name: Install system dependencies

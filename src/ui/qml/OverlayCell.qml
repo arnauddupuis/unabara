@@ -440,28 +440,25 @@ Rectangle {
             name: "overlapping"
             when: overlapping && !selected && !mouseArea.drag.active
             PropertyChanges {
-                target: cellRoot
-                border.color: "red"
-                border.width: 3
+                cellRoot.border.color: "red"
+                cellRoot.border.width: 3
             }
         },
         State {
             name: "hovered"
             when: mouseArea.containsMouse && !selected && !overlapping && !mouseArea.drag.active
             PropertyChanges {
-                target: cellRoot
-                border.color: "#40FFFFFF"  // Subtle white border on hover
-                border.width: 2
+                cellRoot.border.color: "#40FFFFFF"  // Subtle white border on hover
+                cellRoot.border.width: 2
             }
         },
         State {
             name: "dragging"
             when: mouseArea.drag.active
             PropertyChanges {
-                target: cellRoot
-                opacity: 0.7
-                border.color: overlapping ? "red" : "cyan"
-                border.width: 3
+                cellRoot.opacity: 0.7
+                cellRoot.border.color: overlapping ? "red" : "cyan"
+                cellRoot.border.width: 3
             }
         }
     ]

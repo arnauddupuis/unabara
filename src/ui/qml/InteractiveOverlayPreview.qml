@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 
 /**
  * Interactive overlay preview component

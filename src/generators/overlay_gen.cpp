@@ -9,6 +9,16 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QThread>
+
+// Debug-build tripwire for the GUI-thread-only contract (see CLAUDE.md,
+// Engineering guardrails): the image providers' requestImage() runs on Qt
+// Quick's async image thread and must never reach a mutating entry point —
+// only the render path (generateOverlay and the const helpers under it) is
+// legal there. Every public mutator opens with this. Compiled out of
+// release builds (QT_NO_DEBUG), so it costs nothing in production.
+#define UNABARA_ASSERT_GUI_THREAD() \
+    Q_ASSERT(QThread::currentThread() == this->thread())
 
 // Representation-error epsilon for the anchor round trip (a stored
 // normalized anchor multiplied back to pixels can land ~1e-13 below the
@@ -109,6 +119,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
 
 void OverlayGenerator::setTemplatePath(const QString &path)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     // Normalize qrc:/ URLs to :/ resource paths for QImage compatibility
     QString normalizedPath = path;
     if (normalizedPath.startsWith("qrc:/")) {
@@ -139,6 +150,7 @@ void OverlayGenerator::updateTemplateDimensions()
 
 void OverlayGenerator::setFont(const QFont &font)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_font != font) {
@@ -167,6 +179,7 @@ void OverlayGenerator::setFont(const QFont &font)
 
 void OverlayGenerator::setLabelColor(const QColor &color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_labelColor != color) {
@@ -195,6 +208,7 @@ void OverlayGenerator::setLabelColor(const QColor &color)
 
 void OverlayGenerator::setValueColor(const QColor &color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_valueColor != color) {
@@ -223,6 +237,7 @@ void OverlayGenerator::setValueColor(const QColor &color)
 
 void OverlayGenerator::setShowLabel(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_showLabel != show) {
@@ -250,6 +265,7 @@ void OverlayGenerator::setShowLabel(bool show)
 
 void OverlayGenerator::setShadowEnabled(bool enabled)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_shadowEnabled != enabled) {
@@ -277,6 +293,7 @@ void OverlayGenerator::setShadowEnabled(bool enabled)
 
 void OverlayGenerator::setShadowType(int type)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     auto shadowType = static_cast<Unabara::ShadowType>(
         qBound(0, type, static_cast<int>(Unabara::ShadowType::Outline)));
 
@@ -307,6 +324,7 @@ void OverlayGenerator::setShadowType(int type)
 
 void OverlayGenerator::setShadowColor(const QColor& color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId.isEmpty()) {
         // No cell selected - apply to all cells (global default)
         if (m_shadowColor != color) {
@@ -334,6 +352,7 @@ void OverlayGenerator::setShadowColor(const QColor& color)
 
 void OverlayGenerator::setShadowSize(int size)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     size = qBound(1, size, 10);
 
     if (m_selectedCellId.isEmpty()) {
@@ -363,6 +382,7 @@ void OverlayGenerator::setShadowSize(int size)
 
 void OverlayGenerator::setShadowOpacity(double opacity)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     opacity = qBound(0.0, opacity, 1.0);
 
     if (m_selectedCellId.isEmpty()) {
@@ -392,6 +412,7 @@ void OverlayGenerator::setShadowOpacity(double opacity)
 
 void OverlayGenerator::setBackgroundOpacity(double opacity)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     opacity = qBound(0.0, opacity, 1.0); // Clamp between 0.0 and 1.0
     if (qAbs(m_backgroundOpacity - opacity) > 0.001) { // Use floating point comparison
         m_backgroundOpacity = opacity;
@@ -402,6 +423,7 @@ void OverlayGenerator::setBackgroundOpacity(double opacity)
 
 void OverlayGenerator::setShowDepth(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showDepth != show) {
         m_showDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -411,6 +433,7 @@ void OverlayGenerator::setShowDepth(bool show)
 
 void OverlayGenerator::setShowTemperature(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showTemperature != show) {
         m_showTemperature = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -420,6 +443,7 @@ void OverlayGenerator::setShowTemperature(bool show)
 
 void OverlayGenerator::setShowNDL(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showNDL != show) {
         m_showNDL = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -429,6 +453,7 @@ void OverlayGenerator::setShowNDL(bool show)
 
 void OverlayGenerator::setShowCNS(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showCNS != show) {
         m_showCNS = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -438,6 +463,7 @@ void OverlayGenerator::setShowCNS(bool show)
 
 void OverlayGenerator::setShowMeanDepth(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showMeanDepth != show) {
         m_showMeanDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -447,6 +473,7 @@ void OverlayGenerator::setShowMeanDepth(bool show)
 
 void OverlayGenerator::setShowMaxDepth(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showMaxDepth != show) {
         m_showMaxDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -456,6 +483,7 @@ void OverlayGenerator::setShowMaxDepth(bool show)
 
 void OverlayGenerator::setShowGas(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showGas != show) {
         m_showGas = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -465,6 +493,7 @@ void OverlayGenerator::setShowGas(bool show)
 
 void OverlayGenerator::setShowTTS(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showTTS != show) {
         m_showTTS = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -474,6 +503,7 @@ void OverlayGenerator::setShowTTS(bool show)
 
 void OverlayGenerator::setShowStopDepth(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showStopDepth != show) {
         m_showStopDepth = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -483,6 +513,7 @@ void OverlayGenerator::setShowStopDepth(bool show)
 
 void OverlayGenerator::setShowStopTime(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showStopTime != show) {
         m_showStopTime = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -492,6 +523,7 @@ void OverlayGenerator::setShowStopTime(bool show)
 
 void OverlayGenerator::setShowPressure(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showPressure != show) {
         m_showPressure = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -501,6 +533,7 @@ void OverlayGenerator::setShowPressure(bool show)
 
 void OverlayGenerator::setShowTime(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showTime != show) {
         m_showTime = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -511,6 +544,7 @@ void OverlayGenerator::setShowTime(bool show)
 // CCR setter implementations
 void OverlayGenerator::setShowPO2Cell1(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showPO2Cell1 != show) {
         m_showPO2Cell1 = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -520,6 +554,7 @@ void OverlayGenerator::setShowPO2Cell1(bool show)
 
 void OverlayGenerator::setShowPO2Cell2(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showPO2Cell2 != show) {
         m_showPO2Cell2 = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -529,6 +564,7 @@ void OverlayGenerator::setShowPO2Cell2(bool show)
 
 void OverlayGenerator::setShowPO2Cell3(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showPO2Cell3 != show) {
         m_showPO2Cell3 = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -538,6 +574,7 @@ void OverlayGenerator::setShowPO2Cell3(bool show)
 
 void OverlayGenerator::setShowCompositePO2(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showCompositePO2 != show) {
         m_showCompositePO2 = show;
         // Note: Cell regeneration is handled by QML with dive data
@@ -547,6 +584,7 @@ void OverlayGenerator::setShowCompositePO2(bool show)
 
 void OverlayGenerator::setSelectedCellId(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_selectedCellId != cellId) {
         m_selectedCellId = cellId;
         emit selectedCellIdChanged();
@@ -564,6 +602,7 @@ void OverlayGenerator::dropStaleSelection()
 
 void OverlayGenerator::setSnapToGrid(bool enabled)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_snapToGrid != enabled) {
         m_snapToGrid = enabled;
         emit snapToGridChanged();
@@ -572,6 +611,7 @@ void OverlayGenerator::setSnapToGrid(bool enabled)
 
 void OverlayGenerator::setGridSpacing(int spacing)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_gridSpacing != spacing && spacing > 0) {
         m_gridSpacing = spacing;
         emit gridSpacingChanged();
@@ -580,6 +620,7 @@ void OverlayGenerator::setGridSpacing(int spacing)
 
 void OverlayGenerator::setShowGrid(bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_showGrid != show) {
         m_showGrid = show;
         emit showGridChanged();
@@ -590,6 +631,7 @@ void OverlayGenerator::setShowGrid(bool show)
 // clearColorScheme() removes the scheme so saved templates omit the keys.
 void OverlayGenerator::setPrimaryColor(const QColor& color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_primaryColor != color) {
         m_primaryColor = color;
         emit colorSchemeChanged();
@@ -598,6 +640,7 @@ void OverlayGenerator::setPrimaryColor(const QColor& color)
 
 void OverlayGenerator::setSecondaryColor(const QColor& color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_secondaryColor != color) {
         m_secondaryColor = color;
         emit colorSchemeChanged();
@@ -606,6 +649,7 @@ void OverlayGenerator::setSecondaryColor(const QColor& color)
 
 void OverlayGenerator::clearColorScheme()
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_primaryColor.isValid() || m_secondaryColor.isValid()) {
         m_primaryColor = QColor();
         m_secondaryColor = QColor();
@@ -659,6 +703,7 @@ int OverlayGenerator::indexOfTemplatePath(const QString& filePath)
 
 void OverlayGenerator::refreshTemplateList()
 {
+    UNABARA_ASSERT_GUI_THREAD();
     m_templateNames.clear();
     m_templatePaths.clear();
 
@@ -715,6 +760,7 @@ void OverlayGenerator::refreshTemplateList()
 
 void OverlayGenerator::resetCellFont(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell && cell->hasCustomFont()) {
         // Reset to global default font
@@ -725,6 +771,7 @@ void OverlayGenerator::resetCellFont(const QString& cellId)
 
 void OverlayGenerator::resetCellLabelColor(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell && cell->hasCustomLabelColor()) {
         // Reset to global default color
@@ -735,6 +782,7 @@ void OverlayGenerator::resetCellLabelColor(const QString& cellId)
 
 void OverlayGenerator::resetCellValueColor(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell && cell->hasCustomValueColor()) {
         // Reset to global default color
@@ -745,6 +793,7 @@ void OverlayGenerator::resetCellValueColor(const QString& cellId)
 
 void OverlayGenerator::resetCellShowLabel(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell && cell->hasCustomShowLabel()) {
         // Reset to global default
@@ -755,6 +804,7 @@ void OverlayGenerator::resetCellShowLabel(const QString& cellId)
 
 void OverlayGenerator::resetCellShadow(const QString& cellId)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell && cell->hasCustomShadow()) {
         // Reset the whole shadow group to the global defaults
@@ -770,6 +820,7 @@ void OverlayGenerator::resetCellShadow(const QString& cellId)
 void OverlayGenerator::setCellShadow(const QString& cellId, bool enabled, int type,
                                      const QColor& color, int size, double opacity)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (!cell) {
         qWarning() << "setCellShadow: Cell not found:" << cellId;
@@ -816,6 +867,7 @@ const Unabara::CellData* OverlayGenerator::getCellData(const QString& cellId) co
 
 void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         cell->setPosition(pos);
@@ -828,6 +880,7 @@ void OverlayGenerator::setCellPosition(const QString& cellId, const QPointF& pos
 void OverlayGenerator::setCellGeometry(const QString& cellId, const QPointF& pos,
                                        const QSizeF& size)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (!cell) {
         qWarning() << "setCellGeometry: Cell not found:" << cellId;
@@ -870,6 +923,7 @@ bool OverlayGenerator::getCellHasFixedSize(const QString& cellId) const
 void OverlayGenerator::setCellHAlign(const QString& cellId, int align,
                                      DiveData* dive, double timePoint)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (!cell) {
         qWarning() << "setCellHAlign: Cell not found:" << cellId;
@@ -903,6 +957,7 @@ void OverlayGenerator::setCellHAlign(const QString& cellId, int align,
 void OverlayGenerator::setCellVAlign(const QString& cellId, int align,
                                      DiveData* dive, double timePoint)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (!cell) {
         qWarning() << "setCellVAlign: Cell not found:" << cellId;
@@ -930,6 +985,7 @@ void OverlayGenerator::setCellVAlign(const QString& cellId, int align,
 void OverlayGenerator::setCellAutoSize(const QString& cellId, bool autoSize,
                                        DiveData* dive, double timePoint)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (!cell) {
         qWarning() << "setCellAutoSize: Cell not found:" << cellId;
@@ -956,6 +1012,7 @@ void OverlayGenerator::setCellAutoSize(const QString& cellId, bool autoSize,
 
 void OverlayGenerator::setCellFixedSize(const QString& cellId, const QSizeF& size)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         if (size.width() > 0.0 && size.height() > 0.0) {
@@ -998,6 +1055,7 @@ QColor OverlayGenerator::getCellValueColor(const QString& cellId) const
 
 void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         cell->setFont(font, true);  // true = custom font
@@ -1009,6 +1067,7 @@ void OverlayGenerator::setCellFont(const QString& cellId, const QFont& font)
 
 void OverlayGenerator::setCellLabelColor(const QString& cellId, const QColor& color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         cell->setLabelColor(color, true);  // true = custom color
@@ -1020,6 +1079,7 @@ void OverlayGenerator::setCellLabelColor(const QString& cellId, const QColor& co
 
 void OverlayGenerator::setCellValueColor(const QString& cellId, const QColor& color)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         cell->setValueColor(color, true);  // true = custom color
@@ -1031,6 +1091,7 @@ void OverlayGenerator::setCellValueColor(const QString& cellId, const QColor& co
 
 void OverlayGenerator::setCellShowLabel(const QString& cellId, bool show)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         cell->setShowLabel(show, true);  // true = per-cell override
@@ -1126,6 +1187,7 @@ double OverlayGenerator::getCellShadowOpacity(const QString& cellId) const
 
 void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         if (cell->visible() == visible)
@@ -1140,6 +1202,7 @@ void OverlayGenerator::setCellVisible(const QString& cellId, bool visible)
 
 void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     Unabara::CellData* cell = getCellData(cellId);
     if (cell) {
         // No-op when unchanged: loadTemplate() emits every show*Changed and
@@ -1203,6 +1266,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
 
 void OverlayGenerator::adjustTankCellVisibility(DiveData* dive)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (!dive || dive->cylinderCount() == 0) {
         return;
     }
@@ -1228,6 +1292,7 @@ void OverlayGenerator::adjustTankCellVisibility(DiveData* dive)
 
 void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     int tankCount = dive ? dive->cylinderCount() : INT_MAX;
 
     // Check if any pressure cells exist
@@ -1296,6 +1361,7 @@ void OverlayGenerator::setPressureCellsVisible(bool visible, DiveData* dive)
 
 void OverlayGenerator::setUseCellBasedLayout(bool use)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     if (m_useCellBasedLayout != use) {
         m_useCellBasedLayout = use;
         if (use && m_cells.isEmpty()) {
@@ -1308,6 +1374,7 @@ void OverlayGenerator::setUseCellBasedLayout(bool use)
 
 void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     // Normalize qrc:/ URLs to :/ resource paths for QImage compatibility
     m_templatePath = templ.backgroundImagePath();
     if (m_templatePath.startsWith("qrc:/")) {
@@ -1485,6 +1552,7 @@ bool OverlayGenerator::saveTemplateToFile(const QString& filePath)
 
 bool OverlayGenerator::loadTemplateFromFile(const QString& filePath)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     qDebug() << "Loading template from file:" << filePath;
 
     QString errorMessage;
@@ -1513,6 +1581,7 @@ bool OverlayGenerator::loadTemplateFromFile(const QString& filePath)
 
 void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
 {
+    UNABARA_ASSERT_GUI_THREAD();
     m_cells.clear();
 
     // This layout calculation mimics the section-based approach from generateOverlay()
@@ -1826,6 +1895,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
 
 void OverlayGenerator::migrateLegacySettings()
 {
+    UNABARA_ASSERT_GUI_THREAD();
     // This converts the current auto-layout settings to cell-based layout
     // by initializing cells with positions calculated from the current layout
 

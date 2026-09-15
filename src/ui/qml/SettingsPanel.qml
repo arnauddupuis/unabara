@@ -94,7 +94,7 @@ Item {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: palette.mid }
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
 
                     CheckBox {
                         text: qsTr("Check for updates at startup")

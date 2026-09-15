@@ -66,7 +66,7 @@ Item {
         // Toolbar for timeline controls
         Rectangle {
             Layout.fillWidth: true
-            height: 32
+            Layout.preferredHeight: 32
             color: palette.mid
 
             RowLayout {

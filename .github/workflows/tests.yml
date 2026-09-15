@@ -15,10 +15,31 @@ env:
   QT_VERSION: '6.8.3'
 
 jobs:
+  # Static QML lint. .qmllint.ini (repo root) disables the categories this
+  # architecture can never satisfy (context properties, C++-registered
+  # Unabara.* types); everything else gates at zero warnings.
+  qmllint:
+    name: QML lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4.1.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        cache: true
+
+    - name: Run qmllint
+      run: qmllint --max-warnings 0 src/ui/qml/*.qml
+
   build-and-test:
     name: Build & unit tests (Linux, Qt 6.8)
     runs-on: ubuntu-latest
     steps:
+    - name: Show runner CPU (golden renders are SIMD-tier-sensitive)
+      run: grep -m1 "model name" /proc/cpuinfo
+
     - uses: actions/checkout@v4
 
     - name: Install system dependencies
@@ -53,4 +74,15 @@ jobs:
       with:
         name: golden-renders-qt-${{ env.QT_VERSION }}
         path: build/tests/golden_renders/renders.candidate.sha256
+        if-no-files-found: ignore
+
+    # Debug aid: on a golden failure the hashes alone can't show WHAT
+    # changed — upload the rendered PNGs so they can be pixel-diffed against
+    # a local render.
+    - name: Upload golden-render PNGs (on failure)
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: golden-renders-pngs-qt-${{ env.QT_VERSION }}
+        path: build/tests/golden_renders/*.png
         if-no-files-found: ignore

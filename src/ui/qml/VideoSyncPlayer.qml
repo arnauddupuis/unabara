@@ -369,7 +369,7 @@ Item {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: palette.mid }
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
                 }
 
                 // ── No-metadata notice ────────────────────────────────────
@@ -440,7 +440,7 @@ Item {
                     visible: root.metadataAvailable && root.diveAvailable && root.videoSource != ""
                     spacing: 4
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: palette.mid }
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
 
                     Label { text: qsTr("Save Camera Profile"); font.bold: true }
 

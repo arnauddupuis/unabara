@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 
 // Draggable / resizable overlay container that anchors itself to its parent
 // using normalized [0..1] coordinates. The same `normalizedRect` flows into

@@ -15,6 +15,24 @@ env:
   QT_VERSION: '6.8.3'
 
 jobs:
+  # Static QML lint. .qmllint.ini (repo root) disables the categories this
+  # architecture can never satisfy (context properties, C++-registered
+  # Unabara.* types); everything else gates at zero warnings.
+  qmllint:
+    name: QML lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4.1.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        cache: true
+
+    - name: Run qmllint
+      run: qmllint --max-warnings 0 src/ui/qml/*.qml
+
   build-and-test:
     name: Build & unit tests (Linux, Qt 6.8)
     runs-on: ubuntu-latest

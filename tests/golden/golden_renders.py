@@ -24,6 +24,7 @@ tools/update_golden_renders.sh
 
 import argparse
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -33,6 +34,17 @@ from pathlib import Path
 # cell state (NDL vs TTS switch, stop depth/time, pressures, PO2).
 RENDER_TIMES = (1200, 2400)
 
+# Qt's raster engine picks SIMD code paths by runtime CPU detection, and the
+# AVX-512 tier can round blends differently from the AVX2/SSE tiers. GitHub's
+# runner fleet mixes Intel (AVX-512) and AMD (no AVX-512) machines, which
+# made the same commit hash 17 of 46 renders differently depending on which
+# VM the job landed on. Pin every machine to the non-AVX-512 tier so golden
+# bytes are a function of the Qt version only, not the CPU lottery.
+RENDER_ENV = dict(os.environ,
+                  QT_NO_CPU_FEATURE="avx512f avx512bw avx512cd avx512dq "
+                                    "avx512er avx512ifma avx512pf avx512vbmi "
+                                    "avx512vbmi2 avx512vl vaes")
+
 
 def bundled_templates(qrc_path):
     """Template basenames bundled via resources.qrc, in listing order."""
@@ -41,6 +53,16 @@ def bundled_templates(qrc_path):
     if not names:
         sys.exit(f"ERROR: no bundled templates found in {qrc_path}")
     return names
+
+
+def cpu_model():
+    try:
+        for line in open("/proc/cpuinfo"):
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return "unknown"
 
 
 def qt_version(render_utp):
@@ -62,7 +84,7 @@ def render_all(render_utp, templates, work_dir):
             out_png = work_dir / png_name
             proc = subprocess.run(
                 [render_utp, f":/templates/{utp}", str(out_png), "--time", str(t)],
-                capture_output=True, text=True)
+                capture_output=True, text=True, env=RENDER_ENV)
             if proc.returncode != 0 or not out_png.is_file():
                 sys.exit(f"ERROR: render failed for {utp} at t={t}:\n"
                          f"{proc.stdout}{proc.stderr}")
@@ -144,7 +166,7 @@ def main():
     version = qt_version(args.render_utp)
 
     print(f"Rendering {len(templates)} bundled templates x {len(RENDER_TIMES)} "
-          f"times with Qt {version}...")
+          f"times with Qt {version} on '{cpu_model()}' (AVX-512 tier disabled)...")
     computed = render_all(args.render_utp, templates, work_dir)
     comments, sections = parse_manifest(manifest_path)
 

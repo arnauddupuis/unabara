@@ -72,3 +72,14 @@ jobs:
         name: golden-renders-qt-${{ env.QT_VERSION }}
         path: build/tests/golden_renders/renders.candidate.sha256
         if-no-files-found: ignore
+
+    # Debug aid: on a golden failure the hashes alone can't show WHAT
+    # changed — upload the rendered PNGs so they can be pixel-diffed against
+    # a local render.
+    - name: Upload golden-render PNGs (on failure)
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: golden-renders-pngs-qt-${{ env.QT_VERSION }}
+        path: build/tests/golden_renders/*.png
+        if-no-files-found: ignore

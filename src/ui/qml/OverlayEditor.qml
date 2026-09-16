@@ -20,6 +20,25 @@ Item {
     // unreadable .utp). main.qml owns the error dialog.
     signal templateLoadFailed(string path)
 
+    // What's New "Show me" support: the flashed controls live inside
+    // collapsible sections of this inspector, so expand the right section
+    // (without animation — the flash measures geometry next frame) and hand
+    // the target item back to main.qml.
+    function showMeTarget(name) {
+        switch (name) {
+        case "template_selector":
+            templateSection.expandNow()
+            return templateSelector
+        case "cells_section":
+            cellsSection.expandNow()
+            return cellsSection
+        case "text_section":
+            textSection.expandNow()
+            return textSection
+        }
+        return null
+    }
+
     // Editing-scope routing: with a cell selected, edits create per-cell
     // overrides; with "All cells", they write the global defaults. The
     // getters already read scope-aware values — these are their write-side
@@ -283,6 +302,7 @@ Item {
         // All sections but the last start collapsed so new users see at a
         // glance that the inspector holds more than fits the first screen.
         CollapsibleSection {
+            id: cellsSection
             title: qsTr("Cells")
             Layout.fillWidth: true
             expanded: false
@@ -298,6 +318,7 @@ Item {
 
         // Text settings
         CollapsibleSection {
+            id: textSection
             title: qsTr("Text")
             Layout.fillWidth: true
             expanded: false
@@ -816,6 +837,7 @@ Item {
 
         // Template Management
         CollapsibleSection {
+            id: templateSection
             title: qsTr("Template")
             Layout.fillWidth: true
             settingsKey: "overlay_template"

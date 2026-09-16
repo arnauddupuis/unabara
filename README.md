@@ -8,15 +8,17 @@ Unabara is a powerful tool for creating telemetry overlays for scuba diving vide
 
 ## Features
 
-- **Import Dive Logs**: Import Subsurface (XML/SSRF), UDDF and .FIT (Garmin) dive logs to extract comprehensive diving telemetry. Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
-- **Visual Timeline**: View and navigate your dive data on an interactive timeline.
+- **Import Dive Logs**: Import Subsurface (XML/SSRF), UDDF and FIT dive logs — FIT covers Garmin and Suunto dive computers (e.g. Descent, Nautic). Unabara supports most kinds of diving: from single tank recreational dives to multi-tanks technical dives in Open Circuit or Closed Circuit Rebreather.
+- **Visual Timeline**: View and navigate your dive data on an interactive timeline — zoom and pan to focus on any part of the dive, collapse it when you need the room.
 - **Video Import**: Import your dive footage and position it against your dive data on the timeline.
 - **Video Preview & Sync**: Play your footage directly in Unabara and align it with your dive graphically — the timeline cursor follows the video, so you can match the overlay to your dive computer frame by frame. Save per-camera sync profiles for repeatable alignment.
-- **Customizable Overlay**: Configure which telemetry data appears in your overlay (depth, temperature, NDL, tank pressure, dive time, breathing gas, CNS, max/average depth, and CCR PO₂ cells), with optional per-cell or global labels.
-- **Dive Profile Graph**: Generate a customizable depth-over-time dive profile that can be composited as its own overlay.
-- **Template Selection**: Choose from built-in overlay templates or import your own designs.
+- **Visual Overlay Editor**: One canvas, two views — arrange cells in Edit mode (drag, snap to grid, resize handles, alignment anchors and guides) and check the exact export pixels in Render mode. The Cells list controls which telemetry appears: depth, temperature, dive time, NDL/TTS, deco stop depth and time, tank pressure, breathing gas, CNS, mean/max depth, and CCR PO₂ cells — with optional per-cell or global labels.
+- **Text Styling**: Independent label and value colors, and text shadows in three styles (crisp offset, soft blur, outline) — set globally or overridden per cell.
+- **Templates**: 23 bundled templates, from dive-computer faces to the HUD, Social (vertical video) and Broadcast (lower third) families — or design and save your own. A template can carry a color scheme that themes the dive profile to match.
+- **Dive Profile Graph**: Generate a customizable depth-over-time dive profile (grid, colors, line thickness, position indicator) that can be composited as its own overlay.
 - **Undo/Redo**: Full edit history in the template editor — step back and forward through your changes (Ctrl+Z / Ctrl+Y).
 - **Export Options**:
+  - Export the full dive, the visible timeline range, or exactly the imported video's range
   - Export as image sequence for video editing software
   - Export directly as video file in multiple codecs, including transparency-capable formats (ProRes 4444, VP9) for compositing (requires FFmpeg)
 
@@ -164,7 +166,7 @@ cmake --build . --config Release
 
 ### Running the tests
 
-The unit tests (dive log parsers) require Python 3 for fixture generation:
+The test suite (parsers, dive data model, overlay geometry and templates, export math, golden renders) requires Python 3 for fixture generation:
 
 ```bash
 cmake .. -DUNABARA_BUILD_TESTS=ON
@@ -189,10 +191,10 @@ For direct video export functionality, FFmpeg needs to be installed on your syst
 ## Usage
 
 1. Launch Unabara
-2. Import a dive log file (Subsurface XML/SSRF or UDDF format)
+2. Import a dive log file (Subsurface XML/SSRF, UDDF or FIT format)
 3. Optionally import your dive video footage
 4. Adjust the positioning and video sync timing using the timeline
-5. Configure the overlay display options in settings
+5. Pick a template, then arrange the overlay on the canvas: toggle cells in the sidebar's Cells section, drag and resize them in Edit mode, and check the result in Render mode
 6. Export as image sequence or video file
 
 Then you can use the generated video or image sequence as a telemetry overlay in your video editor software.
@@ -204,7 +206,10 @@ Unabara is licensed under the GNU General Public License v2.0.
 Unabara bundles the [Orbitron](https://fonts.google.com/specimen/Orbitron) and
 [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono) typefaces,
 both licensed under the SIL Open Font License 1.1 (see
-`resources/fonts/OFL-Orbitron.txt` and `resources/fonts/OFL-ShareTechMono.txt`).
+`resources/fonts/OFL-Orbitron.txt` and `resources/fonts/OFL-ShareTechMono.txt`),
+and the [DejaVu Sans](https://dejavu-fonts.github.io/) typeface as the default
+overlay font, under the DejaVu Fonts License (see
+`resources/fonts/LICENSE-DejaVu.txt`).
 
 ## Name Origin
 

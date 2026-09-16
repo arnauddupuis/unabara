@@ -360,7 +360,13 @@ QImage ProfileGenerator::generate(DiveData* dive, double timePoint)
     const double pulsePhase01 = (m_pulsePeriodMs > 0)
         ? std::fmod(timePoint * 1000.0, static_cast<double>(m_pulsePeriodMs)) / m_pulsePeriodMs
         : 0.0;
-    return renderFrame(dive, timePoint, pulsePhase01);
+    // Exact integer unpremultiply: QImage::save() would otherwise
+    // unpremultiply through RCPPS, which rounds .5 ties differently per
+    // CPU vendor (same fix as OverlayGenerator — exported bytes must not
+    // depend on the machine). One integer pass over the frame; previews
+    // that go through generate() pay it too, which is fine at FrameCache's
+    // 0.5 s bucket rate.
+    return Unabara::ColorUtils::unpremultipliedArgb32(renderFrame(dive, timePoint, pulsePhase01));
 }
 
 QImage ProfileGenerator::renderFrame(DiveData* dive, double timePoint, double pulsePhase01)

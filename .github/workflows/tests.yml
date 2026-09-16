@@ -37,7 +37,7 @@ jobs:
     name: Build & unit tests (Linux, Qt 6.8)
     runs-on: ubuntu-latest
     steps:
-    - name: Show runner CPU (golden renders are SIMD-tier-sensitive)
+    - name: Show runner CPU (diagnostic for any machine-dependent golden diff)
       run: grep -m1 "model name" /proc/cpuinfo
 
     - uses: actions/checkout@v4

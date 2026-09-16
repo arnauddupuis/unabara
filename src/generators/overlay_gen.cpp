@@ -1,4 +1,5 @@
 #include "include/generators/overlay_gen.h"
+#include "include/core/color_utils.h"
 #include <QPainter>
 #include <QtMath>
 #include <QFontMetrics>
@@ -1925,8 +1926,15 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
         templateImage.fill(QColor(0, 0, 0, 180));
     }
     
-    // Create the result image and apply background opacity
-    QImage result = templateImage.copy();
+    // Paint on a premultiplied canvas. Painting directly on the loaded
+    // format (plain ARGB32 for translucent templates) makes the raster
+    // engine unpremultiply every painted span through RCPPS — the CPU-
+    // vendor-dependent approximation that broke golden byte-compat across
+    // CI machines. Premultiplied blending is all-integer (and Qt's fast
+    // path); the single exact unpremultiply happens at the return below.
+    const bool translucent = templateImage.hasAlphaChannel() || m_backgroundOpacity < 1.0;
+    QImage result = templateImage.convertToFormat(
+        translucent ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32);
 
     // Apply background opacity if needed
     if (m_backgroundOpacity < 1.0) {
@@ -1961,7 +1969,10 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     }
 
     painter.end();
-    return result;
+    // Exact integer unpremultiply — byte-identical on every CPU (see
+    // ColorUtils::unpremultipliedArgb32). Opaque canvases have nothing to
+    // unpremultiply and keep their RGB32 bytes.
+    return translucent ? Unabara::ColorUtils::unpremultipliedArgb32(result) : result;
 }
 
 // Generate display text for a cell - matches CellModel::formatValue() for QML consistency

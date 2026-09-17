@@ -28,7 +28,48 @@ Dialog {
 
     implicitHeight: Math.min(680, contentColumn.implicitHeight + 120)
 
-    standardButtons: Dialog.Close
+    // The notes usually overflow the dialog and the transient scrollbar is
+    // easy to miss, so the footer carries a reading-progress bar: it shows
+    // at a glance that more content sits below the fold and fills up as
+    // the user scrolls through it. Hidden when everything fits.
+    footer: Item {
+        implicitHeight: footerRow.implicitHeight + 20
+
+        RowLayout {
+            id: footerRow
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            spacing: 12
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 6
+                radius: 3
+                color: root.palette.mid
+                visible: scroll.ScrollBar.vertical.size < 1.0
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    radius: parent.radius
+                    color: "#3498db"  // the app's accent (same as the Show-me flash)
+                    // Fraction of the notes already seen: the bottom edge
+                    // of the viewport within the content.
+                    width: parent.width * Math.min(1.0,
+                        scroll.ScrollBar.vertical.position + scroll.ScrollBar.vertical.size)
+                    Behavior on width { NumberAnimation { duration: 80 } }
+                }
+            }
+
+            Button {
+                text: qsTr("Close")
+                icon.name: "window-close"
+                onClicked: root.close()
+            }
+        }
+    }
 
     contentItem: ScrollView {
         id: scroll

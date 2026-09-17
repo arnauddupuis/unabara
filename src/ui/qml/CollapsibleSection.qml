@@ -52,6 +52,16 @@ Column {
             settingsStore.setSectionExpanded(settingsKey, expanded)
     }
 
+    // Expand without the slide animation, for programmatic reveals: the
+    // What's New "Show me" flash measures the target's final geometry one
+    // frame after the reveal, which the 150 ms slide would break.
+    property bool _revealing: false
+    function expandNow() {
+        _revealing = true
+        expanded = true
+        _revealing = false
+    }
+
     Rectangle {
         id: header
         width: section.width
@@ -101,8 +111,9 @@ Column {
         Behavior on height {
             // Off until the persisted state has been applied: a stored
             // state that differs from the declared default would otherwise
-            // play a visible slide on every launch.
-            enabled: section._stateRestored
+            // play a visible slide on every launch. Also off during
+            // expandNow() reveals.
+            enabled: section._stateRestored && !section._revealing
             NumberAnimation { duration: 150; easing.type: Easing.InOutQuad }
         }
 

@@ -9,14 +9,34 @@
                     "showMe": "import_button"
                 },
                 {
+                    "title": "16 new templates",
+                    "description": "Three new bundled families — HUD, Social and Broadcast — eight designs in two color variations each, from full heads-up displays to vertical-video layouts and broadcast-style lower thirds. Pick them from the template selector.",
+                    "showMe": "template_selector"
+                },
+                {
+                    "title": "New data cells",
+                    "description": "Your overlays can now show TTS, CNS oxygen toxicity, mean depth, max depth, and the current breathing gas — plus dedicated STOP depth and STOP time cells that appear when you enter deco. Add any of them to any template from the Cells section.",
+                    "showMe": "cells_section"
+                },
+                {
+                    "title": "Make the text yours",
+                    "description": "Labels and values now have independent colors, and text can carry a shadow — crisp offset, soft blur, or outline, with adjustable color, size and opacity. Set them globally or override per cell from the Text section.",
+                    "showMe": "text_section"
+                },
+                {
                     "title": "One canvas, two views",
                     "description": "The overlay tab is now a single large canvas. Edit mode is where you arrange things — drag cells, snap them to the grid, and resize them with the corner handles (the Layout section controls alignment and auto-size). Render mode shows the exact pixels your export will produce.",
                     "showMe": "canvas"
                 },
                 {
-                    "title": "The Cells panel replaces the Display Options checkboxes",
-                    "description": "Every cell of the template is listed in the sidebar's Cells section: the eye icon shows or hides it, clicking selects it on the canvas, and badges mark cells with their own font, color or shadow overrides.",
-                    "showMe": "canvas"
+                    "title": "All your cells in one list",
+                    "description": "The sidebar's Cells section lists every data field: its checkbox shows or hides the cell, clicking a row selects that cell on the canvas, and colored dots mark cells carrying their own font, color or shadow overrides.",
+                    "showMe": "cells_section"
+                },
+                {
+                    "title": "Templates can theme the dive profile",
+                    "description": "Templates carry an optional primary/secondary color scheme. Apply it to the dive profile — curve and deco zone take the primary color, indicator and grid the secondary — from the Dive Profile tab's Template Colors section.",
+                    "showMe": "profile"
                 },
                 {
                     "title": "The timeline does more than you may think",
@@ -27,11 +47,6 @@
                     "title": "A real Settings tab",
                     "description": "Units, template directory, update checks and export defaults now live in their own tab — including the management of your saved camera profiles, which previously could not be edited anywhere.",
                     "showMe": "settings"
-                },
-                {
-                    "title": "Templates can theme the dive profile",
-                    "description": "Templates carry an optional primary/secondary color scheme. Apply it to the dive profile — curve and deco zone take the primary color, indicator and grid the secondary — from the Dive Profile tab's Template Colors section.",
-                    "showMe": "profile"
                 }
             ],
             "changes": [
@@ -40,7 +55,7 @@
                 "Both editor sidebars collapse to give the canvas the full width.",
                 "Export is available from the Video Preview tab (overlays export with transparency — composited export comes in v0.4).",
                 "DejaVu Sans is bundled as the default overlay font, so templates render identically on Linux, macOS and Windows.",
-                "New data cells: TTS, CNS, mean and max depth, gas, deco stop depth and time, and CCR PO2 sensors."
+                "CCR PO2 sensor cells can now be added to any template from the Cells panel — previously only templates that already contained them could display them."
             ]
         }
     ]

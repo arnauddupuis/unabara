@@ -638,6 +638,17 @@ ApplicationWindow {
                                     contentWidth: availableWidth
                                     contentHeight: overlayEditor.implicitHeight
 
+                                    // Scroll an inspector control into view (What's
+                                    // New "Show me" targets can sit below the fold).
+                                    function ensureItemVisible(item) {
+                                        var flickable = contentItem as Flickable
+                                        if (!flickable)
+                                            return
+                                        var y = item.mapToItem(overlayEditor, 0, 0).y
+                                        flickable.contentY = Math.max(0, Math.min(
+                                            y - 8, flickable.contentHeight - flickable.height))
+                                    }
+
                                     OverlayEditor {
                                         id: overlayEditor
                                         width: overlayEditorScroll.availableWidth
@@ -2006,6 +2017,24 @@ ApplicationWindow {
             case "import_button":
                 showMeFlash.flash(importButton)   // toolbar is visible on every tab — no tab switch
                 break
+            case "template_selector":
+            case "cells_section":
+            case "text_section": {
+                // Inspector targets: the control sits inside a collapsible
+                // section of the overlay editor sidebar. Reveal the whole
+                // chain (tab, sidebar, section), then scroll + flash once
+                // the geometry has settled.
+                contentTabs.currentIndex = 0
+                overlayEditorPanel.collapsed = false
+                var item = overlayEditor.showMeTarget(target)
+                if (item) {
+                    Qt.callLater(function() {
+                        overlayEditorScroll.ensureItemVisible(item)
+                        showMeFlash.flash(item)
+                    })
+                }
+                break
+            }
             }
         }
 

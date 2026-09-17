@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unabara - Telemetry Overlays for Scuba Diving Videos</title>
-    <meta name="description" content="Open-source desktop application for creating telemetry overlays for scuba diving videos. Import Subsurface and UDDF dive logs, customize overlays, sync your footage, and export with ease.">
+    <meta name="description" content="Open-source desktop application for creating telemetry overlays for scuba diving videos. Import Subsurface, UDDF and FIT (Garmin/Suunto) dive logs, customize overlays, sync your footage, and export with ease.">
     <link rel="icon" type="image/svg+xml" href="images/unabara-icon.svg">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -33,7 +33,7 @@
             <h1>Telemetry overlays for scuba diving videos</h1>
             <p class="hero-subtitle">Import your dive logs, customize your overlay, export in seconds. Open source, cross-platform, free.</p>
             <div class="hero-buttons">
-                <a href="#download" class="btn btn-primary">Download v0.2.0</a>
+                <a href="#download" class="btn btn-primary">Download v0.3.0</a>
                 <a href="https://github.com/arnauddupuis/unabara" target="_blank" class="btn btn-secondary">View on GitHub</a>
             </div>
         </div>
@@ -44,11 +44,13 @@
         <div class="container">
             <div class="carousel">
                 <div class="carousel-track">
-                    <img src="images/unabara-release-0.2.0-screenshot.01.png" alt="Unabara main interface" class="carousel-slide active">
-                    <img src="images/unabara-release-0.2.0-screenshot.02.png" alt="Unabara dive profile editor" class="carousel-slide">
-                    <img src="images/unabara-release-0.2.0-screenshot.03.png" alt="Unabara video preview" class="carousel-slide">
-                    <img src="images/unabara-release-0.2.0-screenshot.04.png" alt="Unabara overlay editor (CCR)" class="carousel-slide">
-                    <img src="images/unabara-release-0.2.0-screenshot.05.png" alt="Unabara video preview (missing metadata)" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.01.png" alt="Unabara overlay editor — Edit mode canvas" class="carousel-slide active">
+                    <img src="images/unabara-release-0.3.0-screenshot.02.png" alt="Unabara overlay editor — Render mode with a HUD template" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.03.png" alt="Unabara dive profile with template color scheme" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.04.png" alt="Unabara video preview and sync" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.05.png" alt="Unabara overlay editor (CCR template)" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.06.png" alt="Unabara overlay editor (CCR template)" class="carousel-slide">
+                    <img src="images/unabara-release-0.3.0-screenshot.07.png" alt="Unabara overlay editor (CCR template)" class="carousel-slide">
                 </div>
                 <div class="carousel-controls">
                     <button class="carousel-btn carousel-prev" aria-label="Previous screenshot">&lsaquo;</button>
@@ -58,6 +60,8 @@
                         <button class="carousel-dot" aria-label="Screenshot 3"></button>
                         <button class="carousel-dot" aria-label="Screenshot 4"></button>
                         <button class="carousel-dot" aria-label="Screenshot 5"></button>
+                        <button class="carousel-dot" aria-label="Screenshot 6"></button>
+                        <button class="carousel-dot" aria-label="Screenshot 7"></button>
                     </div>
                     <button class="carousel-btn carousel-next" aria-label="Next screenshot">&rsaquo;</button>
                 </div>
@@ -98,12 +102,12 @@
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4CB;</div>
                     <h3>Import Dive Logs</h3>
-                    <p>Import Subsurface (XML/SSRF) and UDDF dive logs with full support for recreational, technical, and CCR dives with multi-tank pressure tracking.</p>
+                    <p>Import Subsurface (XML/SSRF), UDDF, and FIT dive logs &mdash; straight from Garmin and Suunto dive computers &mdash; with full support for recreational, technical, and CCR dives with multi-tank pressure tracking.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F3A8;</div>
                     <h3>Template Editor</h3>
-                    <p>Drag-and-drop overlay editor with per-cell styling, custom fonts, colors, optional labels, and background images. Full undo/redo, and save and share your designs as .utp templates.</p>
+                    <p>One canvas, two views: arrange, resize and align cells in Edit mode, check the exact export pixels in Render mode. Independent label/value colors, text shadows, per-cell overrides, full undo/redo &mdash; save and share your designs as .utp templates.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4F9;</div>
@@ -113,12 +117,17 @@
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F30A;</div>
                     <h3>Dive Profile Graphic</h3>
-                    <p>Generate a customizable depth-over-time profile with a moving position indicator, optional deco-zone shading and grid &mdash; exportable as its own overlay.</p>
+                    <p>Generate a customizable depth-over-time profile with a moving position indicator, optional deco-zone shading and grid &mdash; exportable as its own overlay, and themeable in one click from your template's color scheme.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4CA;</div>
                     <h3>Interactive Timeline</h3>
-                    <p>Visualize depth, temperature, and pressure graphs. Scrub through your dive, zoom into sections of interest.</p>
+                    <p>Scrub through your dive and zoom into sections of interest &mdash; the visible range can be exported on its own.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x2728;</div>
+                    <h3>23 Bundled Templates</h3>
+                    <p>Classic dive-computer faces plus the new HUD, Social and Broadcast families &mdash; sci-fi HUDs, compact vertical-video widgets for Shorts/TikTok/Reels, and a broadcast lower third, each in two color variations.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4E6;</div>
@@ -166,14 +175,14 @@
                     <span class="step-number">1</span>
                     <div>
                         <h3>Import your dive log</h3>
-                        <p>Import your dive from Subsurface (.ssrf / .xml) or any app that exports UDDF (.uddf).</p>
+                        <p>Import your dive from Subsurface (.ssrf / .xml), any app that exports UDDF (.uddf), or straight from your Garmin or Suunto dive computer (.fit).</p>
                     </div>
                 </div>
                 <div class="step">
                     <span class="step-number">2</span>
                     <div>
                         <h3>Customize your overlay</h3>
-                        <p>Pick a template or create your own. Drag cells, change fonts, add a background image.</p>
+                        <p>Pick one of the 23 bundled templates or create your own. Drag and resize cells, change fonts, colors and shadows, then check the exact result in Render mode.</p>
                     </div>
                 </div>
                 <div class="step">

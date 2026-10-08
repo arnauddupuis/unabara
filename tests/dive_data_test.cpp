@@ -198,6 +198,107 @@ private slots:
         QCOMPARE(d.maxDepthUntil(20.0), 20.0);
     }
 
+    void circuitModeOpenCircuitDiveIsAlwaysOc()
+    {
+        // Rule 1: anything but a CCR dive is OC for the whole dive, even
+        // with role-marked cylinders and switches between them
+        DiveData d;
+        CylinderInfo diluent;
+        diluent.use = CylinderInfo::Diluent;
+        d.addCylinder(diluent);
+        d.addCylinder(CylinderInfo()); // OcGas
+        d.addGasSwitch(100.0, 1);
+
+        d.setDiveMode(DiveData::OpenCircuit);
+        QCOMPARE(d.circuitModeAtTime(0.0), DiveData::OnOpenCircuit);
+        QCOMPARE(d.circuitModeAtTime(200.0), DiveData::OnOpenCircuit);
+
+        // UnknownMode is not a CCR dive either
+        DiveData u;
+        u.addCylinder(diluent);
+        QCOMPARE(u.circuitModeAtTime(0.0), DiveData::OnOpenCircuit);
+    }
+
+    void circuitModeFollowsCylinderRoles()
+    {
+        // CCR dive: oxygen (0), diluent (1), bailout (2, no role).
+        // CC -> BO at the bailout switch -> back to CC on return to diluent.
+        DiveData d;
+        d.setDiveMode(DiveData::ClosedCircuit);
+        CylinderInfo oxygen;
+        oxygen.use = CylinderInfo::Oxygen;
+        CylinderInfo diluent;
+        diluent.use = CylinderInfo::Diluent;
+        CylinderInfo bailout; // OcGas
+        d.addCylinder(oxygen);
+        d.addCylinder(diluent);
+        d.addCylinder(bailout);
+
+        d.addGasSwitch(10.0, 1);    // diluent
+        d.addGasSwitch(600.0, 2);   // bailout!
+        d.addGasSwitch(900.0, 1);   // back on the loop
+
+        // Before any switch the default cylinder 0 (oxygen) is active
+        QCOMPARE(d.circuitModeAtTime(0.0), DiveData::OnLoop);
+        QCOMPARE(d.circuitModeAtTime(300.0), DiveData::OnLoop);
+        // Held semantics: the state flips exactly at the switch timestamp
+        QCOMPARE(d.circuitModeAtTime(599.0), DiveData::OnLoop);
+        QCOMPARE(d.circuitModeAtTime(600.0), DiveData::BailedOut);
+        QCOMPARE(d.circuitModeAtTime(750.0), DiveData::BailedOut);
+        QCOMPARE(d.circuitModeAtTime(899.0), DiveData::BailedOut);
+        QCOMPARE(d.circuitModeAtTime(900.0), DiveData::OnLoop);
+        QCOMPARE(d.circuitModeAtTime(9999.0), DiveData::OnLoop);
+    }
+
+    void circuitModeWithoutRoleInfoStaysOnLoop()
+    {
+        // CCR dive whose log carries no diluent/oxygen role: never fabricate
+        // a bailout from missing data — on the loop for the whole dive
+        DiveData d;
+        d.setDiveMode(DiveData::ClosedCircuit);
+        d.addCylinder(CylinderInfo()); // OcGas
+        d.addCylinder(CylinderInfo()); // OcGas
+        d.addGasSwitch(300.0, 1);
+
+        QCOMPARE(d.circuitModeAtTime(0.0), DiveData::OnLoop);
+        QCOMPARE(d.circuitModeAtTime(400.0), DiveData::OnLoop);
+    }
+
+    void circuitModeOverrideBeatsCylinderDerivation()
+    {
+        // Explicit modechange events win from their timestamp onward
+        // (constructed directly — no fixture logs modechange yet)
+        DiveData d;
+        d.setDiveMode(DiveData::ClosedCircuit);
+        CylinderInfo diluent;
+        diluent.use = CylinderInfo::Diluent;
+        d.addCylinder(diluent);
+
+        // Still on the diluent cylinder, but the computer says OC (bailout)
+        d.addCircuitModeOverride(300.0, DiveData::BailedOut);
+        d.addCircuitModeOverride(500.0, DiveData::OnLoop);
+
+        QCOMPARE(d.circuitModeAtTime(0.0), DiveData::OnLoop);       // pre-override: cylinder rule
+        QCOMPARE(d.circuitModeAtTime(299.0), DiveData::OnLoop);
+        QCOMPARE(d.circuitModeAtTime(300.0), DiveData::BailedOut);  // held from its timestamp
+        QCOMPARE(d.circuitModeAtTime(499.0), DiveData::BailedOut);
+        QCOMPARE(d.circuitModeAtTime(500.0), DiveData::OnLoop);
+
+        // Overrides apply even without cylinder role info...
+        DiveData n;
+        n.setDiveMode(DiveData::ClosedCircuit);
+        n.addCylinder(CylinderInfo());
+        n.addCircuitModeOverride(100.0, DiveData::BailedOut);
+        QCOMPARE(n.circuitModeAtTime(50.0), DiveData::OnLoop);
+        QCOMPARE(n.circuitModeAtTime(100.0), DiveData::BailedOut);
+
+        // ...but never on a non-CCR dive
+        DiveData o;
+        o.setDiveMode(DiveData::OpenCircuit);
+        o.addCircuitModeOverride(100.0, DiveData::BailedOut);
+        QCOMPARE(o.circuitModeAtTime(200.0), DiveData::OnOpenCircuit);
+    }
+
     void meanDepthExplicitBeatsDerived()
     {
         DiveData d;

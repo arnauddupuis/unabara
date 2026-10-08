@@ -446,6 +446,64 @@ void DiveData::addGasSwitch(double timestamp, int cylinderIndex) {
                      });
 }
 
+void DiveData::addCircuitModeOverride(double timestamp, CircuitMode status) {
+    CircuitModeOverride entry;
+    entry.timestamp = timestamp;
+    entry.status = status;
+    m_circuitModeOverrides.append(entry);
+
+    // Keep overrides sorted by timestamp, stable for entries sharing one
+    // (the last added wins) — same discipline as the gas switches.
+    std::stable_sort(m_circuitModeOverrides.begin(), m_circuitModeOverrides.end(),
+                     [](const CircuitModeOverride &a, const CircuitModeOverride &b) {
+                         return a.timestamp < b.timestamp;
+                     });
+}
+
+DiveData::CircuitMode DiveData::circuitModeAtTime(double timestamp) const {
+    // Anything but a CCR dive is open circuit for the whole dive
+    if (m_diveMode != ClosedCircuit) {
+        return OnOpenCircuit;
+    }
+
+    // Explicit mode-change events (Subsurface 'modechange') win over the
+    // cylinder derivation from their timestamp onward. Held semantics: the
+    // last override at or before 'timestamp' applies.
+    const CircuitModeOverride *lastOverride = nullptr;
+    for (const CircuitModeOverride &entry : m_circuitModeOverrides) {
+        if (entry.timestamp <= timestamp) {
+            lastOverride = &entry;
+        } else {
+            break; // sorted; nothing later can apply
+        }
+    }
+    if (lastOverride) {
+        return static_cast<CircuitMode>(lastOverride->status);
+    }
+
+    // Without any diluent/oxygen role information the cylinders cannot
+    // distinguish loop gas from bailout — never fabricate a bailout from
+    // missing data, the diver is on the loop for the whole dive.
+    bool hasRoleInfo = false;
+    for (const CylinderInfo &cylinder : m_cylinders) {
+        if (cylinder.use == CylinderInfo::Diluent || cylinder.use == CylinderInfo::Oxygen) {
+            hasRoleInfo = true;
+            break;
+        }
+    }
+    if (!hasRoleInfo) {
+        return OnLoop;
+    }
+
+    // Breathing a loop gas (diluent or oxygen) = on the loop; any other
+    // cylinder (OC gas / not used) = bailed out. State changes exactly at
+    // the gas-switch timestamp — held, never interpolated.
+    const CylinderInfo &active = cylinderInfo(activeCylinderAtTime(timestamp));
+    return (active.use == CylinderInfo::Diluent || active.use == CylinderInfo::Oxygen)
+               ? OnLoop
+               : BailedOut;
+}
+
 int DiveData::activeCylinderAtTime(double timestamp) const {
     // First cylinder is breathed from the start; each gas switch at or
     // before 'timestamp' updates the active cylinder

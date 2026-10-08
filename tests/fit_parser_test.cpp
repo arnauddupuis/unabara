@@ -292,6 +292,50 @@ private slots:
                  QStringLiteral("Dive #42 - 2024-11-08 12:33:20 at 46.500000, 6.500000"));
     }
 
+    void ccrDiluentRoleAndBailout()
+    {
+        // CCR dive (sub-sport 63) with a diluent-marked gas and a bailout
+        // switch. No real CCR sample carries dive_gas diluent data, so the
+        // stream is built here: gas 0 = air diluent (mode field 3 == 1),
+        // gas 1 = air bailout, switch to gas 1 at t=2.
+        FitBuilder b;
+        b.definition(0, 12, {{{1, 1, 0x00}}});      // SPORT: sub_sport
+        b.dataRecord(0, QByteArrayLiteral("\x3F")); // 63 = CCR dive
+        // DIVE_GAS: message_index, o2, he, status, mode
+        b.definition(1, 259, {{{254, 2, 0x84}, {1, 1, 0x02}, {0, 1, 0x02},
+                               {2, 1, 0x00}, {3, 1, 0x00}}});
+        b.dataRecord(1, QByteArrayLiteral("\x00\x00\x15\x00\x01\x01")); // diluent
+        b.dataRecord(1, QByteArrayLiteral("\x01\x00\x15\x00\x01\x00")); // bailout
+        b.definition(2, 20, {{{253, 4, 0x86}, {92, 4, 0x86}}}); // RECORD: ts, depth mm
+        b.definition(3, 21, {{{253, 4, 0x86}, {0, 1, 0x00}, {3, 4, 0x86}}}); // EVENT
+        b.dataRecord(2, FitBuilder::u32(1100000000) + FitBuilder::u32(5000));
+        b.dataRecord(2, FitBuilder::u32(1100000001) + FitBuilder::u32(10000));
+        // Gas switch (event 57) to gas slot 1 at t=2
+        b.dataRecord(3, FitBuilder::u32(1100000002) + QByteArrayLiteral("\x39")
+                            + FitBuilder::u32(1));
+        b.dataRecord(2, FitBuilder::u32(1100000002) + FitBuilder::u32(12000));
+        b.dataRecord(2, FitBuilder::u32(1100000004) + FitBuilder::u32(8000));
+
+        QString err;
+        auto dives = parseBytes(b.build(), err);
+        QVERIFY2(err.isEmpty(), qPrintable(err));
+        QCOMPARE(dives.size(), 1);
+        DiveData *d = dives.first();
+
+        QCOMPARE(d->diveMode(), DiveData::ClosedCircuit);
+        QCOMPARE(d->cylinderCount(), 2);
+        QCOMPARE(d->cylinderInfo(0).use, CylinderInfo::Diluent);
+        QVERIFY(d->cylinderInfo(0).description.contains(QStringLiteral("diluent")));
+        QCOMPARE(d->cylinderInfo(1).use, CylinderInfo::OcGas);
+
+        // On the loop until the bailout switch, held from its timestamp on
+        QCOMPARE(d->circuitModeAtTime(0.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(1.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(2.0), DiveData::BailedOut);
+        QCOMPARE(d->circuitModeAtTime(4.0), DiveData::BailedOut);
+        qDeleteAll(dives);
+    }
+
     void pressureInterpolationPrefersSamples()
     {
         QString err;

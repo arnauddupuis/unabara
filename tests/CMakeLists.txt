@@ -66,6 +66,7 @@ unabara_add_test(core_utils_test)
 unabara_add_test(cell_data_test)
 unabara_add_test(overlay_template_test)
 unabara_add_test(overlay_geometry_test)
+unabara_add_test(circuit_mode_cell_test)
 unabara_add_test(whatsnew_test)
 unabara_add_test(export_math_test)
 

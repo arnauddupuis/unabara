@@ -44,6 +44,7 @@ Config::Config(QObject *parent)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
+    , m_showCircuitMode(false)
     , m_profileBackgroundColor(Qt::black)
     , m_profileBackgroundOpacity(0.0)
     , m_profileCurveColor(QColor("#9C27B0"))
@@ -495,6 +496,19 @@ void Config::setShowCompositePO2(bool show)
     }
 }
 
+bool Config::showCircuitMode() const
+{
+    return m_showCircuitMode;
+}
+
+void Config::setShowCircuitMode(bool show)
+{
+    if (m_showCircuitMode != show) {
+        m_showCircuitMode = show;
+        emit showCircuitModeChanged();
+    }
+}
+
 // ---- Profile settings -----------------------------------------------------
 
 QColor Config::profileBackgroundColor() const { return m_profileBackgroundColor; }
@@ -739,6 +753,7 @@ void Config::loadConfig()
     m_showPO2Cell2 = m_settings.value("overlay/showPO2Cell2", false).toBool();
     m_showPO2Cell3 = m_settings.value("overlay/showPO2Cell3", false).toBool();
     m_showCompositePO2 = m_settings.value("overlay/showCompositePO2", false).toBool();
+    m_showCircuitMode = m_settings.value("overlay/showCircuitMode", false).toBool();
     
     // Load unit system
     int unitSystemValue = m_settings.value("overlay/unitSystem", static_cast<int>(Units::UnitSystem::Metric)).toInt();
@@ -910,6 +925,7 @@ void Config::saveConfig()
     m_settings.setValue("overlay/showPO2Cell2", m_showPO2Cell2);
     m_settings.setValue("overlay/showPO2Cell3", m_showPO2Cell3);
     m_settings.setValue("overlay/showCompositePO2", m_showCompositePO2);
+    m_settings.setValue("overlay/showCircuitMode", m_showCircuitMode);
     
     // Save unit system
     m_settings.setValue("overlay/unitSystem", static_cast<int>(m_unitSystem));

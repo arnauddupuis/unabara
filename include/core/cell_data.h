@@ -30,6 +30,7 @@ enum class CellType {
     Gas,              // Currently breathed gas mix (from gas switches)
     StopDepth,        // Current deco stop depth ("STOP")
     StopTime,         // Time at the current deco stop ("TIME")
+    CircuitMode,      // CCR circuit mode ("CIRCUIT MODE": CC / BO / OC)
     Unknown
 };
 

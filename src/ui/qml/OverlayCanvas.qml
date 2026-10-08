@@ -152,7 +152,7 @@ Item {
         // template has none for that data type. No explicit refresh here:
         // the setters emit cellsChanged/cellLayoutChanged only when
         // something actually changed, and those are handled above. (A
-        // template load fires all 16 of these; refreshing unconditionally
+        // template load fires all 17 of these; refreshing unconditionally
         // used to cost two full model refreshes per flag.)
         function onShowDepthChanged() {
             root.generator.setCellTypeVisible("depth", root.generator.showDepth)
@@ -201,6 +201,9 @@ Item {
         }
         function onShowCompositePO2Changed() {
             root.generator.setCellTypeVisible("composite_po2", root.generator.showCompositePO2)
+        }
+        function onShowCircuitModeChanged() {
+            root.generator.setCellTypeVisible("circuit_mode", root.generator.showCircuitMode)
         }
     }
 

@@ -139,6 +139,7 @@ int main(int argc, char *argv[])
     QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell2Changed,      invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showPO2Cell3Changed,      invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::showCompositePO2Changed,  invalidateOverlay);
+    QObject::connect(overlayGenerator, &OverlayGenerator::showCircuitModeChanged,    invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellsChanged,             invalidateOverlay);
     QObject::connect(overlayGenerator, &OverlayGenerator::cellLayoutChanged,        invalidateOverlay);
     QObject::connect(Config::instance(), &Config::unitSystemChanged,                invalidateOverlay);

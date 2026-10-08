@@ -27,7 +27,7 @@ private slots:
             CellType::PO2Cell1, CellType::PO2Cell2,    CellType::PO2Cell3,
             CellType::CompositePO2, CellType::CNS,     CellType::MeanDepth,
             CellType::MaxDepth, CellType::Gas,         CellType::StopDepth,
-            CellType::StopTime,
+            CellType::StopTime, CellType::CircuitMode,
         };
         for (CellType type : all) {
             const QString str = CellData::cellTypeToString(type);
@@ -37,6 +37,26 @@ private slots:
         // Unknown strings (e.g. from a newer template) degrade gracefully
         QCOMPARE(CellData::cellTypeFromString(QStringLiteral("FutureCell")),
                  CellType::Unknown);
+    }
+
+    void displayNamesResolveKnownIds()
+    {
+        // displayName is the ONE source of human-readable cell names (layers
+        // panel + editing-scope combo) — every creatable id must resolve
+        QCOMPARE(CellData::displayName(QStringLiteral("depth")),
+                 QStringLiteral("Depth"));
+        QCOMPARE(CellData::displayName(QStringLiteral("stop_time")),
+                 QStringLiteral("Stop Time"));
+        QCOMPARE(CellData::displayName(QStringLiteral("circuit_mode")),
+                 QStringLiteral("Circuit Mode"));
+        QCOMPARE(CellData::displayName(QStringLiteral("composite_po2")),
+                 QStringLiteral("Composite PO2"));
+        // Dynamic tank ids are 0-based internally, 1-based for humans
+        QCOMPARE(CellData::displayName(QStringLiteral("tank_2")),
+                 QStringLiteral("Tank 3"));
+        // Unknown ids fall through unchanged (visible-but-raw, not invisible)
+        QCOMPARE(CellData::displayName(QStringLiteral("future_cell")),
+                 QStringLiteral("future_cell"));
     }
 
     void shadowTypeStringRoundTrip()

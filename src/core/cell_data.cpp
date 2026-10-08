@@ -291,6 +291,7 @@ QString CellData::cellTypeToString(CellType type)
         case CellType::Gas: return "Gas";
         case CellType::StopDepth: return "StopDepth";
         case CellType::StopTime: return "StopTime";
+        case CellType::CircuitMode: return "CircuitMode";
         default: return "Unknown";
     }
 }
@@ -313,6 +314,7 @@ CellType CellData::cellTypeFromString(const QString& str)
     if (str == "Gas") return CellType::Gas;
     if (str == "StopDepth") return CellType::StopDepth;
     if (str == "StopTime") return CellType::StopTime;
+    if (str == "CircuitMode") return CellType::CircuitMode;
     return CellType::Unknown;
 }
 
@@ -387,6 +389,7 @@ QString CellData::displayName(const QString& cellId)
     if (cellId == QStringLiteral("tts"))           return tr("Time To Surface");
     if (cellId == QStringLiteral("stop_depth"))    return tr("Stop Depth");
     if (cellId == QStringLiteral("stop_time"))     return tr("Stop Time");
+    if (cellId == QStringLiteral("circuit_mode"))  return tr("Circuit Mode");
     if (cellId == QStringLiteral("po2_cell1"))     return tr("PO2 Cell 1");
     if (cellId == QStringLiteral("po2_cell2"))     return tr("PO2 Cell 2");
     if (cellId == QStringLiteral("po2_cell3"))     return tr("PO2 Cell 3");

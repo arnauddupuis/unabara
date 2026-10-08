@@ -49,6 +49,7 @@ class OverlayGenerator : public QObject, public IFrameGenerator
     Q_PROPERTY(bool showPO2Cell2 READ showPO2Cell2 WRITE setShowPO2Cell2 NOTIFY showPO2Cell2Changed)
     Q_PROPERTY(bool showPO2Cell3 READ showPO2Cell3 WRITE setShowPO2Cell3 NOTIFY showPO2Cell3Changed)
     Q_PROPERTY(bool showCompositePO2 READ showCompositePO2 WRITE setShowCompositePO2 NOTIFY showCompositePO2Changed)
+    Q_PROPERTY(bool showCircuitMode READ showCircuitMode WRITE setShowCircuitMode NOTIFY showCircuitModeChanged)
 
     // Cell selection for per-cell editing
     Q_PROPERTY(QString selectedCellId READ selectedCellId WRITE setSelectedCellId NOTIFY selectedCellIdChanged)
@@ -103,6 +104,7 @@ public:
     bool showPO2Cell2() const { return m_showPO2Cell2; }
     bool showPO2Cell3() const { return m_showPO2Cell3; }
     bool showCompositePO2() const { return m_showCompositePO2; }
+    bool showCircuitMode() const { return m_showCircuitMode; }
 
     // Cell selection getter
     QString selectedCellId() const { return m_selectedCellId; }
@@ -153,6 +155,7 @@ public:
     void setShowPO2Cell2(bool show);
     void setShowPO2Cell3(bool show);
     void setShowCompositePO2(bool show);
+    void setShowCircuitMode(bool show);
 
     // Cell selection setter
     void setSelectedCellId(const QString& cellId);
@@ -279,6 +282,12 @@ public:
     // Generate a preview image
     Q_INVOKABLE QImage generatePreview(DiveData* dive);
 
+    // Generate display text for a cell (matches CellModel::formatValue for QML
+    // consistency). Public so tests can lock the per-type text contract in.
+    QString generateCellDisplayText(Unabara::CellType cellType, const DiveDataPoint& dataPoint,
+                                    int tankIndex, DiveData* dive,
+                                    bool showLabel = true) const;
+
     // IFrameGenerator
     QImage generate(DiveData* dive, double timePoint) override { return generateOverlay(dive, timePoint); }
     
@@ -308,6 +317,7 @@ signals:
     void showPO2Cell2Changed();
     void showPO2Cell3Changed();
     void showCompositePO2Changed();
+    void showCircuitModeChanged();
 
     // Cell-based layout signals
     void cellsChanged();
@@ -361,6 +371,7 @@ private:
     bool m_showPO2Cell2;
     bool m_showPO2Cell3;
     bool m_showCompositePO2;
+    bool m_showCircuitMode;
 
     // Cell-based layout
     QVector<Unabara::CellData> m_cells;
@@ -432,11 +443,6 @@ private:
                                 const DiveDataPoint& dataPoint, DiveData* dive);
     void renderSectionBasedOverlay(QPainter& painter, const QSize& imageSize,
                                    const DiveDataPoint& dataPoint, DiveData* dive);
-
-    // Generate display text for a cell (matches CellModel::formatValue for QML consistency)
-    QString generateCellDisplayText(Unabara::CellType cellType, const DiveDataPoint& dataPoint,
-                                    int tankIndex, DiveData* dive,
-                                    bool showLabel = true) const;
 };
 
 #endif // OVERLAY_GEN_H

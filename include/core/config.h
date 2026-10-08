@@ -46,6 +46,7 @@ class Config : public QObject
     Q_PROPERTY(bool showPO2Cell2 READ showPO2Cell2 WRITE setShowPO2Cell2 NOTIFY showPO2Cell2Changed)
     Q_PROPERTY(bool showPO2Cell3 READ showPO2Cell3 WRITE setShowPO2Cell3 NOTIFY showPO2Cell3Changed)
     Q_PROPERTY(bool showCompositePO2 READ showCompositePO2 WRITE setShowCompositePO2 NOTIFY showCompositePO2Changed)
+    Q_PROPERTY(bool showCircuitMode READ showCircuitMode WRITE setShowCircuitMode NOTIFY showCircuitModeChanged)
     
     // Template directory
     Q_PROPERTY(QString templateDirectory READ templateDirectory WRITE setTemplateDirectory NOTIFY templateDirectoryChanged)
@@ -162,7 +163,10 @@ public:
     
     bool showCompositePO2() const;
     void setShowCompositePO2(bool show);
-    
+
+    bool showCircuitMode() const;
+    void setShowCircuitMode(bool show);
+
     // Template directory
     QString templateDirectory() const;
     void setTemplateDirectory(const QString &path);
@@ -305,6 +309,7 @@ signals:
     void showPO2Cell2Changed();
     void showPO2Cell3Changed();
     void showCompositePO2Changed();
+    void showCircuitModeChanged();
 
     void cameraPairingsChanged();
 
@@ -375,6 +380,7 @@ private:
     bool m_showPO2Cell2;
     bool m_showPO2Cell3;
     bool m_showCompositePO2;
+    bool m_showCircuitMode;
 
     // Profile settings
     QColor m_profileBackgroundColor;

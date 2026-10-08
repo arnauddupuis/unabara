@@ -64,7 +64,8 @@ ColumnLayout {
         { id: "po2_cell1",     flag: "showPO2Cell1" },
         { id: "po2_cell2",     flag: "showPO2Cell2" },
         { id: "po2_cell3",     flag: "showPO2Cell3" },
-        { id: "composite_po2", flag: "showCompositePO2" }
+        { id: "composite_po2", flag: "showCompositePO2" },
+        { id: "circuit_mode",  flag: "showCircuitMode" }
     ]
 
     function toggleSelection(cellId) {

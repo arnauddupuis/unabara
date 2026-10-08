@@ -61,6 +61,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
     , m_showCompositePO2(false)
+    , m_showCircuitMode(false)
     , m_useCellBasedLayout(false)
     // Off by default: the interactive editor draws its own cell backgrounds
     // in QML, and every C++ render path (image provider, exporters,
@@ -95,6 +96,7 @@ OverlayGenerator::OverlayGenerator(QObject *parent)
     m_showPO2Cell2 = config->showPO2Cell2();
     m_showPO2Cell3 = config->showPO2Cell3();
     m_showCompositePO2 = config->showCompositePO2();
+    m_showCircuitMode = config->showCircuitMode();
 
     // Connect to config changes to stay in sync
     connect(config, &Config::backgroundOpacityChanged, this, [this]() {
@@ -580,6 +582,16 @@ void OverlayGenerator::setShowCompositePO2(bool show)
         m_showCompositePO2 = show;
         // Note: Cell regeneration is handled by QML with dive data
         emit showCompositePO2Changed();
+    }
+}
+
+void OverlayGenerator::setShowCircuitMode(bool show)
+{
+    UNABARA_ASSERT_GUI_THREAD();
+    if (m_showCircuitMode != show) {
+        m_showCircuitMode = show;
+        // Note: Cell regeneration is handled by QML with dive data
+        emit showCircuitModeChanged();
     }
 }
 
@@ -1241,6 +1253,7 @@ void OverlayGenerator::setCellTypeVisible(const QString& cellId, bool visible)
         {"po2_cell2", Unabara::CellType::PO2Cell2},
         {"po2_cell3", Unabara::CellType::PO2Cell3},
         {"composite_po2", Unabara::CellType::CompositePO2},
+        {"circuit_mode", Unabara::CellType::CircuitMode},
     };
     if (!idToType.contains(cellId)) {
         qWarning() << "setCellTypeVisible: Unknown cell id:" << cellId;
@@ -1440,6 +1453,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     m_showPO2Cell2 = false;
     m_showPO2Cell3 = false;
     m_showCompositePO2 = false;
+    m_showCircuitMode = false;
 
     // Update visibility flags from cells that exist in the template
     for (const auto& cell : m_cells) {
@@ -1475,6 +1489,8 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
             m_showPO2Cell3 = cell.visible();
         } else if (cell.cellType() == Unabara::CellType::CompositePO2) {
             m_showCompositePO2 = cell.visible();
+        } else if (cell.cellType() == Unabara::CellType::CircuitMode) {
+            m_showCircuitMode = cell.visible();
         }
     }
 
@@ -1499,6 +1515,7 @@ void OverlayGenerator::loadTemplate(const Unabara::OverlayTemplate& templ)
     emit showPO2Cell2Changed();
     emit showPO2Cell3Changed();
     emit showCompositePO2Changed();
+    emit showCircuitModeChanged();
 }
 
 Unabara::OverlayTemplate OverlayGenerator::exportTemplate() const
@@ -1838,6 +1855,7 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     if (m_showPO2Cell2) po2CellCount++;
     if (m_showPO2Cell3) po2CellCount++;
     if (m_showCompositePO2) po2CellCount++;
+    if (m_showCircuitMode) po2CellCount++;
 
     if (po2CellCount > 0) {
         double po2YPos = 0.5;  // Below first row with spacing
@@ -1883,6 +1901,17 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
             cell.setFont(m_font, false);
             seedCellColors(cell);
             cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CompositePO2, m_font, templateSize));
+            cell.setVisible(true);
+            m_cells.append(cell);
+            po2Section++;
+        }
+
+        if (m_showCircuitMode) {
+            Unabara::CellData cell("circuit_mode", Unabara::CellType::CircuitMode);
+            cell.setPosition(QPointF(po2Section * po2SectionWidth, po2YPos));
+            cell.setFont(m_font, false);
+            seedCellColors(cell);
+            cell.setCalculatedSize(calculateCellSize(Unabara::CellType::CircuitMode, m_font, templateSize));
             cell.setVisible(true);
             m_cells.append(cell);
             po2Section++;
@@ -2151,6 +2180,21 @@ QString OverlayGenerator::generateCellDisplayText(Unabara::CellType cellType,
             }
         }
         return format("GAS", value);
+    }
+
+    case Unabara::CellType::CircuitMode: {
+        // CC/BO/OC from DiveData::circuitModeAtTime (held semantics — the
+        // single source for circuit mode, never re-derived here). Always
+        // shows a value: three states, no blank case, unit-independent.
+        QString value = QStringLiteral("OC");
+        if (dive) {
+            switch (dive->circuitModeAtTime(dataPoint.timestamp)) {
+            case DiveData::OnLoop:    value = QStringLiteral("CC"); break;
+            case DiveData::BailedOut: value = QStringLiteral("BO"); break;
+            case DiveData::OnOpenCircuit: break;
+            }
+        }
+        return format("CIRCUIT MODE", value);
     }
 
     default:
@@ -2801,6 +2845,10 @@ QSizeF OverlayGenerator::calculateCellSize(Unabara::CellType cellType, const QFo
             case Unabara::CellType::StopTime:
                 header = tr("TIME");
                 value = "99 min";        // Sized for the populated (in-deco) state
+                break;
+            case Unabara::CellType::CircuitMode:
+                header = tr("CIRCUIT MODE");
+                value = "CC";            // CC / BO / OC — all two characters wide
                 break;
             default:
                 header = "UNKNOWN";

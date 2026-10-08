@@ -1,6 +1,19 @@
 {
     "releases": [
         {
+            "version": "0.3.1",
+            "highlights": [
+                {
+                    "title": "Circuit Mode cell",
+                    "description": "A new Circuit Mode cell for rebreather dives shows at a glance whether you are on the loop (CC), bailed out (BO), or on open circuit (OC) — following your dive computer's mode changes and gas switches. Add it from the Cells section's CCR group.",
+                    "showMe": "cells_section"
+                }
+            ],
+            "changes": [
+                "Subsurface and FIT imports now carry each cylinder's gas role (diluent, oxygen, open-circuit gas), so bailouts are detected from gas switches even without explicit mode-change events."
+            ]
+        },
+        {
             "version": "0.3.0",
             "highlights": [
                 {

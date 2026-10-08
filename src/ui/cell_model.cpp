@@ -474,6 +474,21 @@ QString CellModel::formatValue(Unabara::CellType type, const DiveDataPoint& data
         return format("GAS", value);
     }
 
+    case Unabara::CellType::CircuitMode: {
+        // CC/BO/OC from DiveData::circuitModeAtTime (held semantics — the
+        // single source for circuit mode, never re-derived here). Always
+        // shows a value: three states, no blank case, unit-independent.
+        QString value = QStringLiteral("OC");
+        if (m_dive) {
+            switch (m_dive->circuitModeAtTime(dataPoint.timestamp)) {
+            case DiveData::OnLoop:    value = QStringLiteral("CC"); break;
+            case DiveData::BailedOut: value = QStringLiteral("BO"); break;
+            case DiveData::OnOpenCircuit: break;
+            }
+        }
+        return format("CIRCUIT MODE", value);
+    }
+
     default:
         return "Unknown";
     }

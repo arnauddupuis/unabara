@@ -32,6 +32,45 @@ const char kTwoDives[] = R"(<divelog program='subsurface' version='3'>
 </dives>
 </divelog>)";
 
+// A CCR dive with role-marked cylinders, a bailout gas switch, and an
+// explicit modechange event pair (no real fixture logs modechange yet)
+const char kCcrDive[] = R"(<divelog program='subsurface' version='3'>
+<dives>
+<dive number='9' date='2026-03-03' time='09:00:00'>
+  <cylinder size='2.0 l' description='O2' o2='99.0%' use='oxygen' />
+  <cylinder size='11.1 l' description='AL80' o2='32.0%' use='diluent' />
+  <cylinder size='11.1 l' description='AL80' o2='32.0%' />
+  <cylinder size='11.1 l' description='pony' o2='21.0%' use='not used' />
+  <divecomputer model='Test CCR' dctype='CCR'>
+    <sample time='0:00 min' depth='0.0 m' temp='18.0 C' />
+    <event time='0:10 min' name='gaschange' cylinder='1' />
+    <sample time='5:00 min' depth='20.0 m' />
+    <event time='10:00 min' name='gaschange' cylinder='2' />
+    <event time='12:00 min' name='modechange' divemode='OC' />
+    <event time='15:00 min' name='modechange' divemode='CCR' />
+    <sample time='20:00 min' depth='5.0 m' />
+  </divecomputer>
+</dive>
+</dives>
+</divelog>)";
+
+// A CCR dive whose only role marking is the oxygen cylinder — must still
+// be recognized as closed-circuit (oxygen is as strong a CCR cue as diluent)
+const char kOxygenOnlyCcrDive[] = R"(<divelog program='subsurface' version='3'>
+<dives>
+<dive number='10' date='2026-03-04' time='09:00:00'>
+  <cylinder size='2.0 l' description='O2' o2='99.0%' use='oxygen' />
+  <cylinder size='11.1 l' description='AL80' o2='32.0%' />
+  <divecomputer model='Test CCR' dctype='CCR'>
+    <sample time='0:00 min' depth='0.0 m' temp='18.0 C' />
+    <sample time='5:00 min' depth='20.0 m' />
+    <event time='10:00 min' name='gaschange' cylinder='1' />
+    <sample time='20:00 min' depth='5.0 m' />
+  </divecomputer>
+</dive>
+</dives>
+</divelog>)";
+
 QList<DiveData *> parseXml(const QByteArray &xml, int specificDive, QString &err)
 {
     QTemporaryFile tmp;
@@ -123,6 +162,87 @@ private slots:
         DiveData *d = dives.first();
         QCOMPARE(d->activeCylinderAtTime(60.0), 0);
         QCOMPARE(d->activeCylinderAtTime(150.0), 1);
+        qDeleteAll(dives);
+    }
+
+    void cylinderRolesAndCircuitMode()
+    {
+        QString err;
+        auto dives = parseXml(kCcrDive, 9, err);
+        QVERIFY2(err.isEmpty(), qPrintable(err));
+        QCOMPARE(dives.size(), 1);
+        DiveData *d = dives.first();
+
+        // The diluent cylinder is the CCR cue
+        QCOMPARE(d->diveMode(), DiveData::ClosedCircuit);
+        QCOMPARE(d->cylinderInfo(0).use, CylinderInfo::Oxygen);
+        QCOMPARE(d->cylinderInfo(1).use, CylinderInfo::Diluent);
+        QCOMPARE(d->cylinderInfo(2).use, CylinderInfo::OcGas); // no 'use' attribute
+        QCOMPARE(d->cylinderInfo(3).use, CylinderInfo::NotUsed);
+
+        // Cylinder derivation: oxygen (default cyl 0) then diluent = on loop
+        QCOMPARE(d->circuitModeAtTime(0.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(300.0), DiveData::OnLoop);
+        // Bailout switch to the role-less AL80 at 10:00
+        QCOMPARE(d->circuitModeAtTime(599.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(600.0), DiveData::BailedOut);
+        // modechange OC at 12:00 confirms it; modechange CCR at 15:00 puts
+        // the diver back on the loop even though no gaschange was logged
+        QCOMPARE(d->circuitModeAtTime(720.0), DiveData::BailedOut);
+        QCOMPARE(d->circuitModeAtTime(899.0), DiveData::BailedOut);
+        QCOMPARE(d->circuitModeAtTime(900.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(1200.0), DiveData::OnLoop);
+        qDeleteAll(dives);
+    }
+
+    void oxygenUseAloneIsCcrCue()
+    {
+        QString err;
+        auto dives = parseXml(kOxygenOnlyCcrDive, 10, err);
+        QVERIFY2(err.isEmpty(), qPrintable(err));
+        QCOMPARE(dives.size(), 1);
+        DiveData *d = dives.first();
+
+        QCOMPARE(d->diveMode(), DiveData::ClosedCircuit);
+        QCOMPARE(d->cylinderInfo(0).use, CylinderInfo::Oxygen);
+        // On the loop (oxygen cyl 0 by default) until the bailout switch
+        QCOMPARE(d->circuitModeAtTime(300.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(600.0), DiveData::BailedOut);
+        qDeleteAll(dives);
+    }
+
+    // ---- Local-only tier (skipped when sample logs are absent) ----
+
+    void breakwaterCoveBailout()
+    {
+        // Real CCR bailout dive (Shearwater Petrel 3): oxygen (0), diluent
+        // (1), AL80 bailout (2). Gas switches: 0:10 -> diluent, 102:40 ->
+        // bailout. Ground truth: CC through 102:39, BO from 102:40 on.
+        const QDir dir(QStringLiteral(TEST_DATA_DIR));
+        const QString path = dir.filePath(QStringLiteral("2026-02-01-Breakwater_cove.ssrf"));
+        if (!QFile::exists(path)) {
+            QSKIP("no Breakwater_cove sample in tests/data");
+        }
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        SubsurfaceParser parser;
+        QString err;
+        auto dives = parser.parse(f, 148, err);
+        QVERIFY2(err.isEmpty(), qPrintable(err));
+        QCOMPARE(dives.size(), 1);
+        DiveData *d = dives.first();
+
+        QCOMPARE(d->diveMode(), DiveData::ClosedCircuit);
+        QCOMPARE(d->cylinderCount(), 3);
+        QCOMPARE(d->cylinderInfo(0).use, CylinderInfo::Oxygen);
+        QCOMPARE(d->cylinderInfo(1).use, CylinderInfo::Diluent);
+        QCOMPARE(d->cylinderInfo(2).use, CylinderInfo::OcGas);
+
+        QCOMPARE(d->circuitModeAtTime(60.0), DiveData::OnLoop);
+        QCOMPARE(d->circuitModeAtTime(6150.0), DiveData::OnLoop);
+        // Bailout at 102:40 = 6160 s, held to the end of the dive (106:20)
+        QCOMPARE(d->circuitModeAtTime(6160.0), DiveData::BailedOut);
+        QCOMPARE(d->circuitModeAtTime(6380.0), DiveData::BailedOut);
         qDeleteAll(dives);
     }
 

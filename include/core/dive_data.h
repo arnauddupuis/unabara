@@ -74,6 +74,16 @@ struct DiveDataPoint {
 
 // Represents a cylinder (tank) used in a dive
 struct CylinderInfo {
+    // Role of the cylinder's gas in the dive (Subsurface cylinder 'use'
+    // attribute / FIT dive_gas mode). OcGas covers both plain open-circuit
+    // dives and CCR bailout cylinders — the log carries no finer distinction.
+    enum CylinderUse {
+        OcGas = 0,   // no role recorded: OC gas (or CCR bailout)
+        Diluent,     // CCR diluent
+        Oxygen,      // CCR oxygen
+        NotUsed      // carried but never breathed
+    };
+
     int index;              // Index of this cylinder in the dive
     QString description;    // Cylinder description (e.g., "AL80")
     double size;            // Cylinder size in liters
@@ -82,15 +92,23 @@ struct CylinderInfo {
     double hePercent;       // Helium percentage (for trimix)
     double startPressure;   // Starting pressure in bar
     double endPressure;     // Ending pressure in bar
-    
-    CylinderInfo() 
+    CylinderUse use;        // Gas role (default: OC gas)
+
+    CylinderInfo()
         : index(0), size(0.0), workPressure(0.0), o2Percent(21.0), hePercent(0.0),
-          startPressure(0.0), endPressure(0.0) {}
+          startPressure(0.0), endPressure(0.0), use(OcGas) {}
 };
 
 struct GasSwitch {
     double timestamp;  // Time in seconds when switch occurred
     int cylinderIndex; // Which cylinder was switched to
+};
+
+// Explicit dive-computer mode-change event (Subsurface 'modechange'):
+// overrides the cylinder-derived circuit mode from its timestamp onward.
+struct CircuitModeOverride {
+    double timestamp;  // Time in seconds when the mode change occurred
+    int status;        // DiveData::CircuitMode value
 };
 
 class DiveData : public QObject
@@ -117,6 +135,16 @@ public:
         ClosedCircuit = 2
     };
     Q_ENUM(DiveMode)
+
+    // Per-time circuit mode: what the diver is breathing from at a given
+    // moment. OC dives are OnOpenCircuit throughout; CCR dives are OnLoop
+    // while breathing a diluent/oxygen cylinder and BailedOut on any other.
+    enum CircuitMode {
+        OnOpenCircuit = 0,  // open-circuit dive
+        OnLoop = 1,         // CCR diver on the loop
+        BailedOut = 2       // CCR diver bailed out to open circuit
+    };
+    Q_ENUM(CircuitMode)
 
     explicit DiveData(QObject *parent = nullptr);
 
@@ -172,7 +200,16 @@ public:
 
     // Public method to add a gas switch
     void addGasSwitch(double timestamp, int cylinderIndex);
-    
+
+    // Circuit mode (CC/BO/OC) — held semantics like ceiling/stopTime: the
+    // state changes exactly at a gas switch or mode-change timestamp, never
+    // interpolated.
+    Q_INVOKABLE CircuitMode circuitModeAtTime(double timestamp) const;
+    // Explicit mode-change event (e.g. Subsurface 'modechange'): overrides
+    // the cylinder-derived status from 'timestamp' onward (until the next
+    // override). Ignored on non-CCR dives, where the status is always OC.
+    void addCircuitModeOverride(double timestamp, CircuitMode status);
+
 signals:
     void diveNameChanged();
     void startTimeChanged();
@@ -196,6 +233,7 @@ private:
     QVector<DiveDataPoint> m_dataPoints;
     QVector<CylinderInfo> m_cylinders;
     QList<GasSwitch> m_gasSwitches;
+    QList<CircuitModeOverride> m_circuitModeOverrides;
     mutable QMap<int, double> m_lastInterpolatedPressures;
 };
 

@@ -258,6 +258,7 @@ FitParser::Metadata FitParser::collectMetadata(const QList<FitMessage> &messages
         CylinderInfo cylinder = it.value();
         cylinder.index = meta.cylinders.size();
         if (gasIsDiluent.value(it.key(), false)) {
+            cylinder.use = CylinderInfo::Diluent;
             cylinder.description += QStringLiteral(" (diluent)");
         }
         meta.gasIndexToCylinder.insert(it.key(), cylinder.index);

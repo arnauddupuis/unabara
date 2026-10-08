@@ -7,6 +7,26 @@
 
 #include <algorithm>
 
+namespace {
+
+// Subsurface event 'time' attribute: "M:SS min" or a plain seconds value.
+// Shared by the gaschange and modechange event handlers so the two can
+// never drift apart.
+double parseEventTime(const QString &timeStr)
+{
+    static const QRegularExpression timeRe(QStringLiteral("(\\d+):(\\d+)\\s+min"));
+    const QRegularExpressionMatch match = timeRe.match(timeStr);
+    if (match.hasMatch()) {
+        return match.captured(1).toInt() * 60 + match.captured(2).toInt();
+    }
+
+    bool ok = false;
+    const double timestamp = timeStr.toDouble(&ok);
+    return ok ? timestamp : 0.0;
+}
+
+} // namespace
+
 SubsurfaceParser::SubsurfaceParser() = default;
 
 bool SubsurfaceParser::canParse(QFile &file) const
@@ -312,8 +332,15 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
     if (attrs.hasAttribute("use")) {
         const QString useStr = attrs.value("use").toString().toLower();
         if (useStr == QLatin1String("diluent")) {
+            cylinder.use = CylinderInfo::Diluent;
             m_currentDiveHasCcrCues = true;
+        } else if (useStr == QLatin1String("oxygen")) {
+            cylinder.use = CylinderInfo::Oxygen;
+            m_currentDiveHasCcrCues = true;
+        } else if (useStr == QLatin1String("not used")) {
+            cylinder.use = CylinderInfo::NotUsed;
         }
+        // Anything else (including absent) stays OcGas
     }
 
     double initialPressure = 0.0;
@@ -413,28 +440,31 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
 
                 if (eventAttrs.hasAttribute("name") && eventAttrs.value("name") == QStringLiteral("gaschange")) {
                     if (eventAttrs.hasAttribute("time") && eventAttrs.hasAttribute("cylinder")) {
-                        QString timeStr = eventAttrs.value("time").toString();
-                        double timestamp = 0.0;
-
-                        QRegularExpression timeRe("(\\d+):(\\d+)\\s+min");
-                        QRegularExpressionMatch match = timeRe.match(timeStr);
-
-                        if (match.hasMatch()) {
-                            int minutes = match.captured(1).toInt();
-                            int seconds = match.captured(2).toInt();
-                            timestamp = minutes * 60 + seconds;
-                        } else {
-                            bool ok;
-                            timestamp = timeStr.toDouble(&ok);
-                            if (!ok) timestamp = 0.0;
-                        }
-
+                        double timestamp = parseEventTime(eventAttrs.value("time").toString());
                         int cylinderIndex = eventAttrs.value("cylinder").toInt();
 
                         dive->addGasSwitch(timestamp, cylinderIndex);
 
                         qDebug() << "Parsed gas switch at time" << timestamp
                                  << "to cylinder" << cylinderIndex;
+                    }
+                } else if (eventAttrs.hasAttribute("name") && eventAttrs.value("name") == QStringLiteral("modechange")) {
+                    // Explicit dive-computer mode change: on a CCR dive,
+                    // 'OC' means bailed out; any rebreather mode (CCR/PSCR)
+                    // means back on the loop. Overrides the cylinder-derived
+                    // circuit mode from this timestamp onward.
+                    if (eventAttrs.hasAttribute("time") && eventAttrs.hasAttribute("divemode")) {
+                        double timestamp = parseEventTime(eventAttrs.value("time").toString());
+                        const QString mode = eventAttrs.value("divemode").toString();
+                        const DiveData::CircuitMode status =
+                            (mode.compare(QLatin1String("OC"), Qt::CaseInsensitive) == 0)
+                                ? DiveData::BailedOut
+                                : DiveData::OnLoop;
+
+                        dive->addCircuitModeOverride(timestamp, status);
+
+                        qDebug() << "Parsed mode change at time" << timestamp
+                                 << "to" << mode;
                     }
                 }
 

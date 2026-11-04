@@ -1,21 +1,52 @@
 #include "include/export/video_export.h"
 #include "include/export/export_math.h"
-#include <QDateTime>
-#include <QStandardPaths>
-#include <QRegularExpression>
+#include "include/export/ffmpeg_args.h"
+#include "include/export/frame_compositor.h"
+#include "include/core/ffmpeg_info.h"
+#include "include/core/ffmpeg_probe.h"
+#include "include/core/video_clip.h"
+#include "include/core/video_probe.h"
+#include "include/core/color_grade.h"
+#include "include/core/color_grade_export.h"
+#include "include/core/color_utils.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
 #include <QDebug>
 #include <QTimer>
-#include <QPointer>
-#include <QJsonDocument>
-#include <QJsonObject>
+
+namespace {
+// Deterministic conversion to the pipe's pixel format. A premultiplied
+// source converted straight through QImage::convertToFormat() would go
+// through Qt's vendor-dependent RCPPS unpremultiply (the golden-render
+// CPU-determinism root cause, CLAUDE.md); the placed-overlays mode ships
+// straight alpha from a premultiplied compositor plane, so route that
+// case through the exact-integer ColorUtils::unpremultipliedArgb32().
+// Every other combination convertToFormat performs is a pure byte
+// swizzle (or an opaque fill) and stays on the fast path.
+QImage toPipeFormat(const QImage& img, QImage::Format target)
+{
+    if (img.format() == target)
+        return img;
+    const bool srcPremultiplied =
+        img.format() == QImage::Format_ARGB32_Premultiplied
+        || img.format() == QImage::Format_RGBA8888_Premultiplied;
+    if (srcPremultiplied && target == QImage::Format_RGBA8888) {
+        const QImage argbPm =
+            img.format() == QImage::Format_ARGB32_Premultiplied
+                ? img
+                : img.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        return Unabara::ColorUtils::unpremultipliedArgb32(argbPm)
+            .convertToFormat(QImage::Format_RGBA8888);
+    }
+    return img.convertToFormat(target);
+}
+} // namespace
 
 VideoExporter::VideoExporter(QObject *parent)
     : QObject(parent)
     , m_frameRate(30.0)  // Default 30 frames per second for video
-    , m_videoBitrate(8000) // Default 8Mbps
+    , m_videoQuality("standard") // Quality tier (FFmpegArgs tables); "standard" == the historical fixed CRF 23
     , m_videoCodec("vp9") // Default VP9 codec (supports transparency for compositing)
     , m_progress(0)
     , m_busy(false)
@@ -24,16 +55,10 @@ VideoExporter::VideoExporter(QObject *parent)
 {
     // The base directory the output file lands in is bound from QML
     // (config.lastExportPath) — the exporter never touches the settings
-    // store itself. No directory is created here.
-
-    // Create the temporary directory
-    if (!m_tempDir.isValid()) {
-        qWarning() << "Failed to create temporary directory for frame storage";
-    }
-
-    m_progressTimer = new QTimer(this);
-    connect(m_progressTimer, &QTimer::timeout, this, &VideoExporter::updateEncodingProgress);
-
+    // store itself. No directory is created here. Frames stream straight to
+    // FFmpeg's stdin (PR B2); m_tempDir is the colour-grade work
+    // directory (baked .cube + sendcmd files, PR C5 — see the member
+    // comment in the header).
 }
 
 VideoExporter::~VideoExporter()
@@ -66,12 +91,20 @@ void VideoExporter::setFrameRate(double fps)
     }
 }
 
-void VideoExporter::setVideoBitrate(int bitrate)
+void VideoExporter::setVideoQuality(const QString &quality)
 {
-    if (m_videoBitrate != bitrate) {
-        m_videoBitrate = bitrate;
-        emit videoBitrateChanged();
+    if (m_videoQuality != quality) {
+        m_videoQuality = quality;
+        emit videoQualityChanged();
     }
+}
+
+void VideoExporter::setColorFilterChain(const QString &snippet)
+{
+    // One-shot by design (v0.4 plan: "Snippet cleared after each run"):
+    // exportComposite() consumes and clears it at run start, so it must be
+    // set again before every export it should apply to.
+    m_colorFilterChain = snippet;
 }
 
 void VideoExporter::setVideoCodec(const QString &codec)
@@ -96,68 +129,18 @@ bool VideoExporter::isFFmpegAvailable()
     return !ffmpegPath.isEmpty();
 }
 
-QString VideoExporter::ffmpegCommandName()
-{
-#ifdef Q_OS_WIN
-    return "ffmpeg.exe";
-#else
-    return "ffmpeg";
-#endif
-}
-
-QStringList VideoExporter::listFfmpegPossiblePaths()
-{
-#ifdef Q_OS_WIN
-    return {
-        "C:/Program Files/ffmpeg/bin/",
-        "C:/Program Files (x86)/ffmpeg/bin/"
-    };
-#endif
-#ifdef Q_OS_APPLE
-    return {
-        "/opt/homebrew/bin/",
-        "/usr/local/bin/",
-    };
-#else
-    return {
-        "/usr/local/bin/",
-    };
-#endif
-}
-
 QString VideoExporter::findFFmpegPath()
 {
-    QString ffmpegCommand = ffmpegCommandName();
-
-    // First, try to find FFmpeg packaged in our app directory
-    QString appDir = QCoreApplication::applicationDirPath();
-    QFileInfo ffmpegFile(appDir + "/" + ffmpegCommand);
-
-    if (ffmpegFile.exists() && ffmpegFile.isExecutable()) {
-        return ffmpegFile.absoluteFilePath();
-    }
-
-    // Next, try "standard" user install paths like brew dest dir or /usr/local
-    // for manual builds when you donàt override the defaults
-    QStringList userPaths = listFfmpegPossiblePaths();
-    QString path = QStandardPaths::findExecutable(ffmpegCommand, userPaths);
-    if (!path.isEmpty()) {
-        return path;
-    }
-
-    // Finally, try standard system paths
-    path = QStandardPaths::findExecutable(ffmpegCommand);
-    if (!path.isEmpty()) {
-        return path;
-    }
-
-    return QString();
+    // Single app-wide locator (discovery order, sibling ffprobe resolution
+    // and capability probing all live there).
+    return FFmpegProbe::instance()->ffmpegPath();
 }
 
 QStringList VideoExporter::getAvailableCodecs()
 {
-    // Return a list of supported codecs
-    return QStringList() << "vp9" << "prores" << "h264" << "hevc";
+    // Canonical list lives in FfmpegInfo (whose availableCodecs() filters
+    // it by the probed encoders for the export dialog).
+    return FfmpegInfo::allCodecIds();
 }
 
 bool VideoExporter::codecSupportsAlpha(const QString &codec)
@@ -186,9 +169,6 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
     qDebug() << "======== EXPORT VIDEO CALLED ========";
     qDebug() << "Parameters:" << startTime << "to" << endTime;
 
-    m_exportStartTime = startTime;
-    m_exportEndTime = endTime;
-
     if (m_busy) {
         emit exportError(tr("Already exporting video"));
         return false;
@@ -213,11 +193,12 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
 
     m_busy = true;
     m_cancelRequested = false;
+    const int runSerial = ++m_runSerial;
     emit busyChanged();
 
     // Notify that export has started
     emit exportStarted();
-    emit statusUpdate(tr("Generating frames..."));
+    emit statusUpdate(tr("Rendering and encoding frames..."));
 
     // Create the export directory if it doesn't exist
     QDir dir(m_baseDirectory);
@@ -228,7 +209,7 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         emit busyChanged();
         return false;
     }
-    
+
     // Use the pre-generated output path (from createDefaultExportFile) or generate a new one
     QString outputPath;
     if (!m_pendingOutputPath.isEmpty()) {
@@ -239,46 +220,530 @@ bool VideoExporter::exportVideo(DiveData* dive, QObject* generator,
         outputPath = generateUniqueFileName(dive, extension);
     }
     m_lastOutputPath = outputPath;
-    
-    // Create a new temporary directory for this export
-    // Make sure we create a fresh temporary directory for each export attempt
-    cleanupTempFiles();
-    m_tempDir = QTemporaryDir();
-    
-    if (!m_tempDir.isValid()) {
-        emit exportError(tr("Failed to create temporary directory for frame storage"));
+
+    // Interleaved render-and-encode run (PR B2): FFmpeg starts first, reading
+    // raw RGBA frames from stdin, and the loop below streams each rendered
+    // frame into the pipe — no temporary PNG files, one progress phase.
+    //
+    // Integer frame loop (ExportMath::frameTime): frame i's timestamp is
+    // computed by multiplication, so exactly totalFrames frames enter the
+    // pipe — a float-accumulated `t += 1/fps` loop drifted into N or N+1
+    // frames depending on the range's absolute values. The container's
+    // nb_frames is now exact.
+    // Captured once: the pumped event loop below could otherwise observe a
+    // mid-run setFrameRate() and desync rendered timestamps from the
+    // -framerate the pipe was started with (same capture discipline as
+    // ImageExporter's destination directory).
+    const double fps = m_frameRate;
+    const int totalFrames = ExportMath::totalFrames(startTime, endTime, fps);
+    m_totalFrames = totalFrames;
+    m_renderedFrames = 0;
+    m_encodedFrames = 0;
+    m_pipeErrorMessage.clear();
+    m_progress = 0;
+    emit progressChanged();
+
+    qDebug() << "Streaming frames from" << startTime << "to" << endTime
+             << "at" << fps << "fps (" << totalFrames << "frames)";
+
+    // Stage any export-only generator state (IFrameGenerator contract;
+    // currently a no-op for both generators).
+    gen->beginExport();
+
+    // Render the first frame up front: its size defines the raw pipe's
+    // WxH (the generator renders at template resolution, fixed per run).
+    // Straight (non-premultiplied) RGBA8888, per the -pix_fmt rgba input
+    // contract: prores/vp9 carry the alpha through; h264/hevc drop it in
+    // the rgba→yuv420p output conversion, exactly as the PNG path did.
+    //
+    // Pre-dive first frame (ExportMath::isPreDiveTime; mirrored in
+    // ImageExporter::exportImageRange and in streamFrames below): the
+    // generator is NOT asked for t < 0 — dataAtTime would clamp to sample 0
+    // and burn a frozen t=0 overlay. A single sizing render at t = 0 fixes
+    // the pipe geometry and frame 0 ships fully transparent. A real image,
+    // never a null one: null means "generation failed" here (and "repeat
+    // the previous frame" in the loop).
+    const double firstTime = ExportMath::frameTime(startTime, 0, fps);
+    QImage firstFrame;
+    if (ExportMath::isPreDiveTime(firstTime)) {
+        const QImage sizing = gen->generate(dive, 0.0);
+        if (!sizing.isNull()) {
+            firstFrame = QImage(sizing.size(), QImage::Format_RGBA8888);
+            firstFrame.fill(Qt::transparent);
+        }
+    } else {
+        firstFrame = toPipeFormat(gen->generate(dive, firstTime),
+                                  QImage::Format_RGBA8888);
+    }
+    if (firstFrame.isNull()) {
+        gen->endExport();
+        emit exportError(tr("Failed to generate the first frame"));
         m_busy = false;
         emit busyChanged();
         return false;
     }
-    
-    // First generate all the frames
-    bool framesGenerated = generateFrames(dive, gen, startTime, endTime);
-    if (!framesGenerated) {
-        cleanupTempFiles();
+    const QSize frameSize = firstFrame.size();
+
+    // One arg builder (FFmpegArgs, unit-tested in filtergraph_test): raw
+    // RGBA frames over stdin replace the PNG-sequence input. Built from the
+    // same captured fps the render loop times frames with.
+    const QStringList args = FFmpegArgs::overlayPipeArgs(
+        frameSize.width(), frameSize.height(),
+        FFmpegArgs::fpsToRational(fps),
+        m_videoCodec, m_videoQuality, m_customResolution, outputPath);
+
+    if (!startFFmpegProcess(args)) {
+        gen->endExport();
         m_busy = false;
         emit busyChanged();
-        // generateFrames() already emitted exportError() for real failures;
-        // a cancellation gets its own signal (the UI shows it as a toast,
-        // not an error dialog).
+        return false; // startFFmpegProcess() emitted exportError()
+    }
+
+    const StreamResult result = streamFrames(
+        dive, gen, totalFrames, frameSize, QImage::Format_RGBA8888,
+        [startTime, fps](int i) { return ExportMath::frameTime(startTime, i, fps); },
+        firstFrame, runSerial);
+    gen->endExport();
+    return finishRun(result, runSerial);
+}
+
+VideoExporter::StreamResult VideoExporter::streamFrames(
+    DiveData *dive, IFrameGenerator *gen, int totalFrames,
+    const QSize &frameSize, QImage::Format pixelFormat,
+    const std::function<double(int)> &timeOfFrame,
+    const QImage &firstFrame, int runSerial)
+{
+    // THE frame-streaming loop — overlay-only, placed and composited
+    // exports all run through here (one loop, per the extraction
+    // guardrail). From here on, every terminal outcome (success, error,
+    // cancel) is reported by onFFmpegFinished() when the process exits —
+    // this loop only feeds it and stops on cancel/death. NOTE (Windows
+    // caveat): stdin pipes of ~33 MB/frame at 4K are the least-exercised
+    // QProcess path on Windows; the backpressure spin below (bounded
+    // buffer + event pumping) is what keeps it safe, but it needs explicit
+    // verification on a real Windows box (plan: "Verify on Windows
+    // explicitly").
+    const qint64 frameBytes = qint64(frameSize.width()) * frameSize.height() * 4;
+    QImage previousFrame = firstFrame;
+    // Pre-dive frames (ExportMath::isPreDiveTime; mirrored in
+    // ImageExporter::exportImageRange): one fully transparent frame in the
+    // pipe's exact size and byte format, built once and reused — the
+    // generator is never asked for t < 0 (dataAtTime would clamp to sample
+    // 0 and burn a frozen t=0 overlay). Applies to every mode through this
+    // one loop; composites were already blank there (FrameCompositor gates
+    // the same rule), so their pipe bytes are unchanged — all-zero pixels
+    // are identical in straight and premultiplied RGBA.
+    QImage transparentFrame;
+    for (int i = 0; i < totalFrames; ++i) {
+        QImage frame;
+        if (i == 0) {
+            frame = firstFrame;
+        } else if (ExportMath::isPreDiveTime(timeOfFrame(i))) {
+            if (transparentFrame.isNull()) {
+                transparentFrame = QImage(frameSize, pixelFormat);
+                transparentFrame.fill(Qt::transparent);
+            }
+            frame = transparentFrame;
+        } else {
+            const double time = timeOfFrame(i);
+            frame = toPipeFormat(gen->generate(dive, time), pixelFormat);
+            if (frame.isNull()) {
+                // The pipe's frame count must stay exact (FFmpeg times frame
+                // i at i/fps): repeat the previous frame instead of skipping,
+                // which would shift every later frame earlier.
+                qWarning() << "Failed to generate frame at time:" << time
+                           << "- repeating previous frame";
+                frame = previousFrame;
+            } else if (frame.size() != frameSize) {
+                // Defensive: the generators render at a fixed size per run,
+                // but the pipe geometry is locked at frame 0 — a mismatched
+                // frame would corrupt the whole stream.
+                qWarning() << "Frame size changed mid-export:" << frame.size()
+                           << "- expected" << frameSize << "- rescaling";
+                // Re-convert after scaling: smooth-scaled QImages can come
+                // back ARGB32_Premultiplied, whose byte order would corrupt
+                // the 4-bytes-per-pixel pipe contract.
+                frame = toPipeFormat(frame.scaled(frameSize,
+                                                  Qt::IgnoreAspectRatio,
+                                                  Qt::SmoothTransformation),
+                                     pixelFormat);
+            }
+        }
+
+        if (!writeFramePixels(frame)) {
+            return StreamResult::PipeFailed;
+        }
+        previousFrame = frame;
+        m_renderedFrames = i + 1;
+        emitInterleavedStatus();
+
+        // Backpressure per the v0.4 plan: never buffer more than ~2 frames
+        // in the write channel; pump events while waiting so the UI, the
+        // Cancel button and FFmpeg's stdout/stderr/finished signals stay
+        // live even when the encoder is the bottleneck.
+        if (!waitForPipeDrain(frameBytes)) {
+            return StreamResult::PipeFailed;
+        }
+        // Even when the encoder keeps up (no drain spin ran), events must be
+        // pumped once per frame — this is what delivers a Cancel click.
+        QCoreApplication::processEvents();
+        // A processEvents/drain batch can deliver this run's death AND let
+        // a new export start (busy resets inside onFFmpegFinished). From
+        // then on m_ffmpegProcess belongs to the successor run: this loop
+        // must not write another byte into it, nor close its channel.
+        if (m_runSerial != runSerial)
+            return StreamResult::Superseded;
         if (m_cancelRequested) {
-            emit exportCancelled();
+            return StreamResult::Cancelled;
+        }
+    }
+    return StreamResult::Completed;
+}
+
+bool VideoExporter::finishRun(StreamResult result, int runSerial)
+{
+    if (result == StreamResult::Superseded) {
+        // A successor run owns m_ffmpegProcess now — touch nothing.
+        return false;
+    }
+
+    if (result == StreamResult::Cancelled) {
+        // cancelExport() normally terminated FFmpeg already (the Cancel
+        // click was delivered by a processEvents() in the loop, while the
+        // process was running), and its finished() delivery runs
+        // onFFmpegFinished(), whose cancel branch removes the partial
+        // output, resets busy and emits exportCancelled(). Emitting
+        // anything here would double-report. But if the flag was set before
+        // FFmpeg started (a synchronous subscriber of exportStarted/
+        // busyChanged calling cancelExport()), cancelExport()'s terminate
+        // found nothing running — terminate here too (idempotent) so
+        // onFFmpegFinished() is guaranteed to fire and complete the
+        // cancellation.
+        if (m_runSerial == runSerial
+            && m_ffmpegProcess->state() != QProcess::NotRunning) {
+            m_ffmpegProcess->terminate();
         }
         return false;
     }
-    
-    // Then encode the frames to video
-    emit statusUpdate(tr("Encoding video..."));
-    bool videoEncoded = encodeFramesToVideo(outputPath);
-    
-    if (!videoEncoded) {
-        cleanupTempFiles();
+
+    if (result == StreamResult::PipeFailed) {
+        // FFmpeg died mid-stream (bad args, full disk, crash) or a write
+        // failed. If the process already exited, onFFmpegFinished() has run
+        // (or will, via the pending finished() delivery) and reports the
+        // error with the stderr tail. If a write failed while the process
+        // is somehow still alive, kill it so the run still terminates
+        // through onFFmpegFinished() instead of finishing a truncated file
+        // as a "success". The serial check keeps this run from killing a
+        // NEWER run's process (m_ffmpegProcess is reused; our death may
+        // already have been reported, m_busy reset, and a new export
+        // started inside a processEvents() batch in the loop).
+        if (m_runSerial == runSerial
+            && m_ffmpegProcess->state() != QProcess::NotRunning) {
+            m_pipeErrorMessage = tr("Failed to write frames to FFmpeg");
+            m_ffmpegProcess->kill();
+        }
+        return false;
+    }
+
+    // All frames delivered: close stdin so FFmpeg drains its buffer and
+    // finalizes the file. Completion arrives via onFFmpegFinished().
+    if (m_runSerial != runSerial)
+        return false; // a successor run owns the process now
+    m_ffmpegProcess->closeWriteChannel();
+    emit statusUpdate(tr("Finishing encoding..."));
+    return true;
+}
+
+bool VideoExporter::exportComposite(DiveData* dive, VideoClip* clip,
+                                    QObject* dcGenerator,
+                                    QObject* profileGenerator,
+                                    double clipRangeStart, double clipRangeEnd,
+                                    bool overlaysOnly)
+{
+    // Consume the one-shot colour OVERRIDE hook FIRST (v0.4 plan: cleared
+    // after each run) — even a run that fails validation must not leave a
+    // stale override armed for a later, unrelated export. When empty, the
+    // clip's own grade is planned further down (PR C5).
+    const QString colorSnippet = m_colorFilterChain;
+    m_colorFilterChain.clear();
+
+    if (m_busy) {
+        emit exportError(tr("Already exporting video"));
+        return false;
+    }
+    if (!dive || !clip) {
+        emit exportError(tr("Invalid dive data or video clip"));
+        return false;
+    }
+    if (clip->width() <= 0 || clip->height() <= 0 || clip->fpsNum() <= 0
+        || clip->fpsDen() <= 0 || clip->durationSeconds() <= 0.0) {
+        emit exportError(tr("The video clip has no usable metadata yet — wait for probing to finish."));
+        return false;
+    }
+    if (!isFFmpegAvailable()) {
+        emit exportError(tr("FFmpeg is not available. Please install FFmpeg to export videos."));
+        return false;
+    }
+    if (!ExportMath::isValidExportPath(m_baseDirectory)) {
+        emit exportError(tr("No export directory is set"));
+        return false;
+    }
+    // The composited pipeline supports h264/hevc/prores only (the dialog
+    // enforces this; guard the programmatic path too — compositeArgs would
+    // fall back to libx264 while the file extension said .webm, handing
+    // FFmpeg a doomed mux).
+    if (!overlaysOnly
+        && m_videoCodec != QLatin1String("h264")
+        && m_videoCodec != QLatin1String("hevc")
+        && m_videoCodec != QLatin1String("prores")) {
+        emit exportError(tr("Codec '%1' is not supported for composited export "
+                            "(use h264, hevc or prores).").arg(m_videoCodec));
+        return false;
+    }
+
+    // The composited canvas is the clip frame; overlays and placements come
+    // from the clip's own layout (what the Video tab preview shows).
+    IFrameGenerator* dcGen = dynamic_cast<IFrameGenerator*>(dcGenerator);
+    IFrameGenerator* profGen = dynamic_cast<IFrameGenerator*>(profileGenerator);
+    const QSize frameSize(clip->width(), clip->height());
+    const VideoOverlayLayout layout = clip->overlayLayout();
+    FrameCompositor compositor(frameSize);
+    if (dcGen && layout.diveComputer.visible)
+        compositor.addLayer(dcGen, layout.diveComputer);
+    if (profGen && layout.diveProfile.visible)
+        compositor.addLayer(profGen, layout.diveProfile);
+    if (overlaysOnly && compositor.layerCount() == 0) {
+        // A composite of just the footage is legal (the pipe streams
+        // transparent planes); a placed-overlays export of nothing is not.
+        emit exportError(tr("No overlays are visible for this video — nothing to export."));
+        return false;
+    }
+    CompositorFrameSource source(&compositor);
+
+    // Snap the range to the clip's frame grid (clip seconds). endFrame is
+    // exclusive; a degenerate/inverted range still exports one frame, same
+    // clamp philosophy as ExportMath::totalFrames.
+    const int num = clip->fpsNum();
+    const int den = clip->fpsDen();
+    const double duration = clip->durationSeconds();
+    const double clampedStart = qBound(0.0, clipRangeStart, duration);
+    const double clampedEnd = qBound(0.0, clipRangeEnd, duration);
+    int startFrame = qRound(clampedStart * num / static_cast<double>(den));
+    int endFrame = qRound(clampedEnd * num / static_cast<double>(den));
+    // durationSeconds comes from format.duration, which covers the LONGEST
+    // stream: a clip whose audio outlasts its video would size the pipe
+    // beyond the source video's frames — eof_action=endall then ends the
+    // graph early, FFmpeg exits 0, and a short file would be reported as
+    // success. Bound by the probed video-stream frame count when known.
+    if (clip->nbFrames() > 0 && endFrame > clip->nbFrames())
+        endFrame = static_cast<int>(clip->nbFrames());
+    if (endFrame <= startFrame)
+        endFrame = startFrame + 1;
+    const int totalFrames = endFrame - startFrame;
+    const double inPoint = startFrame * static_cast<double>(den) / num;
+    const double outPoint = endFrame * static_cast<double>(den) / num;
+
+    // ── Colour grade (PR C5) ────────────────────────────────────────────
+    // The clip's OWN grade is armed here, per run, so the A6 batch queue
+    // applies each clip's grade automatically. The one-shot
+    // setColorFilterChain() hook, when armed, wins as an explicit override
+    // (test/advanced seam). overlaysOnly never grades: there is no footage
+    // in that output, and its pipe (overlayPipeArgs) carries no snippet.
+    //
+    // Frame-pts contract: the plan's sendcmd timestamps are 0-based at the
+    // in-point. The graph receives input 0 after `-ss inPoint +
+    // sourceStartOffset − frameDur/4`, so the first delivered frame's pts
+    // is ~frameDur/4; fps=round=near then snaps it onto the grid at 0, and
+    // output frame k reaches the snippet with pts k·den/num. Residual: a
+    // command timestamp can land up to a quarter frame after "its" frame's
+    // true clip time — at the C1 command file's 0.5 s cadence that phase
+    // shift moves a command boundary by ≤8 ms (30 fps), i.e. ≤1 LSB-class
+    // on any realistic depth ramp. The end-to-end parity test
+    // (composite_export_test::gradedCompositeDepthLinked) is the judge.
+    //
+    // plan() writes its temp files (fixed names) into m_tempDir — see the
+    // member's comment for why sequential runs can't collide.
+    QString gradeSnippet = colorSnippet;
+    QStringList gradeNotes;
+    if (!overlaysOnly && gradeSnippet.isEmpty()) {
+        bool gradeOk = false;
+        const Unabara::ColorGrade grade =
+            Unabara::ColorGrade::fromJson(clip->colorGrade(), &gradeOk);
+        if (gradeOk && grade.enabled && !grade.anchors.isEmpty()) {
+            if (!m_tempDir.isValid()) {
+                emit exportError(tr("Cannot prepare the colour grade: no writable "
+                                    "temporary directory"));
+                return false;
+            }
+            const Unabara::ColorGradeExport::Plan gradePlan =
+                Unabara::ColorGradeExport::plan(grade, dive, clip->syncOffset(),
+                                                inPoint, outPoint, m_tempDir.path());
+            if (!gradePlan.isValid()) {
+                emit exportError(tr("Colour grade could not be prepared: %1")
+                                     .arg(gradePlan.error));
+                return false;
+            }
+            // Non-fatal advisories (missing user LUT, no dive log for the
+            // depth link): collected here, toasted AFTER m_busy is set —
+            // a synchronous exportWarning subscriber must not find the
+            // busy guard open and start a second run on the shared
+            // QProcess (the run-serial machinery guards exactly that
+            // corruption class).
+            gradeNotes = gradePlan.notes;
+            gradeSnippet = gradePlan.filterSnippet;
+        }
+    }
+
+    m_busy = true;
+    m_cancelRequested = false;
+    const int runSerial = ++m_runSerial;
+    emit busyChanged();
+    for (const QString &note : std::as_const(gradeNotes))
+        emit exportWarning(note);
+    emit exportStarted();
+    emit statusUpdate(tr("Rendering and encoding frames..."));
+
+    QDir dir(m_baseDirectory);
+    if (!dir.exists() && !dir.mkpath(".")) {
+        emit exportError(tr("Failed to create export directory: %1")
+                             .arg(m_baseDirectory));
         m_busy = false;
         emit busyChanged();
         return false;
     }
-    
-    return true;
+
+    QString outputPath;
+    if (!m_pendingOutputPath.isEmpty()) {
+        outputPath = m_pendingOutputPath;
+        m_pendingOutputPath.clear();
+    } else {
+        outputPath = generateUniqueFileName(
+            dive, getFileExtensionForCodec(m_videoCodec), clip->path(),
+            overlaysOnly ? QStringLiteral("overlays_placed")
+                         : QStringLiteral("composited"));
+    }
+    m_lastOutputPath = outputPath;
+
+    m_totalFrames = totalFrames;
+    m_renderedFrames = 0;
+    m_encodedFrames = 0;
+    m_pipeErrorMessage.clear();
+    m_progress = 0;
+    emit progressChanged();
+
+    // Dive time of frame i (v0.4 plan): syncOffset + in + i*den/num.
+    const double syncOffset = clip->syncOffset();
+    const auto timeOfFrame = [syncOffset, inPoint, num, den](int i) {
+        return syncOffset + inPoint + i * static_cast<double>(den) / num;
+    };
+
+    // Pipe byte contract: the composite graph declares
+    // overlay=alpha=premultiplied, so composites ship the compositor's
+    // premultiplied plane untouched; the placed-overlays mode goes through
+    // the straight-alpha overlay pipe (same contract as exportVideo).
+    const QImage::Format pixelFormat = overlaysOnly
+                                           ? QImage::Format_RGBA8888
+                                           : QImage::Format_RGBA8888_Premultiplied;
+
+    source.beginExport();
+    QImage firstFrame =
+        toPipeFormat(source.generate(dive, timeOfFrame(0)), pixelFormat);
+    if (firstFrame.isNull()) {
+        source.endExport();
+        emit exportError(tr("Failed to generate the first frame"));
+        m_busy = false;
+        emit busyChanged();
+        return false;
+    }
+
+    const FFmpegArgs::FpsRational fps{num, den};
+    QStringList args;
+    if (overlaysOnly) {
+        args = FFmpegArgs::overlayPipeArgs(
+            frameSize.width(), frameSize.height(), fps,
+            m_videoCodec, m_videoQuality, QSize(), outputPath);
+    } else {
+        FFmpegArgs::CompositePlan plan;
+        plan.clipPath = clip->path();
+        plan.inPoint = inPoint;
+        plan.outPoint = outPoint;
+        plan.sourceStartOffset = clip->videoStartTime();
+        plan.totalFrames = totalFrames;
+        plan.fps = fps;
+        plan.width = frameSize.width();
+        plan.height = frameSize.height();
+        plan.inColorMatrix =
+            FFmpegArgs::inColorMatrixFor(clip->colorSpace(), clip->height());
+        plan.colorFilterSnippet = gradeSnippet;
+        plan.codec = m_videoCodec;
+        plan.quality = m_videoQuality;
+        plan.hasAudio = clip->hasAudio();
+        plan.audioCodec = clip->audioCodec();
+        plan.outputPath = outputPath;
+        args = FFmpegArgs::compositeArgs(plan);
+    }
+
+    if (!startFFmpegProcess(args)) {
+        source.endExport();
+        m_busy = false;
+        emit busyChanged();
+        return false; // startFFmpegProcess() emitted exportError()
+    }
+
+    const StreamResult result = streamFrames(
+        dive, &source, totalFrames, frameSize, pixelFormat, timeOfFrame,
+        firstFrame, runSerial);
+    source.endExport();
+    return finishRun(result, runSerial);
+}
+
+QString VideoExporter::compositeAudioText(bool hasAudio,
+                                          const QString &audioCodec,
+                                          const QString &codec)
+{
+    switch (FFmpegArgs::decideAudio(codec, hasAudio, audioCodec)) {
+    case FFmpegArgs::AudioDecision::Copy:
+        return tr("Audio: copied (%1)").arg(audioCodec);
+    case FFmpegArgs::AudioDecision::Transcode:
+        return tr("Audio: re-encoded to AAC");
+    case FFmpegArgs::AudioDecision::None:
+        break;
+    }
+    return tr("No audio track");
+}
+
+QString VideoExporter::compositeColorTagText(const QString &colorSpace,
+                                             int height)
+{
+    if (height <= 0)
+        return QString(); // unprobed clip: nothing meaningful to say yet
+    // Same decision the export takes (FFmpegArgs::inColorMatrixFor): empty
+    // = tagged source, decoded as tagged — no assumption to warn about.
+    const QString forced = FFmpegArgs::inColorMatrixFor(colorSpace, height);
+    if (forced.isEmpty())
+        return QString();
+    return forced == QLatin1String("bt601")
+               ? tr("No colour tags on this clip — assuming BT.601 (SD)")
+               : tr("No colour tags on this clip — assuming BT.709 (HD)");
+}
+
+QString VideoExporter::compositeGradeText(VideoClip* clip, DiveData* dive)
+{
+    if (!clip)
+        return QString();
+    bool ok = false;
+    const Unabara::ColorGrade grade =
+        Unabara::ColorGrade::fromJson(clip->colorGrade(), &ok);
+    if (!ok || !grade.enabled || grade.anchors.isEmpty())
+        return QString();
+    // usesDepthPath is THE shared decision — this row must never disagree
+    // with the route plan() actually takes at export time.
+    QString text = Unabara::ColorGradeExport::usesDepthPath(grade, dive)
+                       ? tr("Colour grade: applied (depth-linked)")
+                       : tr("Colour grade: applied (static)");
+    if (!grade.lutPath.isEmpty() && !QFile::exists(grade.lutPath))
+        text += tr(" — LUT file missing, parametric grade only");
+    return text;
 }
 
 void VideoExporter::cancelExport()
@@ -289,12 +754,14 @@ void VideoExporter::cancelExport()
     m_cancelRequested = true;
 
     if (m_ffmpegProcess && m_ffmpegProcess->state() != QProcess::NotRunning) {
-        // Encoding phase: ask FFmpeg to stop and return immediately. The
-        // normal finished() delivery runs onFFmpegFinished(), which completes
-        // the cancellation (partial-file removal, temp cleanup,
-        // exportCancelled()). No blocking wait on the GUI thread, and no
-        // re-entering the UI from inside the Cancel button's handler. If
-        // FFmpeg ignores SIGTERM, escalate to kill() after a grace period.
+        // FFmpeg runs for the whole export (frames stream into it), so a
+        // cancel in either the render loop or the final drain lands here:
+        // ask FFmpeg to stop and return immediately. The normal finished()
+        // delivery runs onFFmpegFinished(), which completes the cancellation
+        // (partial-file removal, exportCancelled()). No blocking wait on the
+        // GUI thread, and no re-entering the UI from inside the Cancel
+        // button's handler. If FFmpeg ignores SIGTERM, escalate to kill()
+        // after a grace period.
         m_ffmpegProcess->terminate();
         // Tracked (not a fire-and-forget singleShot): m_ffmpegProcess is
         // reused across runs, so this timer must be disarmed in
@@ -312,287 +779,178 @@ void VideoExporter::cancelExport()
         }
         m_killTimer->start();
     }
-    // Frame-generation phase: nothing more to do here — this call was
-    // delivered by the generation loop's processEvents(), and the loop
-    // polls m_cancelRequested and unwinds through exportVideo().
+    // If the process isn't running (nothing started yet, or it already
+    // finished), there is nothing to stop — the render loop polls
+    // m_cancelRequested and unwinds through exportVideo().
 }
 
-void VideoExporter::cleanupTempFiles()
-{
-    if (m_tempDir.isValid()) {
-        // Get path before removing directory
-        QString tempPath = m_tempDir.path();
-        
-        // Count files to be removed for logging
-        QDir dir(tempPath);
-        int count = dir.entryList(QDir::Files).count();
-        
-        qDebug() << "Cleaning up" << count << "temporary files from" << tempPath;
-        
-        // Ensure the QTemporaryDir is properly cleaned up
-        if (!m_tempDir.remove()) {
-            qWarning() << "Failed to clean up some temporary files. They will be removed when the application exits.";
-        }
-    }
-}
-
-bool VideoExporter::generateFrames(DiveData* dive, IFrameGenerator* generator,
-                                 double startTime, double endTime)
-{
-    // Calculate the number of frames to generate. The loop below always
-    // writes at least one frame, so a degenerate (zero-length) range must
-    // not divide the progress computation by zero (same guard as
-    // ImageExporter::exportImageRange).
-    double timeStep = 1.0 / m_frameRate;
-    int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
-    int processedFrames = 0;
-
-    qDebug() << "Generating frames from" << startTime << "to" << endTime
-             << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
-
-    // Stage any export-only generator state (IFrameGenerator contract;
-    // currently a no-op for both generators).
-    generator->beginExport();
-
-    // Clear any previous temp files and ensure the temp directory exists
-    if (!m_tempDir.isValid()) {
-        generator->endExport();
-        emit exportError(tr("Failed to create temporary directory for frame storage"));
-        return false;
-    }
-
-    QString tempDirPath = m_tempDir.path();
-
-    // Generate and save frames
-    for (double time = startTime; time <= endTime; time += timeStep) {
-        // Generate the frame for this time point
-        QImage overlay = generator->generate(dive, time);
-
-        if (overlay.isNull()) {
-            qWarning() << "Failed to generate frame at time:" << time;
-            continue;
-        }
-
-        // Create a filename with the frame number
-        QString filePath = QDir(tempDirPath).filePath(ExportMath::frameFileName(processedFrames));
-
-        // Save the image
-        if (!overlay.save(filePath, "PNG")) {
-            generator->endExport();
-            emit exportError(tr("Failed to save frame: %1").arg(filePath));
-            return false;
-        }
-
-        // Update progress
-        processedFrames++;
-        m_progress = (processedFrames * 50) / totalFrames; // Frame generation is 50% of total progress
-        emit progressChanged();
-
-        // Process events to keep UI responsive
-        QCoreApplication::processEvents();
-
-        // A Cancel click is delivered by the processEvents() call above;
-        // cancelExport() sets the flag we poll here.
-        if (m_cancelRequested) {
-            generator->endExport();
-            return false;
-        }
-    }
-
-    generator->endExport();
-    return true;
-}
-
-bool VideoExporter::encodeFramesToVideo(const QString &outputPath)
+bool VideoExporter::startFFmpegProcess(const QStringList &args)
 {
     // Create a QProcess for FFmpeg if it doesn't exist
     if (!m_ffmpegProcess) {
         m_ffmpegProcess = new QProcess(this);
-        
+
         // Connect signals for output
         connect(m_ffmpegProcess, &QProcess::readyReadStandardOutput, this, &VideoExporter::processFFmpegOutput);
         connect(m_ffmpegProcess, &QProcess::readyReadStandardError, this, &VideoExporter::processFFmpegOutput);
-        connect(m_ffmpegProcess, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), 
+        connect(m_ffmpegProcess, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                 this, &VideoExporter::onFFmpegFinished);
     }
-    
+
     // Get the path to FFmpeg
     QString ffmpegPath = findFFmpegPath();
     if (ffmpegPath.isEmpty()) {
         emit exportError(tr("FFmpeg executable not found"));
         return false;
     }
-    
-    // Set up the FFmpeg command with arguments
-    QStringList args;
-    args << "-y"
-         << "-progress" << "-" // Output progress info to stdout
-         << "-stats" // Show stats
-         << "-framerate" << QString::number(m_frameRate)
-         << "-i" << QString("%1/%2").arg(m_tempDir.path(), ExportMath::framePattern());
 
-    // Add scale filter if custom resolution is set
-    if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
-        args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
-    }
-
-    // Add codec-specific options
-    QString formatOptions = getFormatOptions(m_videoCodec);
-    QStringList formatArgs = formatOptions.split(" ", Qt::SkipEmptyParts);
-    args.append(formatArgs);
-
-    // Add output file
-    args << outputPath;
-
-    // Log the full command for debugging
+    // Log the full command for debugging (args always come from FFmpegArgs
+    // — the ONE builder; see the callers in exportVideo/exportComposite)
     QString cmdLog = ffmpegPath;
     for (const QString &arg : args) {
         cmdLog += " " + (arg.contains(" ") ? "\"" + arg + "\"" : arg);
     }
     qInfo() << "FFmpeg command:" << cmdLog;
-    
-    // Start progress timer for animation
-    m_progressTimer->start(500);
-    qDebug() << "Started progress timer";
 
-    // Reset the captured-output buffer for this encode run.
+    // Reset the captured-output buffers for this run.
     m_ffmpegOutputTail.clear();
+    m_progressBuffer.clear();
 
     // Start the FFmpeg process
     m_ffmpegProcess->start(ffmpegPath, args);
-    
+
     // Wait for the process to start
     if (!m_ffmpegProcess->waitForStarted(5000)) {
         qInfo() << tr("Failed to start FFmpeg: %1").arg(m_ffmpegProcess->errorString());
         emit exportError(tr("Failed to start FFmpeg: %1").arg(m_ffmpegProcess->errorString()));
         return false;
     }
-    
+
     return true; // Process started successfully
 }
 
-QStringList VideoExporter::createFFmpegArgs(const QString &outputPath)
+bool VideoExporter::writeFramePixels(const QImage &frame)
 {
-    QStringList args;
-    args << "-y"
-         << "-progress" << "-" // Output progress info to stdout
-         << "-stats" // Show stats
-         << "-framerate" << QString::number(m_frameRate) 
-         << "-i" << QString("%1/frame_%06d.png").arg(m_tempDir.path());
-    
-    // Add scale filter if custom resolution is set
-    if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
-        args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
+    if (m_ffmpegProcess->state() != QProcess::Running) {
+        return false;
     }
-    
-    // Add codec-specific options
-    QString formatOptions = getFormatOptions(m_videoCodec);
-    QStringList formatArgs = formatOptions.split(" ", Qt::SkipEmptyParts);
-    args.append(formatArgs);
-    
-    // Add output file
-    args << outputPath;
-    
-    return args;
+
+    const qint64 rowBytes = qint64(frame.width()) * 4;
+    if (frame.bytesPerLine() == rowBytes) {
+        const qint64 total = rowBytes * frame.height();
+        return m_ffmpegProcess->write(
+                   reinterpret_cast<const char*>(frame.constBits()), total) == total;
+    }
+
+    // QImage scanlines are 32-bit aligned, so bytesPerLine() can exceed
+    // width*4 — streaming the raw buffer would feed the pad bytes into the
+    // pixel stream and shear every row. (At 4 bytes/pixel the stride is in
+    // fact always tight, but this is the documented QImage contract, not a
+    // guarantee — keep the row-wise fallback.)
+    for (int y = 0; y < frame.height(); ++y) {
+        if (m_ffmpegProcess->write(
+                reinterpret_cast<const char*>(frame.constScanLine(y)), rowBytes) != rowBytes) {
+            return false;
+        }
+    }
+    return true;
 }
 
-void VideoExporter::updateEncodingProgress()
+bool VideoExporter::waitForPipeDrain(qint64 frameBytes)
 {
-    // If FFmpeg isn't running, there's nothing to update
-    if (!m_ffmpegProcess || m_ffmpegProcess->state() != QProcess::Running) {
-        return;
-    }
-    
-    // If the progress hasn't changed recently and we're in the encoding phase (>50%),
-    // gently increase it to show activity
-    static int lastProgress = 0;
-    static int unchangedCount = 0;
-    
-    if (m_progress >= 50 && m_progress < 99 && lastProgress == m_progress) {
-        unchangedCount++;
-        if (unchangedCount > 4) { // After ~2 seconds of no updates
-            // Small increment just to show activity
-            m_progress++;
-            lastProgress = m_progress;
-            unchangedCount = 0;
-            emit progressChanged();
-            qDebug() << "Incrementing progress to show activity:" << m_progress << "%";
+    // Spin while more than two frames sit in the write channel. Each pass
+    // flushes for up to 20 ms, then pumps events — which keeps the UI live,
+    // delivers Cancel clicks, and (crucially) delivers errorOccurred()/
+    // finished() so a dead FFmpeg flips state() and ends the spin instead
+    // of hanging the writer forever.
+    while (m_ffmpegProcess->bytesToWrite() > 2 * frameBytes) {
+        if (m_ffmpegProcess->state() != QProcess::Running) {
+            return false;
         }
-    } else if (lastProgress != m_progress) {
-        lastProgress = m_progress;
-        unchangedCount = 0;
+        if (m_cancelRequested) {
+            return true; // caller handles cancellation
+        }
+        m_ffmpegProcess->waitForBytesWritten(20);
+        QCoreApplication::processEvents();
     }
-    
-    // Send periodic status updates to keep UI responsive
-    static int statusUpdateCount = 0;
-    statusUpdateCount = (statusUpdateCount + 1) % 5;
-    if (statusUpdateCount == 0) {
-        QString statusMsg = tr("Encoding video... %1%").arg(m_progress);
-        emit statusUpdate(statusMsg);
-    }
+    return m_ffmpegProcess->state() == QProcess::Running;
+}
+
+void VideoExporter::emitInterleavedStatus()
+{
+    emit statusUpdate(tr("Rendered %1 / encoded %2 of %3 frames")
+                          .arg(m_renderedFrames)
+                          .arg(m_encodedFrames)
+                          .arg(m_totalFrames));
 }
 
 void VideoExporter::processFFmpegOutput()
 {
-    // Process the FFmpeg stdout and stderr
-    if (m_ffmpegProcess) {
-        QByteArray output = m_ffmpegProcess->readAllStandardOutput();
-        output.append(m_ffmpegProcess->readAllStandardError());
-        
-        if (output.isEmpty()) {
-            return;
-        }
-        
-        QString outputStr = QString::fromUtf8(output);
+    if (!m_ffmpegProcess) {
+        return;
+    }
 
-        // Retain a rolling tail of FFmpeg's output so the real error message
-        // survives until onFFmpegFinished() (it is otherwise only progress-parsed
-        // and discarded). Cap it so a long-running encode can't grow it unbounded.
-        m_ffmpegOutputTail += outputStr;
+    // stdout: the machine-readable `-progress pipe:1` stream. Buffer and
+    // split on newlines (chunks can end mid-line), then take the last
+    // complete `frame=N` of this batch and report it against m_totalFrames
+    // — never against a temp-dir file count, which cost a directory listing
+    // per chunk.
+    m_progressBuffer += m_ffmpegProcess->readAllStandardOutput();
+    int currentFrame = -1;
+    int newline = -1;
+    while ((newline = m_progressBuffer.indexOf('\n')) >= 0) {
+        const QByteArray line = m_progressBuffer.left(newline).trimmed();
+        m_progressBuffer.remove(0, newline + 1);
+        if (line.startsWith("frame=")) {
+            bool ok = false;
+            const int frame = line.mid(6).trimmed().toInt(&ok);
+            if (ok) {
+                currentFrame = frame;
+            }
+        }
+    }
+    if (currentFrame >= 0 && m_totalFrames > 0) {
+        // One interleaved phase (PR B2): frames render and encode
+        // concurrently, so the encoded count IS the progress, mapped 0-100
+        // over m_totalFrames.
+        const int encoded = qMin(currentFrame, m_totalFrames);
+        if (encoded != m_encodedFrames) {
+            m_encodedFrames = encoded;
+            emitInterleavedStatus();
+        }
+        const int newProgress = qMin((currentFrame * 100) / m_totalFrames, 100);
+        if (newProgress != m_progress) {
+            m_progress = newProgress;
+            emit progressChanged();
+        }
+    }
+
+    // stderr: warnings/errors only (-nostats). Retain a rolling tail so the
+    // real error message survives until onFFmpegFinished(); cap it so a
+    // long-running encode can't grow it unbounded.
+    const QByteArray errOutput = m_ffmpegProcess->readAllStandardError();
+    if (!errOutput.isEmpty()) {
+        m_ffmpegOutputTail += QString::fromUtf8(errOutput);
         const int kMaxTail = 4000;
         if (m_ffmpegOutputTail.size() > kMaxTail) {
             m_ffmpegOutputTail = m_ffmpegOutputTail.right(kMaxTail);
-        }
-
-        // Parse frame information (most reliable for progress)
-        QRegularExpression frameRegex("frame=\\s*(\\d+)");
-        QRegularExpressionMatch frameMatch = frameRegex.match(outputStr);
-        
-        if (frameMatch.hasMatch()) {
-            int currentFrame = frameMatch.captured(1).toInt();
-            int totalFrames = QDir(m_tempDir.path()).entryList(QStringList() << "*.png").count();
-            
-            if (totalFrames > 0) {
-                // Calculate progress (50% for generation, 50% for encoding)
-                int encodingProgress = (currentFrame * 50) / totalFrames;
-                int newProgress = 50 + qMin(encodingProgress, 50);
-                
-                if (newProgress != m_progress) {
-                    m_progress = newProgress;
-                    emit progressChanged();
-                    emit statusUpdate(tr("Encoding frame %1 of %2").arg(currentFrame).arg(totalFrames));
-                    // qDebug() << "Progress:" << m_progress << "% (Frame:" << currentFrame << "/" << totalFrames << ")";
-                }
-            }
         }
     }
 }
 
 void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    m_progressTimer->stop();
     if (m_killTimer) {
         m_killTimer->stop();
     }
 
     if (m_cancelRequested) {
-        // Cancelled mid-encode: the exit status only reflects the kill we
+        // Cancelled mid-export: the exit status only reflects the kill we
         // sent, so don't report it as an FFmpeg error. Discard the
         // partially-written output file — a truncated video is useless.
         if (!m_lastOutputPath.isEmpty()) {
             QFile::remove(m_lastOutputPath);
         }
-        cleanupTempFiles();
         m_busy = false;
         emit busyChanged();
         emit exportCancelled();
@@ -600,89 +958,51 @@ void VideoExporter::onFFmpegFinished(int exitCode, QProcess::ExitStatus exitStat
     }
 
     bool success = false;
+    QString errorMessage;
 
-    if (exitStatus == QProcess::CrashExit) {
+    if (!m_pipeErrorMessage.isEmpty()) {
+        // The render loop killed the process after a failed stdin write;
+        // report that, not the kill-induced crash exit.
+        qWarning().noquote() << m_pipeErrorMessage
+                             << "- captured output tail:\n" << m_ffmpegOutputTail;
+        errorMessage = m_pipeErrorMessage;
+    } else if (exitStatus == QProcess::CrashExit) {
         qWarning().noquote() << "FFmpeg crashed. Captured output tail:\n" << m_ffmpegOutputTail;
-        emit exportError(tr("FFmpeg process crashed"));
+        errorMessage = tr("FFmpeg process crashed");
     } else if (exitCode != 0) {
-        // Surface FFmpeg's actual error (e.g. a codec/container mismatch) instead
-        // of just the numeric exit code, which is otherwise undiagnosable.
         qWarning().noquote() << "FFmpeg exited with code" << exitCode
                              << "- captured output tail:\n" << m_ffmpegOutputTail;
-        emit exportError(tr("FFmpeg exited with error code: %1").arg(exitCode));
+        errorMessage = tr("FFmpeg exited with error code: %1").arg(exitCode);
     } else {
         m_progress = 100; // Ensure we reach 100%
         emit progressChanged();
         emit statusUpdate(tr("Video encoding completed successfully"));
         success = true;
     }
-    
-    // Clean up temp files
-    cleanupTempFiles();
-    
+
+    if (!success) {
+        // Shared failure path (pipe error / crash / nonzero exit). The full
+        // tail went to qWarning above; the user-facing message carries
+        // FFmpeg's last few non-empty stderr lines (e.g. a codec/container
+        // mismatch or a filter-config error) — the generic text or a bare
+        // exit code alone is undiagnosable. Empty tail → message unchanged.
+        const QString excerpt = ExportMath::outputTailExcerpt(m_ffmpegOutputTail);
+        if (!excerpt.isEmpty())
+            errorMessage += QStringLiteral("\n\n") + excerpt;
+        // A failed encode leaves a truncated or empty (0-byte header-less)
+        // output file behind — useless, so discard it like the cancel
+        // branch does. Only this run's own output path, nothing else.
+        if (!m_lastOutputPath.isEmpty() && QFile::exists(m_lastOutputPath))
+            QFile::remove(m_lastOutputPath);
+        emit exportError(errorMessage);
+    }
+
     m_busy = false;
     emit busyChanged();
-    
+
     if (success) {
         emit exportFinished(true, m_lastOutputPath);
     }
-}
-
-QString VideoExporter::generateFFmpegCommand(const QString &inputPattern, const QString &outputFile)
-{
-    QString ffmpegPath = findFFmpegPath();
-    
-    // Prepare arguments as separate list items instead of a single string
-    QStringList args;
-    
-    // Add basic arguments
-    args << "-y" << "-framerate" << QString::number(m_frameRate) << "-i" << inputPattern;
-    
-    // Add scale filter if custom resolution is set
-    if (m_customResolution.isValid() && m_customResolution.width() > 0 && m_customResolution.height() > 0) {
-        args << "-vf" << QString("scale=%1:%2").arg(m_customResolution.width()).arg(m_customResolution.height());
-    }
-    
-    // Add codec-specific options
-    QString formatOptions = getFormatOptions(m_videoCodec);
-    // Split by space but respect quoted sections
-    QRegularExpression re("\\s+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-    QStringList formatArgs = formatOptions.split(re, Qt::SkipEmptyParts);
-    args.append(formatArgs);
-    
-    // Add output file
-    args << outputFile;
-    
-    // Store the output path for later reference
-    m_lastOutputPath = outputFile;
-    
-    // Build full command for logging
-    QString command = ffmpegPath;
-    for (const QString &arg : args) {
-        if (arg.contains(" ")) {
-            command += " \"" + arg + "\"";
-        } else {
-            command += " " + arg;
-        }
-    }
-    
-    return command;
-}
-
-QString VideoExporter::getFormatOptions(const QString &codec)
-{
-    if (codec == "h264") {
-        return QString("-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -movflags +faststart -b:v %1k").arg(m_videoBitrate);
-    } else if (codec == "prores") {
-        return QString("-c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le -alpha_bits 16 -bits_per_mb 8000 -vendor ap10");
-    } else if (codec == "vp9") {
-        return QString("-c:v libvpx-vp9 -pix_fmt yuva420p -b:v %1k -deadline good -cpu-used 2").arg(m_videoBitrate);
-    } else if (codec == "hevc") {
-        return QString("-c:v libx265 -preset medium -crf 23 -pix_fmt yuv420p -tag:v hvc1 -b:v %1k").arg(m_videoBitrate);
-    }
-    
-    // Default to H.264
-    return QString("-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -movflags +faststart -b:v %1k").arg(m_videoBitrate);
 }
 
 QSize VideoExporter::getDefaultOverlaySize()
@@ -702,241 +1022,45 @@ QSize VideoExporter::getDefaultOverlaySize()
 
 double VideoExporter::extractVideoTimecode(const QString &videoPath)
 {
-    if (videoPath.isEmpty()) {
-        return -1.0;
-    }
-
-    QString ffmpegPath = findFFmpegPath();
-    if (ffmpegPath.isEmpty()) {
-        return -1.0;
-    }
-
-    QProcess process;
-    process.setProcessChannelMode(QProcess::MergedChannels);
-
-    QStringList args;
-    args << "-i" << videoPath;
-
-    process.start(ffmpegPath, args);
-    process.waitForFinished(5000);
-
-    QString output = process.readAllStandardOutput();
-
-    // Look for timecode in stream metadata: "timecode        : 10:39:52:29"
-    QRegularExpression timecodeRegex("timecode\\s*:\\s*(\\d{2}):(\\d{2}):(\\d{2}):(\\d{2})");
-    QRegularExpressionMatch match = timecodeRegex.match(output);
-
-    if (match.hasMatch()) {
-        int hours = match.captured(1).toInt();
-        int minutes = match.captured(2).toInt();
-        int seconds = match.captured(3).toInt();
-        double result = hours * 3600.0 + minutes * 60.0 + seconds;
-        qDebug() << "Extracted video timecode:" << match.captured(0) << "=" << result << "seconds";
-        return result;
-    }
-
-    qDebug() << "No timecode found in video:" << videoPath;
-    return -1.0;
+    // Thin delegate to the single-ffprobe-call prober (PR A1). Same
+    // semantics as the old `ffmpeg -i` stderr grep — seconds-of-day,
+    // frames ignored, -1 when absent — plus drop-frame (HH:MM:SS;FF)
+    // support. PR A2/B1 move the QML callers onto the clip model and
+    // retire this shim.
+    return VideoProbe::probe(videoPath).timecodeSecondsOfDay;
 }
 
 double VideoExporter::extractVideoCreationTime(const QString &videoPath)
 {
-    if (videoPath.isEmpty()) {
+    // Thin delegate (PR A1): epoch seconds of the container's creation_time
+    // tag, -1 when absent/unreadable — identical to the old inline ffprobe
+    // call, but through the sibling-resolved ffprobe path (the historical
+    // "ffmpeg"→"ffprobe" string swap broke on paths like
+    // "C:/Program Files/ffmpeg/bin/", which silently disabled camera
+    // pairing on Windows).
+    const VideoProbe::Result r = VideoProbe::probe(videoPath);
+    if (!r.creationTimeUtc.isValid()) {
+        qDebug() << "extractVideoCreationTime: no creation time for" << videoPath
+                 << (r.ok ? QString() : r.error);
         return -1.0;
     }
-
-    QString ffmpegPath = findFFmpegPath();
-    if (ffmpegPath.isEmpty()) {
-        return -1.0;
-    }
-
-    // Use ffprobe (alongside ffmpeg) to get format metadata as JSON
-    QString ffprobePath = ffmpegPath;
-    ffprobePath.replace("ffmpeg", "ffprobe");
-
-    QProcess process;
-    process.setProcessChannelMode(QProcess::SeparateChannels);
-
-    QStringList args;
-    args << "-v" << "quiet"
-         << "-print_format" << "json"
-         << "-show_format"
-         << videoPath;
-
-    process.start(ffprobePath, args);
-    if (!process.waitForFinished(5000)) {
-        qWarning() << "extractVideoCreationTime: ffprobe timed out for" << videoPath;
-        process.kill();
-        return -1.0;
-    }
-
-    QByteArray output = process.readAllStandardOutput();
-    if (output.isEmpty()) {
-        qDebug() << "extractVideoCreationTime: no output from ffprobe for" << videoPath;
-        return -1.0;
-    }
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(output, &parseError);
-    if (parseError.error != QJsonParseError::NoError) {
-        qWarning() << "extractVideoCreationTime: JSON parse error:" << parseError.errorString();
-        return -1.0;
-    }
-
-    QString creationTimeStr = doc.object()
-        .value("format").toObject()
-        .value("tags").toObject()
-        .value("creation_time").toString();
-
-    if (creationTimeStr.isEmpty()) {
-        qDebug() << "extractVideoCreationTime: no creation_time tag in" << videoPath;
-        return -1.0;
-    }
-
-    QDateTime dt = QDateTime::fromString(creationTimeStr, Qt::ISODateWithMs);
-    if (!dt.isValid())
-        dt = QDateTime::fromString(creationTimeStr, Qt::ISODate);
-
-    if (!dt.isValid()) {
-        qWarning() << "extractVideoCreationTime: could not parse datetime:" << creationTimeStr;
-        return -1.0;
-    }
-
-    qDebug() << "extractVideoCreationTime:" << creationTimeStr << "=" << dt.toSecsSinceEpoch();
-    return static_cast<double>(dt.toSecsSinceEpoch());
+    return static_cast<double>(r.creationTimeUtc.toSecsSinceEpoch());
 }
 
 QSize VideoExporter::detectVideoResolution(const QString &videoPath)
 {
-    if (videoPath.isEmpty()) {
-        qWarning() << "Empty video path provided to detectVideoResolution";
-        return getDefaultOverlaySize();
+    // Thin delegate (PR A1): one ffprobe call replaces the historical
+    // three-approach cascade. Dimensions are now rotation-applied — a
+    // portrait phone clip with a 90° display rotation reports 1080x1920,
+    // where the old stream-level parse returned the landscape coded size.
+    const VideoProbe::Result r = VideoProbe::probe(videoPath);
+    if (r.ok && r.width > 0 && r.height > 0) {
+        qDebug() << "Detected video resolution:" << r.width << "x" << r.height;
+        return QSize(r.width, r.height);
     }
 
-    qDebug() << "Detecting resolution for video:" << videoPath;
-
-    // Use FFmpeg to detect video resolution
-    QString ffmpegPath = findFFmpegPath();
-    if (ffmpegPath.isEmpty()) {
-        qWarning() << "FFmpeg not found, cannot detect video resolution";
-        return getDefaultOverlaySize();
-    }
-
-    // Approach 1: Use FFmpeg with more verbose output to stderr
-    QProcess process;
-    process.setProcessChannelMode(QProcess::MergedChannels); // Merge stdout and stderr
-    
-    QStringList args;
-    args << "-i" << videoPath;
-    
-    qDebug() << "Running FFmpeg info command:" << ffmpegPath << args.join(" ");
-    
-    process.start(ffmpegPath, args);
-    process.waitForFinished(5000);
-    
-    QString output = process.readAllStandardOutput();
-    qDebug() << "FFmpeg info output length:" << output.length();
-    qDebug() << "FFmpeg info output sample:" << output.left(200);
-    
-    // Look for Stream information that contains resolution
-    QRegularExpression videoStreamRegex("Stream\\s+#\\d+:\\d+(?:\\[0x[0-9a-f]+\\])?[^,]*:\\s+Video[^,]*,\\s+([^,]*,\\s+)?([0-9]+x[0-9]+)");
-    QRegularExpressionMatch videoStreamMatch = videoStreamRegex.match(output);
-    
-    if (videoStreamMatch.hasMatch()) {
-        QString resString = videoStreamMatch.captured(2); // This should be something like "1920x1080"
-        QRegularExpression resolutionRegex("(\\d+)x(\\d+)");
-        QRegularExpressionMatch match = resolutionRegex.match(resString);
-        
-        if (match.hasMatch()) {
-            int width = match.captured(1).toInt();
-            int height = match.captured(2).toInt();
-            
-            if (width > 0 && height > 0) {
-                qDebug() << "Detected video resolution:" << width << "x" << height;
-                return QSize(width, height);
-            }
-        }
-    }
-    
-    // Approach 2: Use FFprobe with different options
-    QString ffprobePath = ffmpegPath;
-    ffprobePath.replace("ffmpeg", "ffprobe");
-    
-    QStringList ffprobeArgs;
-    ffprobeArgs << "-v" << "quiet" 
-                << "-print_format" << "json" 
-                << "-show_format" 
-                << "-show_streams" 
-                << videoPath;
-    
-    qDebug() << "Running ffprobe command:" << ffprobePath << ffprobeArgs.join(" ");
-    
-    process.start(ffprobePath, ffprobeArgs);
-    if (!process.waitForFinished(5000)) {
-        qWarning() << "ffprobe process timed out";
-        process.kill();
-        return getDefaultOverlaySize();
-    }
-    
-    QString ffprobeOutput = process.readAllStandardOutput();
-    qDebug() << "ffprobe output length:" << ffprobeOutput.length();
-    
-    if (!ffprobeOutput.isEmpty()) {
-        // Look for width and height in the JSON output
-        QRegularExpression widthRegex("\"width\"\\s*:\\s*(\\d+)");
-        QRegularExpression heightRegex("\"height\"\\s*:\\s*(\\d+)");
-        
-        QRegularExpressionMatch widthMatch = widthRegex.match(ffprobeOutput);
-        QRegularExpressionMatch heightMatch = heightRegex.match(ffprobeOutput);
-        
-        if (widthMatch.hasMatch() && heightMatch.hasMatch()) {
-            int width = widthMatch.captured(1).toInt();
-            int height = heightMatch.captured(1).toInt();
-            
-            if (width > 0 && height > 0) {
-                qDebug() << "Detected video resolution (ffprobe):" << width << "x" << height;
-                return QSize(width, height);
-            }
-        }
-    }
-    
-    // If all else fails, use ffmpeg with simpler approach that focuses just on resolution
-    QStringList simpleArgs;
-    simpleArgs << "-v" << "error" 
-              << "-i" << videoPath
-              << "-select_streams" << "v:0" 
-              << "-show_entries" << "stream=width,height" 
-              << "-of" << "default=noprint_wrappers=1";
-    
-    qDebug() << "Running simple ffmpeg resolution command:" << ffmpegPath << simpleArgs.join(" ");
-    
-    process.start(ffmpegPath, simpleArgs);
-    if (!process.waitForFinished(5000)) {
-        qWarning() << "Simple ffmpeg process timed out";
-        process.kill();
-        return getDefaultOverlaySize();
-    }
-    
-    QString simpleOutput = process.readAllStandardOutput();
-    qDebug() << "Simple ffmpeg output:" << simpleOutput;
-    
-    QRegularExpression widthRegex("width=(\\d+)");
-    QRegularExpression heightRegex("height=(\\d+)");
-    
-    QRegularExpressionMatch widthMatch = widthRegex.match(simpleOutput);
-    QRegularExpressionMatch heightMatch = heightRegex.match(simpleOutput);
-    
-    if (widthMatch.hasMatch() && heightMatch.hasMatch()) {
-        int width = widthMatch.captured(1).toInt();
-        int height = heightMatch.captured(1).toInt();
-        
-        if (width > 0 && height > 0) {
-            qDebug() << "Detected video resolution (simple):" << width << "x" << height;
-            return QSize(width, height);
-        }
-    }
-    
-    qWarning() << "All resolution detection methods failed, using default overlay size";
+    qWarning() << "Video resolution detection failed for" << videoPath
+               << "-" << r.error << "- using default overlay size";
     return getDefaultOverlaySize();
 }
 

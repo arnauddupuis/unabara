@@ -14,6 +14,21 @@ int totalFrames(double startTime, double endTime, double frameRate)
     return qMax(1, qRound((endTime - startTime) * frameRate));
 }
 
+double frameTime(double startTime, int frameIndex, double frameRate)
+{
+    if (frameRate <= 0.0)
+        return startTime;
+    return startTime + frameIndex / frameRate;
+}
+
+bool isPreDiveTime(double diveTime)
+{
+    // Strict: t == 0 is the first dive sample and renders normally. The
+    // post-dive end is deliberately not gated (the clamped last sample is
+    // shown, as in the preview).
+    return diveTime < 0.0;
+}
+
 bool isValidExportPath(const QString &path)
 {
     return !path.trimmed().isEmpty();
@@ -22,11 +37,6 @@ bool isValidExportPath(const QString &path)
 QString frameFileName(int frameIndex)
 {
     return QStringLiteral("frame_%1.png").arg(frameIndex, 6, 10, QChar('0'));
-}
-
-QString framePattern()
-{
-    return QStringLiteral("frame_%06d.png");
 }
 
 QString sanitizeFileName(const QString &fileName)
@@ -96,6 +106,30 @@ void removeWrittenFiles(const QString &dirPath, const QStringList &fileNames)
     if (dir.cdUp()) {
         dir.rmdir(name);
     }
+}
+
+QString outputTailExcerpt(const QString &tail, int maxLines)
+{
+    if (maxLines <= 0)
+        return QString();
+    QString normalized = tail;
+    normalized.replace(QLatin1String("\r\n"), QLatin1String("\n"));
+    normalized.replace(QLatin1Char('\r'), QLatin1Char('\n'));
+    // Per-line length cap: the excerpt lands in a fixed-size message
+    // dialog, and a single FFmpeg filter-graph dump line can approach the
+    // whole 4 KB stderr tail.
+    constexpr int kMaxLineChars = 300;
+    QStringList kept;
+    const QStringList lines = normalized.split(QLatin1Char('\n'));
+    for (auto it = lines.crbegin(); it != lines.crend() && kept.size() < maxLines; ++it) {
+        QString line = it->trimmed();
+        if (line.isEmpty())
+            continue;
+        if (line.size() > kMaxLineChars)
+            line = line.left(kMaxLineChars - 1) + QChar(0x2026); // …
+        kept.prepend(line);
+    }
+    return kept.join(QLatin1Char('\n'));
 }
 
 } // namespace ExportMath

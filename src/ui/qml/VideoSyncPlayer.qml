@@ -2,22 +2,28 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
+import Unabara.Core 1.0
 
 Item {
     id: root
 
-    property url videoSource: ""
-    signal syncOffsetComputed(double offset)
+    // The active VideoClip (clipList.activeClip, bound in main.qml); null
+    // when no video is imported. Single source of truth for the source URL,
+    // creation time and (via the probe) duration.
+    // Named videoClip, not clip: a plain `clip` property on an Item root
+    // shadows QQuickItem::clip (same landmine class ClipStrip's delegate hit).
+    property var videoClip: null
+
+    readonly property url videoSource: videoClip ? videoClip.url : ""
 
     // Emitted to drive the timeline's red cursor to the dive-time of the current
     // video frame while this tab is active. main.qml routes it to currentTime.
     signal cursorTimeRequested(double diveTime)
 
-    // True while the Video Preview tab is the active tab. Gates cursor-driving so
+    // True while the Video tab is the active tab. Gates cursor-driving so
     // we don't move the shared timeline cursor while the user is on another tab.
     property bool tabActive: false
 
-    property double videoCreationTime: -1  // UTC seconds since epoch; -1 if unavailable
     property var dive: null                // DiveData object (exposes startTime QDateTime)
 
     // Seconds to add to MediaPlayer.position to obtain dive-time. Owned by
@@ -54,8 +60,43 @@ Item {
     // use the bucketed currentDiveTime instead so the cache isn't thrashed.
     readonly property double exactDiveTime: (syncPlayer.position / 1000.0) + root.videoOffset
 
-    readonly property bool metadataAvailable: root.videoCreationTime >= 0
-    readonly property bool diveAvailable: root.dive !== null
+    // C-track hooks (v0.4 plan): the player position in seconds for the
+    // inspector's dive-time field and C3's depth readout, and the
+    // VideoOutput item for C2's ShaderEffectSource.
+    readonly property double videoPositionSeconds: syncPlayer.position / 1000.0
+    property alias videoOutput: videoOut
+
+    // C3 depth-linked grading: push the current frame's dive-time (plus
+    // the raw player position, for anchor capture) into the controller.
+    // Gated like cursor-driving above so hidden tabs never pay for the
+    // per-tick depth resolve; the gate's own flip pushes once, so enabling
+    // the link / switching to this tab while paused still lands a fresh
+    // sample immediately.
+    readonly property bool depthLinkFeedActive: tabActive && root.dive !== null
+                                                && colorGrade.hasClip
+                                                && colorGrade.enabled
+                                                && colorGrade.depthLinked
+    onDepthLinkFeedActiveChanged: pushDepthSample()
+    onExactDiveTimeChanged: pushDepthSample()
+    // Clip/dive switches reset the controller's sample without necessarily
+    // flipping the gate or moving exactDiveTime — re-push on its request.
+    Connections {
+        target: colorGrade
+        function onPlaybackSampleInvalidated() { root.pushDepthSample() }
+    }
+    function pushDepthSample() {
+        if (depthLinkFeedActive)
+            colorGrade.setCurrentDiveTime(exactDiveTime, videoPositionSeconds)
+    }
+
+    // "Go to" on a depth-anchor row seeks the player to the anchor's
+    // bound video time.
+    Connections {
+        target: colorGrade
+        function onSeekRequested(videoTimeSeconds) {
+            syncPlayer.setPosition(Math.round(videoTimeSeconds * 1000))
+        }
+    }
 
     // Push the red timeline cursor to the current frame's dive-time. No-op unless
     // this tab is active and a video + dive are loaded.
@@ -70,28 +111,32 @@ Item {
     onVideoOffsetChanged: updateCursor()
     onTabActiveChanged: updateCursor()
 
-    // Reactive mirror of config.cameraPairingNames() — updated via onCameraPairingsChanged
-    property var profileNames: []
-
-    Component.onCompleted: {
-        root.profileNames = config.cameraPairingNames()
-        loadOverlayLayoutFromConfig()
-    }
+    Component.onCompleted: applyClipOverlayLayout()
 
     onVideoSourceChanged: {
+        // Stop before switching sources: assigning a new source to a playing
+        // MediaPlayer can keep decoding the old one on some backends.
+        syncPlayer.stop()
         syncPlayer.source = videoSource
-        loadOverlayLayoutFromConfig()
     }
 
-    function videoLocalPath() {
-        if (videoSource == "") return ""
-        return mainWindow.urlToLocalFile(videoSource.toString())
+    // Follow-up F: the clip model owns layout resolution (dive x resolution
+    // bucket → path entry → last-used → defaults) and re-broadcasts edits
+    // to same-bucket siblings, so the preview items simply MIRROR the
+    // active clip's overlayLayoutMap: on clip switch, and whenever the
+    // model changes it (a probe landing re-joins the clip's bucket, or a
+    // sibling broadcast). This side never reads Config.
+    onVideoClipChanged: applyClipOverlayLayout()
+    Connections {
+        target: root.videoClip
+        ignoreUnknownSignals: true
+        function onOverlayLayoutChanged() { root.applyClipOverlayLayout() }
     }
 
-    function loadOverlayLayoutFromConfig() {
-        const path = videoLocalPath()
-        // Even with an empty path, fetch the last-used layout as the default.
-        const layout = config.videoOverlayLayout(path)
+    function applyClipOverlayLayout() {
+        if (!videoClip)
+            return
+        const layout = videoClip.overlayLayoutMap
         if (layout.diveComputer) {
             const dc = layout.diveComputer
             diveComputerOverlay.normalizedRect = Qt.rect(dc.x, dc.y, dc.w, dc.h)
@@ -104,12 +149,19 @@ Item {
         }
     }
 
-    function saveOverlayLayoutToConfig() {
-        const path = videoLocalPath()
-        if (path === "") return
+    // Commit channel for USER gestures only — drag/resize release and the
+    // two visibility checkboxes. Deliberately NOT wired to
+    // placementVisibleChanged: applyClipOverlayLayout() writes
+    // placementVisible imperatively, and committing from there would
+    // persist (and broadcast to the whole bucket) a half-applied layout —
+    // one overlay already switched to the new clip, the other still the
+    // previous clip's.
+    function commitOverlayLayout() {
+        if (!videoClip)
+            return
         const dc = diveComputerOverlay.normalizedRect
         const dp = diveProfileOverlay.normalizedRect
-        config.setVideoOverlayLayout(path, {
+        const layout = {
             "diveComputer": {
                 "visible": diveComputerOverlay.placementVisible,
                 "x": dc.x, "y": dc.y, "w": dc.width, "h": dc.height
@@ -118,65 +170,69 @@ Item {
                 "visible": diveProfileOverlay.placementVisible,
                 "x": dp.x, "y": dp.y, "w": dp.width, "h": dp.height
             }
-        })
+        }
+        clipList.commitOverlayLayout(videoClip, layout)
     }
 
     // Force a re-fetch of both overlay images when any generator setting that
     // affects rendered output changes — needed while paused, since otherwise
     // diveTime is static and the Image source URL doesn't change.
+    //
+    // The bump is deferred one event-loop turn (Qt.callLater): QML signal
+    // handlers run BEFORE plain QObject::connect slots on the same signal, so
+    // a synchronous bump posts the async image request before main.cpp's
+    // FrameCache::invalidate() has run, and the loader thread can serve the
+    // stale cached frame (observed: ~1 in 3 unit flips stayed stale).
+    function bumpRefreshTick() { root.refreshTick++ }
+    function requestRefresh()  { Qt.callLater(root.bumpRefreshTick) }
     Connections {
         target: overlayGenerator
-        function onFontChanged()              { root.refreshTick++ }
-        function onLabelColorChanged()        { root.refreshTick++ }
-        function onValueColorChanged()        { root.refreshTick++ }
-        function onTemplateChanged()          { root.refreshTick++ }
-        function onShowDepthChanged()         { root.refreshTick++ }
-        function onShowTemperatureChanged()   { root.refreshTick++ }
-        function onShowNDLChanged()           { root.refreshTick++ }
-        function onShowPressureChanged()      { root.refreshTick++ }
-        function onShowTimeChanged()          { root.refreshTick++ }
-        function onBackgroundOpacityChanged() { root.refreshTick++ }
-        function onShowPO2Cell1Changed()      { root.refreshTick++ }
-        function onShowPO2Cell2Changed()      { root.refreshTick++ }
-        function onShowPO2Cell3Changed()      { root.refreshTick++ }
-        function onShowCompositePO2Changed()  { root.refreshTick++ }
-        function onCellsChanged()             { root.refreshTick++ }
-        function onCellLayoutChanged()        { root.refreshTick++ }
+        function onFontChanged()              { root.requestRefresh() }
+        function onLabelColorChanged()        { root.requestRefresh() }
+        function onValueColorChanged()        { root.requestRefresh() }
+        function onTemplateChanged()          { root.requestRefresh() }
+        function onShowDepthChanged()         { root.requestRefresh() }
+        function onShowTemperatureChanged()   { root.requestRefresh() }
+        function onShowNDLChanged()           { root.requestRefresh() }
+        function onShowPressureChanged()      { root.requestRefresh() }
+        function onShowTimeChanged()          { root.requestRefresh() }
+        function onBackgroundOpacityChanged() { root.requestRefresh() }
+        function onShowPO2Cell1Changed()      { root.requestRefresh() }
+        function onShowPO2Cell2Changed()      { root.requestRefresh() }
+        function onShowPO2Cell3Changed()      { root.requestRefresh() }
+        function onShowCompositePO2Changed()  { root.requestRefresh() }
+        function onCellsChanged()             { root.requestRefresh() }
+        function onCellLayoutChanged()        { root.requestRefresh() }
     }
     Connections {
         target: profileGenerator
-        function onBackgroundColorChanged()   { root.refreshTick++ }
-        function onBackgroundOpacityChanged() { root.refreshTick++ }
-        function onCurveColorChanged()        { root.refreshTick++ }
-        function onCurveWidthChanged()        { root.refreshTick++ }
-        function onIndicatorColorChanged()    { root.refreshTick++ }
-        function onIndicatorModeChanged()     { root.refreshTick++ }
-        function onIndicatorRadiusChanged()   { root.refreshTick++ }
-        function onOutputWidthChanged()       { root.refreshTick++ }
-        function onOutputHeightChanged()      { root.refreshTick++ }
-        function onDecoZoneColorChanged()     { root.refreshTick++ }
-        function onDecoZoneOpacityChanged()   { root.refreshTick++ }
-        function onGridEnabledChanged()       { root.refreshTick++ }
-        function onGridColorChanged()         { root.refreshTick++ }
-        function onGridOpacityChanged()       { root.refreshTick++ }
+        function onBackgroundColorChanged()   { root.requestRefresh() }
+        function onBackgroundOpacityChanged() { root.requestRefresh() }
+        function onCurveColorChanged()        { root.requestRefresh() }
+        function onCurveWidthChanged()        { root.requestRefresh() }
+        function onIndicatorColorChanged()    { root.requestRefresh() }
+        function onIndicatorModeChanged()     { root.requestRefresh() }
+        function onIndicatorRadiusChanged()   { root.requestRefresh() }
+        function onOutputWidthChanged()       { root.requestRefresh() }
+        function onOutputHeightChanged()      { root.requestRefresh() }
+        function onDecoZoneColorChanged()     { root.requestRefresh() }
+        function onDecoZoneOpacityChanged()   { root.requestRefresh() }
+        function onGridEnabledChanged()       { root.requestRefresh() }
+        function onGridColorChanged()         { root.requestRefresh() }
+        function onGridOpacityChanged()       { root.requestRefresh() }
+        function onGridDepthIntervalChanged() { root.requestRefresh() }
+        function onGridTimeIntervalChanged()  { root.requestRefresh() }
+        function onGridLineWidthChanged()     { root.requestRefresh() }
+        function onGridShowLabelsChanged()    { root.requestRefresh() }
+        // Pulse phase derives from the timestamp and the period, so a period
+        // change alters the indicator even at a fixed paused time.
+        function onPulsePeriodMsChanged()     { root.requestRefresh() }
     }
-
-    function parseDiveTime(text) {
-        text = text.trim()
-        if (text === "") return -1
-        if (/^\d+$/.test(text)) return parseInt(text, 10)
-        var parts = text.split(":")
-        if (parts.length === 2) {
-            var m = parseInt(parts[0], 10), s = parseInt(parts[1], 10)
-            if (isNaN(m) || isNaN(s) || s >= 60) return -1
-            return m * 60 + s
-        }
-        if (parts.length === 3) {
-            var h = parseInt(parts[0], 10), m2 = parseInt(parts[1], 10), s2 = parseInt(parts[2], 10)
-            if (isNaN(h) || isNaN(m2) || isNaN(s2) || m2 >= 60 || s2 >= 60) return -1
-            return h * 3600 + m2 * 60 + s2
-        }
-        return -1
+    // Unit flips re-format every value both generators draw; main.cpp already
+    // invalidates both FrameCaches, but a paused video still needs a new URL.
+    Connections {
+        target: config
+        function onUnitSystemChanged()        { root.requestRefresh() }
     }
 
     function formatTime(totalSeconds) {
@@ -198,6 +254,17 @@ Item {
                 seekSlider.value = syncPlayer.position
             root.updateCursor()
         }
+        // Duration fallback: when ffprobe is unavailable (probe failed or
+        // still pending) the clip has no duration, so feed the real player's
+        // once it is known. A successful probe later overwrites it with the
+        // container-exact value.
+        function onDurationChanged() {
+            if (root.videoClip && syncPlayer.duration > 0
+                    && (root.videoClip.probeState !== VideoClip.Probed
+                        || root.videoClip.durationSeconds <= 0)) {
+                root.videoClip.setDurationSeconds(syncPlayer.duration / 1000.0)
+            }
+        }
     }
 
     ColumnLayout {
@@ -206,6 +273,7 @@ Item {
 
         // Video display area
         Rectangle {
+            id: videoSurface
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "black"
@@ -215,28 +283,137 @@ Item {
                 anchors.fill: parent
             }
 
-            // Live preview overlays. Anchored to the video Rectangle so
-            // their normalized rects map onto the full video area.
-            VideoOverlayItem {
-                id: diveComputerOverlay
-                imageSourceBase: "image://overlay/at/"
-                diveTime: root.currentDiveTime
-                refreshTick: root.refreshTick
-                editable: true
-                visible: placementVisible && root.dive !== null && root.videoSource != ""
-                onLayoutCommitted: root.saveOverlayLayoutToConfig()
-                onPlacementVisibleChanged: root.saveOverlayLayoutToConfig()
+            // ── Colour-grade preview chain (v0.4 track C, PR C2) ─────────
+            //
+            // Activity gating (the plan's "inactive = zero cost" rule):
+            //  - gradeChainAlive keeps the ShaderEffectSource attached while
+            //    the grade is merely bypassed (hold-to-compare), so a press
+            //    doesn't tear down and rebuild the FBO; with the effect
+            //    invisible nothing pulls the texture, so a held press costs
+            //    nothing either.
+            //  - grade disabled / no clip → sourceItem: null releases the
+            //    FBO entirely and the effect is visible:false +
+            //    hideSource:false → plain VideoOutput, zero shader cost.
+            //  - bypass shows the ORIGINAL by deactivating the effect
+            //    (visible:false + hideSource:false), not via a shader
+            //    uniform — cheaper, and exactly original by construction.
+            readonly property bool gradeChainAlive: colorGrade.enabled
+                                                    && colorGrade.hasClip
+                                                    && root.videoSource != ""
+            readonly property bool gradeActive: colorGrade.previewActive
+                                                && root.videoSource != ""
+
+            ShaderEffectSource {
+                id: gradeSource
+                visible: false
+                live: true
+                sourceItem: videoSurface.gradeChainAlive ? videoOut : null
+                // contentRect is in videoOut's own coordinates — exactly
+                // what sourceRect expects. FBO at display size, per plan.
+                sourceRect: videoOut.contentRect
+                hideSource: gradeEffect.visible
             }
 
-            VideoOverlayItem {
-                id: diveProfileOverlay
-                imageSourceBase: "image://profile/at/"
-                diveTime: root.currentDiveTime
-                refreshTick: root.refreshTick
-                editable: true
-                visible: placementVisible && root.dive !== null && root.videoSource != ""
-                onLayoutCommitted: root.saveOverlayLayoutToConfig()
-                onPlacementVisibleChanged: root.saveOverlayLayoutToConfig()
+            // Hidden sampler feed for the shader's LUT strip (binding 2).
+            // Identity until C4's LUT import; lutRevision busts Qt's
+            // per-URL image cache when the strip changes. smooth (linear
+            // filtering) is REQUIRED: the shader's in-slice red/green
+            // interpolation is the sampler's own bilinear filter.
+            Image {
+                id: lutStripImage
+                visible: false
+                smooth: true
+                mipmap: false
+                cache: false
+                source: "image://lutstrip/" + colorGrade.lutRevision
+            }
+
+            // Live preview overlays, parented to the actual video content
+            // area (videoOut.contentRect) rather than the full black
+            // Rectangle — with a letterboxed video the bars would otherwise
+            // be inside the normalized overlay space, so the preview
+            // placement could never match a composited export, which has no
+            // bars. contentRect is in videoOut's coordinates; videoOut
+            // fills this Rectangle, so the mapping is direct. The overlay
+            // items derive their geometry from this parent via bindings
+            // (they only ever write their own normalizedRect), so drag /
+            // resize restore math follows the content area automatically.
+            Item {
+                id: videoContentArea
+                x: videoOut.contentRect.x
+                y: videoOut.contentRect.y
+                width: videoOut.contentRect.width
+                height: videoOut.contentRect.height
+
+                // Graded video, drawn exactly over the content area. FIRST
+                // child on purpose: the VideoOverlayItems below are later
+                // siblings, so they stack above the effect and stay
+                // ungraded (their FrameCache images are never routed
+                // through the shader — correct per the plan; the export
+                // path grades video before compositing overlays too).
+                ShaderEffect {
+                    id: gradeEffect
+                    anchors.fill: parent
+                    visible: videoSurface.gradeActive
+                    fragmentShader: "qrc:/shaders/colorgrade.frag.qsb"
+
+                    // Sampler + uniform properties: names must match the
+                    // std140 block members in colorgrade.frag exactly.
+                    property variant source: gradeSource
+                    property variant lutStrip: lutStripImage
+                    property vector4d uMatR: colorGrade.matrixR
+                    property vector4d uMatG: colorGrade.matrixG
+                    property vector4d uMatB: colorGrade.matrixB
+                    property vector4d uBlack: colorGrade.blackPoint
+                    property vector4d uLift: colorGrade.lift
+                    property real uContrast: colorGrade.contrast
+                    property real uSplitPos: colorGrade.splitPos
+                    property real uLutEnabled: colorGrade.lutEnabled ? 1.0 : 0.0
+                    property real uLutSize: colorGrade.lutSize
+                }
+
+                VideoOverlayItem {
+                    id: diveComputerOverlay
+                    imageSourceBase: "image://overlay/at/"
+                    diveTime: root.currentDiveTime
+                    refreshTick: root.refreshTick
+                    editable: true
+                    visible: placementVisible && root.dive !== null && root.videoSource != ""
+                    onLayoutCommitted: root.commitOverlayLayout()
+                }
+
+                VideoOverlayItem {
+                    id: diveProfileOverlay
+                    imageSourceBase: "image://profile/at/"
+                    diveTime: root.currentDiveTime
+                    refreshTick: root.refreshTick
+                    editable: true
+                    visible: placementVisible && root.dive !== null && root.videoSource != ""
+                    onLayoutCommitted: root.commitOverlayLayout()
+                }
+
+                // ── Eyedropper capture (C4) ──────────────────────────
+                // Armed by ColorPanel's "Pick neutral" toggle through
+                // colorGrade.pickingActive. Fills the video CONTENT area,
+                // so x/width,y/height is the click normalized across the
+                // actual frame — exactly what pickNeutral() maps onto the
+                // native-resolution QVideoSink frame. z above the overlay
+                // items: a pick click must sample, never start a drag. A
+                // successful pick disarms the mode in the controller; a
+                // failed one (unmappable playing frame) toasts and stays
+                // armed so the user can pause and click again.
+                MouseArea {
+                    anchors.fill: parent
+                    z: 50
+                    visible: colorGrade.pickingActive && root.videoSource != ""
+                    enabled: visible
+                    cursorShape: Qt.CrossCursor
+                    onClicked: function(mouse) {
+                        colorGrade.pickNeutral(videoOut.videoSink,
+                                               mouse.x / Math.max(1, width),
+                                               mouse.y / Math.max(1, height))
+                    }
+                }
             }
 
             Label {
@@ -293,197 +470,42 @@ Item {
                     font.family: "monospace"
                 }
 
+                // Visibility toggles are user gestures → commit (shared by
+                // the clip's whole dive x resolution bucket). `checked` is
+                // driven by a Binding element, not a plain binding: the
+                // user's click writes `checked`, and a plain binding would
+                // then never follow a clip switch again.
                 CheckBox {
+                    id: dcVisibleBox
                     text: qsTr("Dive Computer")
-                    checked: diveComputerOverlay.placementVisible
-                    onToggled: diveComputerOverlay.placementVisible = checked
+                    onToggled: {
+                        diveComputerOverlay.placementVisible = checked
+                        root.commitOverlayLayout()
+                    }
+                    Binding {
+                        target: dcVisibleBox
+                        property: "checked"
+                        value: diveComputerOverlay.placementVisible
+                    }
                 }
 
                 CheckBox {
+                    id: profileVisibleBox
                     text: qsTr("Profile")
-                    checked: diveProfileOverlay.placementVisible
-                    onToggled: diveProfileOverlay.placementVisible = checked
-                }
-            }
-        }
-
-        // Sync workflow panel
-        GroupBox {
-            Layout.fillWidth: true
-            title: qsTr("Sync with Dive Log")
-            padding: 10
-
-            ColumnLayout {
-                anchors { left: parent.left; right: parent.right }
-                spacing: 8
-
-                // ── Section A: Use Saved Profile ──────────────────────────
-                ColumnLayout {
-                    visible: root.profileNames.length > 0
-                             && root.metadataAvailable
-                             && root.diveAvailable
-                    spacing: 4
-
-                    Label { text: qsTr("Apply Saved Camera Profile"); font.bold: true }
-
-                    RowLayout {
-                        spacing: 8
-
-                        ComboBox {
-                            id: profileComboBox
-                            Layout.fillWidth: true
-                            model: root.profileNames
-                        }
-
-                        Button {
-                            text: qsTr("Apply Profile")
-                            enabled: profileComboBox.count > 0
-                            onClicked: {
-                                var constant = config.cameraCalibrationConstant(
-                                                   profileComboBox.currentText)
-                                var diveStartSecs = root.dive.startTime.getTime() / 1000.0
-                                var suggested = (root.videoCreationTime - diveStartSecs) + constant
-                                root.syncOffsetComputed(suggested)
-                            }
-                        }
+                    onToggled: {
+                        diveProfileOverlay.placementVisible = checked
+                        root.commitOverlayLayout()
                     }
-
-                    Label {
-                        visible: profileComboBox.count > 0
-                        color: palette.placeholderText
-                        font.pixelSize: 11
-                        text: {
-                            if (profileComboBox.count === 0 || !root.metadataAvailable || !root.diveAvailable)
-                                return ""
-                            var constant = config.cameraCalibrationConstant(profileComboBox.currentText)
-                            var diveStartSecs = root.dive.startTime.getTime() / 1000.0
-                            var suggested = (root.videoCreationTime - diveStartSecs) + constant
-                            return qsTr("Suggested offset: %1 s").arg(suggested.toFixed(1))
-                        }
-                    }
-
-                    Connections {
-                        target: config
-                        function onCameraPairingsChanged() {
-                            root.profileNames = config.cameraPairingNames()
-                        }
-                    }
-
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
-                }
-
-                // ── No-metadata notice ────────────────────────────────────
-                Label {
-                    visible: !root.metadataAvailable && root.videoSource != ""
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                    color: palette.placeholderText
-                    font.pixelSize: 11
-                    text: qsTr("Video creation time not available — camera profiles cannot be used or saved for this file.")
-                }
-
-                // ── Graphical sync ────────────────────────────────────────
-                Label {
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                    text: root.videoSource == ""
-                          ? qsTr("No video loaded.")
-                          : qsTr("Pause when your dive computer is clearly visible, then drag the video band on the timeline (or nudge below) until the overlay's data matches the display on your computer. The red cursor follows the video.")
-                }
-
-                RowLayout {
-                    visible: root.videoSource != ""
-                    spacing: 8
-
-                    Label { text: qsTr("Dive time at this frame:") }
-
-                    TextField {
-                        id: diveTimeField
-                        placeholderText: qsTr("MM:SS  (e.g. 12:15)")
-                        implicitWidth: 120
-                        // Live readout of the current frame's dive-time. Editing
-                        // breaks this binding (user value wins); committing restores
-                        // it. While paused exactDiveTime is static, so typing isn't
-                        // overwritten.
-                        text: formatTime(root.exactDiveTime)
-                        onEditingFinished: {
-                            // Only commit when the user actually changed the value —
-                            // a bare focus-loss must not re-apply the floored readout
-                            // (which would shave the sub-second fraction off the offset).
-                            if (text !== formatTime(root.exactDiveTime)) {
-                                var secs = parseDiveTime(text)
-                                if (secs >= 0)
-                                    root.syncOffsetComputed(secs - syncPlayer.position / 1000.0)
-                            }
-                            // Re-establish the live readout binding.
-                            text = Qt.binding(function() { return formatTime(root.exactDiveTime) })
-                        }
-                    }
-
-                    Label { text: qsTr("Nudge:") }
-
-                    Button {
-                        text: qsTr("-1s")
-                        enabled: root.videoSource != ""
-                        onClicked: root.syncOffsetComputed(root.videoOffset - 1)
-                    }
-
-                    Button {
-                        text: qsTr("+1s")
-                        enabled: root.videoSource != ""
-                        onClicked: root.syncOffsetComputed(root.videoOffset + 1)
-                    }
-                }
-
-                // ── Section B: Save Profile ───────────────────────────────
-                ColumnLayout {
-                    visible: root.metadataAvailable && root.diveAvailable && root.videoSource != ""
-                    spacing: 4
-
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
-
-                    Label { text: qsTr("Save Camera Profile"); font.bold: true }
-
-                    Label {
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        font.pixelSize: 11
-                        color: palette.placeholderText
-                        text: qsTr("Give this camera a name to remember its clock offset. Future dives with the same camera will sync automatically.")
-                    }
-
-                    RowLayout {
-                        spacing: 8
-
-                        TextField {
-                            id: cameraNameField
-                            Layout.fillWidth: true
-                            placeholderText: qsTr("Camera name (e.g. GoPro Hero 12)")
-                        }
-
-                        Button {
-                            text: qsTr("Save Profile")
-                            enabled: cameraNameField.text.trim().length > 0
-                            onClicked: {
-                                var savedName = cameraNameField.text.trim()
-                                var diveStartSecs = root.dive.startTime.getTime() / 1000.0
-                                // The current live offset is the sync result.
-                                var constant = root.videoOffset
-                                               - (root.videoCreationTime - diveStartSecs)
-                                // addOrUpdateCameraPairing emits cameraPairingsChanged
-                                // synchronously, so root.profileNames and profileComboBox.model
-                                // are already updated on the next line
-                                config.addOrUpdateCameraPairing(savedName, constant)
-                                cameraNameField.text = ""
-                                // Select the saved profile in the ComboBox
-                                var idx = root.profileNames.indexOf(savedName)
-                                if (idx >= 0)
-                                    profileComboBox.currentIndex = idx
-                            }
-                        }
+                    Binding {
+                        target: profileVisibleBox
+                        property: "checked"
+                        value: diveProfileOverlay.placementVisible
                     }
                 }
             }
         }
+
+        // The sync workflow ("Sync with Dive Log" GroupBox) moved to the
+        // video inspector's Sync section (SyncSection.qml, PR A5).
     }
 }

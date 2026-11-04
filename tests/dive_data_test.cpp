@@ -3,6 +3,9 @@
 // overlay generator relies on.
 
 #include <QtTest>
+#include <QRandomGenerator>
+
+#include <cmath>
 
 #include "include/core/dive_data.h"
 
@@ -14,6 +17,56 @@ DiveDataPoint point(double t, double depth)
     p.timestamp = t;
     p.depth = depth;
     return p;
+}
+
+// ORACLE: the pre-refactor linear maxDepthUntil() verbatim (scan from 0,
+// strict 'timestamp > time' break, interpolated boundary segment). The
+// production version (upper_bound + eager prefix-max) must agree with it
+// bit-for-bit.
+double bruteForceMaxDepthUntil(const QVector<DiveDataPoint> &pts, double time)
+{
+    double max = 0.0;
+    for (int i = 0; i < pts.size(); ++i) {
+        const DiveDataPoint &point = pts[i];
+        if (point.timestamp > time) {
+            if (i > 0) {
+                const DiveDataPoint &prev = pts[i - 1];
+                double dt = point.timestamp - prev.timestamp;
+                if (dt > 0.0 && time > prev.timestamp) {
+                    double factor = (time - prev.timestamp) / dt;
+                    double depth = prev.depth + factor * (point.depth - prev.depth);
+                    if (depth > max) {
+                        max = depth;
+                    }
+                }
+            }
+            break;
+        }
+        if (point.depth > max) {
+            max = point.depth;
+        }
+    }
+    return max;
+}
+
+// ORACLE: the pre-refactor linear segment search in dataAtTime() (first
+// index with timestamp >= time), followed by the unchanged depth/held-field
+// formulas. Valid only for first.timestamp < time < last.timestamp.
+DiveDataPoint bruteForceSegmentPoint(const QVector<DiveDataPoint> &pts, double time)
+{
+    int index = 0;
+    while (index < pts.size() && pts[index].timestamp < time) {
+        index++;
+    }
+    const DiveDataPoint &prev = pts[index - 1];
+    const DiveDataPoint &next = pts[index];
+    double factor = (time - prev.timestamp) / (next.timestamp - prev.timestamp);
+    DiveDataPoint r;
+    r.timestamp = time;
+    r.depth = prev.depth + factor * (next.depth - prev.depth);
+    r.ceiling = prev.ceiling;
+    r.stopTime = prev.stopTime;
+    return r;
 }
 
 } // namespace
@@ -310,6 +363,170 @@ private slots:
         // A log-reported average (e.g. FIT DIVE_SUMMARY) takes precedence
         d.setMeanDepth(12.5);
         QCOMPARE(d.meanDepth(), 12.5);
+    }
+
+    // --- Locks for the binary-search refactors (lower_bound in dataAtTime,
+    // upper_bound + prefix-max in maxDepthUntil). Exact '==' on purpose:
+    // QCOMPARE on doubles is fuzzy and could not prove bit-identity.
+
+    void dataAtTimeSegmentLookupIsExact()
+    {
+        DiveData d;
+        DiveDataPoint a = point(0.0, 10.0);  a.ceiling = 1.0; a.stopTime = 1.0;
+        DiveDataPoint b = point(10.0, 20.0); b.ceiling = 2.0; b.stopTime = 2.0;
+        DiveDataPoint c = point(20.0, 30.0); c.ceiling = 3.0; c.stopTime = 3.0;
+        d.addDataPoint(a);
+        d.addDataPoint(b);
+        d.addDataPoint(c);
+
+        // Exact interior sample timestamp: the segment is (prev=k-1, next=k)
+        // with factor 1 — depth equals sample k, but HELD fields come from
+        // sample k-1 (first index with timestamp >= t, not > t).
+        DiveDataPoint atB = d.dataAtTime(10.0);
+        QVERIFY(atB.depth == 20.0);
+        QVERIFY(atB.ceiling == 1.0);
+        QVERIFY(atB.stopTime == 1.0);
+
+        // Between samples
+        DiveDataPoint mid = d.dataAtTime(15.0);
+        QVERIFY(mid.depth == 25.0);
+        QVERIFY(mid.ceiling == 2.0);
+
+        // Before first / after last / exactly at the ends: clamped copies
+        QVERIFY(d.dataAtTime(-5.0).depth == 10.0);
+        QVERIFY(d.dataAtTime(-5.0).ceiling == 1.0);
+        QVERIFY(d.dataAtTime(0.0).ceiling == 1.0);
+        QVERIFY(d.dataAtTime(20.0).ceiling == 3.0);
+        QVERIFY(d.dataAtTime(99.0).depth == 30.0);
+        QVERIFY(d.dataAtTime(99.0).ceiling == 3.0);
+    }
+
+    void dataAtTimeDuplicateTimestamps()
+    {
+        DiveData d;
+        d.addDataPoint(point(0.0, 10.0));
+        d.addDataPoint(point(10.0, 20.0));
+        d.addDataPoint(point(20.0, 30.0));
+        // addDataPoint's lower_bound insert puts a later-added duplicate
+        // BEFORE the existing one: order is (0)(10,50)(10,20)(20)
+        d.addDataPoint(point(10.0, 50.0));
+        QCOMPARE(d.allDataPoints().at(1).depth, 50.0);
+        QCOMPARE(d.allDataPoints().at(2).depth, 20.0);
+
+        // At the tie, the FIRST of the duplicates is 'next'
+        QVERIFY(d.dataAtTime(10.0).depth == 50.0);
+        // After the tie, the LAST of the duplicates is 'prev'
+        QVERIFY(d.dataAtTime(15.0).depth == 25.0);
+        // Before the tie, interpolate toward the first duplicate
+        QVERIFY(d.dataAtTime(5.0).depth == 30.0);
+    }
+
+    void dataAtTimeMatchesLinearOracle()
+    {
+        QRandomGenerator rng(0xD1FEu);
+        DiveData d;
+        for (int k = 0; k < 400; ++k) {
+            // Integer timestamps in random insertion order → mid-vector
+            // inserts and plenty of duplicate timestamps
+            DiveDataPoint p = point(double(rng.bounded(300)), rng.bounded(60.0));
+            p.ceiling = double(rng.bounded(10));
+            p.stopTime = double(rng.bounded(5));
+            d.addDataPoint(p);
+        }
+        const QVector<DiveDataPoint> &pts = d.allDataPoints();
+        const double first = pts.first().timestamp;
+        const double last = pts.last().timestamp;
+        QVector<double> queries;
+        for (const DiveDataPoint &p : pts) {
+            queries << p.timestamp << p.timestamp + 0.5 << p.timestamp - 0.25;
+        }
+        for (int k = 0; k < 500; ++k) {
+            queries << rng.bounded(300.0);
+        }
+        int checked = 0;
+        for (double t : queries) {
+            if (!(t > first && t < last)) {
+                continue; // early-return clamps, covered elsewhere
+            }
+            const DiveDataPoint got = d.dataAtTime(t);
+            const DiveDataPoint want = bruteForceSegmentPoint(pts, t);
+            QVERIFY2(got.depth == want.depth && got.ceiling == want.ceiling
+                         && got.stopTime == want.stopTime,
+                     qPrintable(QStringLiteral("t=%1").arg(t, 0, 'g', 17)));
+            ++checked;
+        }
+        QVERIFY(checked > 1000);
+    }
+
+    void maxDepthUntilBoundariesAndEqualTimestamps()
+    {
+        DiveData d;
+        QVERIFY(d.maxDepthUntil(10.0) == 0.0); // empty dive
+
+        d.addDataPoint(point(0.0, 5.0));
+        d.addDataPoint(point(10.0, 20.0));
+        d.addDataPoint(point(20.0, 8.0));
+        // Equal-timestamp sample, deeper than its twin: included at t == 20
+        d.addDataPoint(point(20.0, 40.0));
+        d.addDataPoint(point(30.0, 2.0));
+
+        QVERIFY(d.maxDepthUntil(-1.0) == 0.0);   // before first sample
+        QVERIFY(d.maxDepthUntil(0.0) == 5.0);    // exactly at first
+        QVERIFY(d.maxDepthUntil(5.0) == 12.5);   // mid-segment interpolation
+        QVERIFY(d.maxDepthUntil(10.0) == 20.0);  // exactly at a sample
+        // Later-added twin sorts first: order is (10,20)(20,40)(20,8), so the
+        // segment ending at t=20 heads for 40 m — interpolated 30 m at t=15
+        QVERIFY(d.maxDepthUntil(15.0) == 30.0);
+        QVERIFY(d.maxDepthUntil(20.0) == 40.0);  // BOTH t=20 twins included
+        QVERIFY(d.maxDepthUntil(99.0) == 40.0);  // after last
+        QCOMPARE(d.maxDepthUntil(99.0), d.maxDepth());
+
+        // clearData resets the prefix-max along with the samples
+        d.clearData();
+        QVERIFY(d.maxDepthUntil(99.0) == 0.0);
+        d.addDataPoint(point(0.0, 3.0));
+        QVERIFY(d.maxDepthUntil(99.0) == 3.0);
+    }
+
+    void maxDepthUntilMatchesBruteForceOracle()
+    {
+        QRandomGenerator rng(0xB0B5u);
+        DiveData d;
+        for (int k = 0; k < 500; ++k) {
+            // Random insertion order (mid-vector inserts after which the
+            // prefix-max suffix must change), duplicate integer timestamps,
+            // occasional zero and negative depths (the oracle seeds at 0.0)
+            const int roll = rng.bounded(20);
+            const double depth = roll == 0 ? 0.0
+                               : roll == 1 ? -rng.bounded(2.0)
+                                           : rng.bounded(80.0);
+            d.addDataPoint(point(double(rng.bounded(400)), depth));
+
+            // Check incrementally too: the prefix-max must be right after
+            // every single insert, not just at the end
+            if (k % 25 == 0) {
+                const double t = rng.bounded(400.0);
+                QVERIFY(d.maxDepthUntil(t) == bruteForceMaxDepthUntil(d.allDataPoints(), t));
+            }
+        }
+        const QVector<DiveDataPoint> &pts = d.allDataPoints();
+        QVector<double> queries{-10.0, 1e9};
+        for (const DiveDataPoint &p : pts) {
+            queries << p.timestamp << p.timestamp + 0.5 << p.timestamp - 0.25
+                    << std::nextafter(p.timestamp, 1e9);
+        }
+        for (int k = 0; k < 1000; ++k) {
+            queries << rng.bounded(420.0) - 10.0;
+        }
+        for (double t : queries) {
+            const double got = d.maxDepthUntil(t);
+            const double want = bruteForceMaxDepthUntil(pts, t);
+            QVERIFY2(got == want,
+                     qPrintable(QStringLiteral("t=%1 got=%2 want=%3")
+                                    .arg(t, 0, 'g', 17)
+                                    .arg(got, 0, 'g', 17)
+                                    .arg(want, 0, 'g', 17)));
+        }
     }
 };
 

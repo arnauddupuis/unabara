@@ -135,14 +135,39 @@ void OverlayGenerator::setTemplatePath(const QString &path)
     }
 }
 
+QPair<QDateTime, qint64> OverlayGenerator::backgroundFileStamp(const QString& path)
+{
+    // Qt resources are immutable for the process lifetime: no stat needed.
+    if (path.startsWith(QLatin1String(":/")))
+        return { QDateTime(), -1 };
+    const QFileInfo info(path);
+    if (!info.exists())
+        return { QDateTime(), -1 };
+    return { info.lastModified(), info.size() };
+}
+
 void OverlayGenerator::updateTemplateDimensions()
 {
-    // Load template image to get dimensions
+    // Single decode site for the template background: every m_templatePath
+    // writer (ctor, setTemplatePath, loadTemplate) calls this right after
+    // the write, so the cache can never lag the path. The render path reads
+    // the cached image instead of decoding the file per frame.
+    UNABARA_ASSERT_GUI_THREAD();
+    const auto stamp = backgroundFileStamp(m_templatePath);
     QImage templateImage(m_templatePath);
+    {
+        QMutexLocker lock(&m_backgroundMutex);
+        m_background.path = m_templatePath;
+        m_background.image = templateImage;
+        m_background.mtime = stamp.first;
+        m_background.size = stamp.second;
+    }
     if (templateImage.isNull()) {
         // Use default dimensions if template can't be loaded
         m_templateWidth = 640;
         m_templateHeight = 120;
+        // Warned once per template change; generateOverlay() renders its
+        // placeholder background silently from the cached failure.
         qWarning() << "Could not load template for dimensions, using defaults:" << m_templatePath;
     } else {
         m_templateWidth = templateImage.width();
@@ -1605,15 +1630,9 @@ void OverlayGenerator::initializeDefaultCellLayout(DiveData* dive)
     // This layout calculation mimics the section-based approach from generateOverlay()
     // to ensure the interactive preview matches the main preview exactly.
 
-    // Load template to get dimensions for size calculation
-    QImage templateImage(m_templatePath);
-    QSizeF templateSize;
-    if (templateImage.isNull()) {
-        // Use default dimensions if template can't be loaded
-        templateSize = QSizeF(640, 120);
-    } else {
-        templateSize = QSizeF(templateImage.width(), templateImage.height());
-    }
+    // Template dimensions for size calculation: the background decoded by
+    // updateTemplateDimensions() (640x120 when it failed to load)
+    const QSizeF templateSize(m_templateWidth, m_templateHeight);
 
     // Count sections needed (similar to generateOverlay logic)
     int numSections = 0;
@@ -1946,11 +1965,28 @@ QImage OverlayGenerator::generateOverlay(DiveData* dive, double timePoint)
     
     // qDebug() << "Generating overlay for time point:" << timePoint;
     
-    // Load the template image
-    QImage templateImage(m_templatePath);
+    // Template background, decoded once per template change on the GUI
+    // thread (updateTemplateDimensions). Copying the QImage only shares its
+    // data; convertToFormat()/QPainter below never write into the cache.
+    // Read-only here: this runs on image-provider threads and must never
+    // refresh the member. If the on-disk file was overwritten since the
+    // decode (mtime differs), decode it locally for this frame — the
+    // pre-cache behaviour — until the next template change re-caches it.
+    QString backgroundPath;
+    QImage templateImage;
+    QPair<QDateTime, qint64> cachedStamp;
+    {
+        QMutexLocker lock(&m_backgroundMutex);
+        backgroundPath = m_background.path;
+        templateImage = m_background.image;
+        cachedStamp = { m_background.mtime, m_background.size };
+    }
+    if (backgroundFileStamp(backgroundPath) != cachedStamp) {
+        templateImage = QImage(backgroundPath);
+    }
     if (templateImage.isNull()) {
-        qWarning() << "Failed to load template image:" << m_templatePath;
         // Create a default black background if template can't be loaded
+        // (warned once at decode time in updateTemplateDimensions)
         templateImage = QImage(640, 120, QImage::Format_ARGB32);
         templateImage.fill(QColor(0, 0, 0, 180));
     }
@@ -2953,12 +2989,8 @@ void OverlayGenerator::drawTemperature(QPainter &painter, double temp, const QRe
 void OverlayGenerator::drawPressure(QPainter &painter, double pressure, const QRect &rect, int tankIndex, DiveData* dive) {
     painter.save();
 
-    qDebug() << "Drawing pressure for tank index:" << tankIndex
-             << "Pressure:" << pressure;
     // Get tank count for adaptive layout
     int tankCount = dive ? dive->cylinderCount() : 1;
-
-    qDebug() << "Tank count:" << tankCount;
 
     // Proportional positioning
     int padding = qMax(2, rect.height() / 20);

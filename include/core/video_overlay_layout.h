@@ -33,6 +33,12 @@ struct OverlayPlacement {
             m.value(QStringLiteral("h"), 0.3).toDouble());
         return p;
     }
+
+    bool operator==(const OverlayPlacement& o) const
+    {
+        return visible == o.visible && normalizedRect == o.normalizedRect;
+    }
+    bool operator!=(const OverlayPlacement& o) const { return !(*this == o); }
 };
 
 struct VideoOverlayLayout {
@@ -56,6 +62,12 @@ struct VideoOverlayLayout {
                 m.value(QStringLiteral("diveProfile")).toMap());
         return l;
     }
+
+    bool operator==(const VideoOverlayLayout& o) const
+    {
+        return diveComputer == o.diveComputer && diveProfile == o.diveProfile;
+    }
+    bool operator!=(const VideoOverlayLayout& o) const { return !(*this == o); }
 };
 
 Q_DECLARE_METATYPE(OverlayPlacement)

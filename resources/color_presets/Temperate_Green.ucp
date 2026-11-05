@@ -1,0 +1,7 @@
+{
+    "name": "Temperate Green",
+    "description": "Green coastal water: moderate red recovery, a magenta tint push against the green cast, medium clarity. PLACEHOLDER values — tuned on real footage in PR C6.",
+    "redRecovery": 0.5,
+    "waterTint": 0.45,
+    "clarity": 0.35
+}

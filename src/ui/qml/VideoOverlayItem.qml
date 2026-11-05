@@ -26,6 +26,10 @@ Item {
     visible: placementVisible
 
     // Pixel placement derived from normalized rect against parent.
+    // KEEP IN SYNC with FrameCompositor::placementRect() (frame_compositor
+    // .cpp): the composited export reproduces exactly this math — each of
+    // x/y/w/h Math.round()ed independently — so the burned-in overlay lands
+    // where the preview shows it. Change one side, change the other.
     x: parent ? Math.round(normalizedRect.x * parent.width) : 0
     y: parent ? Math.round(normalizedRect.y * parent.height) : 0
     width:  parent ? Math.round(normalizedRect.width  * parent.width)  : 0
@@ -33,6 +37,10 @@ Item {
 
     // The rendered overlay image. Fits inside the item's bounds without
     // distortion so user-chosen aspect doesn't squish the dive computer.
+    // KEEP IN SYNC with FrameCompositor::fitRect(): the export mirrors this
+    // PreserveAspectFit centring (min-ratio scale, centred both axes).
+    // Documented residuals: the scene graph is subpixel + GPU-bilinear,
+    // the export rounds to pixels + SmoothTransformation.
     Image {
         id: overlayImage
         anchors.fill: parent

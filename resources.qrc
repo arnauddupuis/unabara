@@ -13,10 +13,20 @@
         <file alias="OverlayCell.qml">src/ui/qml/OverlayCell.qml</file>
         <file alias="ProfileEditor.qml">src/ui/qml/ProfileEditor.qml</file>
         <file alias="VideoSyncPlayer.qml">src/ui/qml/VideoSyncPlayer.qml</file>
+        <file alias="ClipStrip.qml">src/ui/qml/ClipStrip.qml</file>
+        <file alias="VideoInspector.qml">src/ui/qml/VideoInspector.qml</file>
+        <file alias="SyncSection.qml">src/ui/qml/SyncSection.qml</file>
+        <file alias="ColorPanel.qml">src/ui/qml/ColorPanel.qml</file>
+        <!-- Only the compiled .qsb is loaded at runtime; the .frag source
+             ships in the repo (resources/shaders/) as the reference. -->
+        <file alias="shaders/colorgrade.frag.qsb">resources/shaders/colorgrade.frag.qsb</file>
         <file alias="VideoOverlayItem.qml">src/ui/qml/VideoOverlayItem.qml</file>
         <file alias="WhatsNewDialog.qml">src/ui/qml/WhatsNewDialog.qml</file>
         <file alias="whatsnew.json">resources/whatsnew.json</file>
         <file>resources/styles/style.qss</file>
+        <file alias="color_presets/Tropical_Blue.ucp">resources/color_presets/Tropical_Blue.ucp</file>
+        <file alias="color_presets/Temperate_Green.ucp">resources/color_presets/Temperate_Green.ucp</file>
+        <file alias="color_presets/Lake_Quarry_Brown.ucp">resources/color_presets/Lake_Quarry_Brown.ucp</file>
         <file alias="templates/OC_Rec_NoTanks_Ocean.utp">resources/templates/OC_Rec_NoTanks_Ocean.utp</file>
         <file alias="templates/OC_Rec_NoTanks_Titanium.utp">resources/templates/OC_Rec_NoTanks_Titanium.utp</file>
         <file alias="templates/OC_Rec_1Tank_Ocean.utp">resources/templates/OC_Rec_1Tank_Ocean.utp</file>

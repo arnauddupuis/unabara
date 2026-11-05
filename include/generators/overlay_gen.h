@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QString>
 #include <QImage>
+#include <QDateTime>
+#include <QMutex>
 #include <QFont>
 #include <QColor>
 #include <QVector>
@@ -343,6 +345,29 @@ private:
     QString m_templatePath;
     int m_templateWidth;
     int m_templateHeight;
+
+    // Decoded template background, filled EAGERLY on the GUI thread by
+    // updateTemplateDimensions() (the one site every m_templatePath writer
+    // goes through) so generateOverlay() never re-decodes the PNG per frame.
+    // The render path (image-provider threads) only READS it, under
+    // m_backgroundMutex — it never refreshes the member. `image` is the raw
+    // QImage(path) result (null = load failed; the failure is cached too) and
+    // `mtime` the on-disk file's modification time at decode (invalid for
+    // immutable :/ resources and missing files); a mismatch at render time
+    // means the file was overwritten externally, and that frame decodes
+    // locally exactly as before the cache existed.
+    struct BackgroundCache {
+        QString path;
+        QImage image;
+        QDateTime mtime;
+        qint64 size = -1; // mtime alone misses same-mtime overwrites (cp -p,
+                          // coarse FAT/SMB timestamps) — size widens the key
+    };
+    // {mtime, size} of the on-disk file; {invalid, -1} for immutable :/
+    // resources and missing files.
+    static QPair<QDateTime, qint64> backgroundFileStamp(const QString& path);
+    mutable QMutex m_backgroundMutex;
+    BackgroundCache m_background;
     QFont m_font;
     QColor m_labelColor;
     QColor m_valueColor;

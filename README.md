@@ -49,7 +49,7 @@ https://github.com/user-attachments/assets/e921109f-2616-48b3-8ceb-769361843e74
 
 ## Requirements
 
-- FFmpeg (optional, required for direct video export)
+- FFmpeg (required for direct video export). Starting with 0.4, FFmpeg is bundled in the Windows, macOS and Flatpak packages, so you only need to install it yourself when building from source or using another Linux package.
 
 ## Installation
 
@@ -59,9 +59,9 @@ Pre-built packages are available on the [Releases page](https://github.com/arnau
 
 1. Download `unabara-windows-x.x.x.zip`
 2. Extract the archive to a folder of your choice
-3. It is recommended to install FFmpeg from [FFmpeg website](https://ffmpeg.org/download.html) ([Direct download link](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip))
-4. Alternatively you can use the [Chocolatey package manager](https://github.com/chocolatey/choco/releases) to install FFmpeg. Once Chocolatey is installed on your windows, open a command prompt as administrator and run: `choco install ffmpeg`
-5. Run `unabara.exe`
+3. Run `unabara.exe`
+
+FFmpeg (`ffmpeg.exe`, `ffprobe.exe`) is bundled next to `unabara.exe` starting with 0.4 — no separate install needed. For older releases, install FFmpeg from the [FFmpeg website](https://ffmpeg.org/download.html) or with [Chocolatey](https://github.com/chocolatey/choco/releases): `choco install ffmpeg`
 
 ### macOS
 
@@ -70,8 +70,9 @@ Requires macOS 12 (Monterey) or newer.
 1. Download `unabara-macos-universal-x.x.x.dmg`
 2. Open the DMG file
 3. Drag the Unabara app to your Applications folder
-4. It is recommended to install FFmpeg using [Homebrew](https://brew.sh/): `brew install ffmpeg`
-5. Launch Unabara from Applications
+4. Launch Unabara from Applications
+
+FFmpeg is bundled inside the app starting with 0.4 — no separate install needed. For older releases, install it using [Homebrew](https://brew.sh/): `brew install ffmpeg`
 
 ### Linux (Flatpak)
 
@@ -84,6 +85,8 @@ Requires macOS 12 (Monterey) or newer.
    ```bash
    flatpak run org.unabara.unabara
    ```
+
+FFmpeg is included in the Flatpak starting with 0.4.
 
 ## Building from Source
 
@@ -179,7 +182,9 @@ sample files are present in `tests/data/`.
 
 ## Video Export
 
-For direct video export functionality, FFmpeg needs to be installed on your system:
+Direct video export uses FFmpeg. Starting with 0.4, FFmpeg is bundled with the pre-built packages (Windows ZIP, macOS DMG and Flatpak), so there is nothing to install. The bundled builds are GPL-licensed; their license text ships alongside them as `ffmpeg-LICENSE.txt` (next to `unabara.exe` on Windows, in `Contents/Resources` on macOS, under `/app/share/licenses` in the Flatpak).
+
+You only need to install FFmpeg yourself when building Unabara from source, when running on Linux outside the Flatpak, or with releases older than 0.4:
 
 - **Linux**:
    - _Ubuntu/Debian_: `sudo apt install ffmpeg`

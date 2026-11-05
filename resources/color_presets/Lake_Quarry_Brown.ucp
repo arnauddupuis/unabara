@@ -1,0 +1,7 @@
+{
+    "name": "Lake / Quarry Brown",
+    "description": "Tannin-stained lakes and quarries: gentle red recovery, a slight magenta push, strong clarity against the murk. PLACEHOLDER values — tuned on real footage in PR C6.",
+    "redRecovery": 0.35,
+    "waterTint": 0.2,
+    "clarity": 0.5
+}

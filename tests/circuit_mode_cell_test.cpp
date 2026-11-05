@@ -6,6 +6,7 @@
 // The generator is constructed without the app's resource bundle, so no
 // template image loads and it falls back to its 640x120 default canvas.
 
+#include "settings_isolation.h"
 #include <QtTest>
 
 #include <QSettings>
@@ -61,8 +62,7 @@ private slots:
         QSKIP("Config's NativeFormat QSettings (registry/plist) cannot be redirected off Linux");
 #endif
         QVERIFY(m_settingsDir.isValid());
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        isolateUserSettings(m_settingsDir.path()); // see settings_isolation.h
 
         // CCR dive: diluent (0), bailout OC gas (1). On the loop from the
         // start, bailed out at t=600, back on the loop at t=900.

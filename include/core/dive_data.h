@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QPair>
 #include <QMap>
+#include <QMutex>
 #include <QString>
 
 
@@ -234,6 +235,15 @@ private:
     QVector<CylinderInfo> m_cylinders;
     QList<GasSwitch> m_gasSwitches;
     QList<CircuitModeOverride> m_circuitModeOverrides;
+    // Running max depth over m_dataPoints[0..k] (maxDepthUntil's O(log n)
+    // lookup). Rebuilt EAGERLY by every m_dataPoints mutation
+    // (addDataPoint/clearData) — never lazily, because maxDepthUntil runs on
+    // the image-provider threads as well as the GUI thread.
+    QVector<double> m_prefixMaxDepth;
+    void rebuildPrefixMaxDepth();
+    // Written from const dataAtTime() paths on the image-provider threads
+    // concurrently with the GUI thread — every access holds the mutex.
+    mutable QMutex m_interpolatedPressuresMutex;
     mutable QMap<int, double> m_lastInterpolatedPressures;
 };
 

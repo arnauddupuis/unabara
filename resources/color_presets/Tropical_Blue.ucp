@@ -1,7 +1,0 @@
-{
-    "name": "Tropical Blue",
-    "description": "Blue open water in ambient light: strong red recovery, a warm tint push, light clarity. PLACEHOLDER values — tuned on real footage in PR C6.",
-    "redRecovery": 0.6,
-    "waterTint": -0.35,
-    "clarity": 0.25
-}

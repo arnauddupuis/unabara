@@ -529,9 +529,12 @@ void ColorGradeTest::json_versionHandling()
 
 void ColorGradeTest::preset_bundledFilesParse()
 {
-    const QStringList files = {QStringLiteral("Tropical_Blue.ucp"),
-                               QStringLiteral("Temperate_Green.ucp"),
-                               QStringLiteral("Lake_Quarry_Brown.ucp")};
+    const QStringList files = {QStringLiteral("Tropical_Blue_Shallow.ucp"),
+                               QStringLiteral("Tropical_Blue_Deep.ucp"),
+                               QStringLiteral("Temperate_Green_Shallow.ucp"),
+                               QStringLiteral("Temperate_Green_Deep.ucp"),
+                               QStringLiteral("Lake_Quarry_Shallow.ucp"),
+                               QStringLiteral("Lake_Quarry_Deep.ucp")};
     for (const QString& name : files) {
         QFile file(QStringLiteral(COLOR_PRESETS_DIR "/") + name);
         QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(name));

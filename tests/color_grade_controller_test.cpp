@@ -1084,7 +1084,7 @@ void ColorGradeControllerTest::applyPresetWritesOnlySliders()
 {
     // Bundled placeholder read from the source tree (the qrc is not
     // compiled into the testlib) — also locks the shipped file's parse.
-    const QString bundled = QStringLiteral(COLOR_PRESETS_DIR "/Tropical_Blue.ucp");
+    const QString bundled = QStringLiteral(COLOR_PRESETS_DIR "/Tropical_Blue_Shallow.ucp");
     QVERIFY(QFile::exists(bundled));
 
     QTemporaryDir dir;
@@ -1112,10 +1112,11 @@ void ColorGradeControllerTest::applyPresetWritesOnlySliders()
     clip.setColorGrade(external.toJson());
 
     QVERIFY(c.applyPreset(bundled));
-    // The three sliders carry the bundled placeholder's values...
-    QCOMPARE(c.redRecovery(), 0.6);
-    QCOMPARE(c.waterTint(), -0.35);
-    QCOMPARE(c.clarity(), 0.25);
+    // The three sliders carry the bundled preset's values (calibrated in
+    // C6 — keep in sync with color_presets/Tropical_Blue_Shallow.ucp)...
+    QCOMPARE(c.redRecovery(), 0.5);
+    QCOMPARE(c.waterTint(), -0.25);
+    QCOMPARE(c.clarity(), 0.75);
     // ...and NOTHING else moved (regression-lock: presets store only the
     // sliders — never neutral sample, LUT, placement or binding).
     const GradeAnchor restored = c.grade().anchors.at(0);
@@ -1133,7 +1134,7 @@ void ColorGradeControllerTest::applyPresetWritesOnlySliders()
     QSignalSpy errSpy(&c, &ColorGradeController::errorOccurred);
     QVERIFY(!c.applyPreset(dir.filePath(QStringLiteral("nope.ucp"))));
     QCOMPARE(errSpy.count(), 1);
-    QCOMPARE(c.redRecovery(), 0.6);
+    QCOMPARE(c.redRecovery(), 0.5);
 }
 
 void ColorGradeControllerTest::savePresetRoundTripAndCollisions()

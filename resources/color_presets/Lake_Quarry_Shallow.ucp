@@ -1,0 +1,7 @@
+{
+    "name": "Lake / Quarry (Shallow)",
+    "description": "Lakes and quarries above ~12 m in usable light: strong red recovery, a slight magenta push against the green cast, no added clarity. Calibrated against a reference edit of Lac Léman footage at ~8 m (C6).",
+    "redRecovery": 0.75,
+    "waterTint": 0.25,
+    "clarity": 0.0
+}

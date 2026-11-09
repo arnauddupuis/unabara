@@ -101,24 +101,53 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
     // contract; currently a no-op for both generators).
     gen->beginExport();
 
-    // Calculate the number of frames to generate
-    double timeStep = 1.0 / m_frameRate;
-    // The loop below always writes at least one frame (time == startTime),
-    // so never let a sub-frame range divide the progress by zero
-    int totalFrames = ExportMath::totalFrames(startTime, endTime, m_frameRate);
+    // Calculate the number of frames to generate. The loop below always
+    // writes at least one frame (i == 0, time == startTime), so never let a
+    // sub-frame range divide the progress by zero.
+    // Captured once, like the destination directory: the per-frame
+    // processEvents() below could otherwise observe a mid-run
+    // setFrameRate() and shift every later frame's timestamp.
+    const double fps = m_frameRate;
+    int totalFrames = ExportMath::totalFrames(startTime, endTime, fps);
     int processedFrames = 0;
     // Exactly the files this run writes — cancellation cleanup removes these
     // and nothing else (never a name pattern, which could hit files from an
     // earlier export into the same directory).
     QStringList framesWritten;
+    // Lazily built on the first pre-dive frame, reused for all of them.
+    QImage transparentFrame;
 
     qDebug() << "Exporting images from" << startTime << "to" << endTime
-             << "at" << m_frameRate << "fps (" << totalFrames << "frames)";
+             << "at" << fps << "fps (" << totalFrames << "frames)";
 
-    // Generate and save images
-    for (double time = startTime; time <= endTime; time += timeStep) {
-        // Generate the frame for this time point
-        QImage overlay = gen->generate(dive, time);
+    // Generate and save images. Integer frame loop (ExportMath::frameTime):
+    // frame i's timestamp is computed by multiplication, so the frame count
+    // is exactly totalFrames — a float-accumulated `t += 1/fps` loop drifted
+    // into N or N+1 frames depending on the range's absolute values.
+    for (int i = 0; i < totalFrames; ++i) {
+        const double time = ExportMath::frameTime(startTime, i, fps);
+        QImage overlay;
+        if (ExportMath::isPreDiveTime(time)) {
+            // Pre-dive frame (ExportMath::isPreDiveTime; mirrored in
+            // VideoExporter::exportVideo/streamFrames): never call the
+            // generator — dataAtTime would clamp to sample 0 and burn a
+            // frozen t=0 overlay — write a fully transparent frame of the
+            // run's size instead, so frame count and naming stay exact.
+            // One cached image for the run; its size comes from a single
+            // sizing render at t = 0 (the generators render at a fixed
+            // template resolution per run).
+            if (transparentFrame.isNull()) {
+                const QImage sizing = gen->generate(dive, 0.0);
+                if (!sizing.isNull()) {
+                    transparentFrame = QImage(sizing.size(), QImage::Format_ARGB32);
+                    transparentFrame.fill(Qt::transparent);
+                }
+            }
+            overlay = transparentFrame;
+        } else {
+            // Generate the frame for this time point
+            overlay = gen->generate(dive, time);
+        }
 
         if (overlay.isNull()) {
             qWarning() << "Failed to generate frame at time:" << time;
@@ -132,6 +161,11 @@ bool ImageExporter::exportImageRange(DiveData* dive, QObject* generator,
         // Save the image
         if (!overlay.save(filePath, "PNG")) {
             gen->endExport();
+            // A failed run leaves no partial sequence behind, same contract
+            // as cancellation: remove exactly the files this run recorded
+            // (the failed name itself is NOT recorded — whatever sits at
+            // that path is not provably ours, so it is never deleted).
+            ExportMath::removeWrittenFiles(exportDir, framesWritten);
             emit exportError(tr("Failed to save image: %1").arg(filePath));
             m_busy = false;
             emit busyChanged();

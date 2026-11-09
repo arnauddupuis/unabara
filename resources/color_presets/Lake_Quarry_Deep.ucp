@@ -1,0 +1,7 @@
+{
+    "name": "Lake / Quarry (Deep)",
+    "description": "Lakes and quarries below ~12 m: red recovery at maximum, a slight magenta push, no added clarity. PROVISIONAL — extrapolated from the shallow calibration; no usable deep-lake reference footage exists yet. Dark deep lake water may be beyond any preset: work from a neutral reference if the footage allows it.",
+    "redRecovery": 1.0,
+    "waterTint": 0.25,
+    "clarity": 0.0
+}

@@ -1,75 +1,107 @@
 {
-    "releases": [
+  "releases": [
+    {
+      "version": "0.4.0",
+      "highlights": [
         {
-            "version": "0.3.1",
-            "highlights": [
-                {
-                    "title": "Circuit Mode cell",
-                    "description": "A new Circuit Mode cell for rebreather dives shows at a glance whether you are on the loop (CC), bailed out (BO), or on open circuit (OC) — following your dive computer's mode changes and gas switches. Add it from the Cells section's CCR group.",
-                    "showMe": "cells_section"
-                }
-            ],
-            "changes": [
-                "Subsurface and FIT imports now carry each cylinder's gas role (diluent, oxygen, open-circuit gas), so bailouts are detected from gas switches even without explicit mode-change events."
-            ]
+          "title": "Burn your overlays into the video",
+          "description": "The new Composited export renders your footage, dive-computer overlay and profile graph into one finished video — audio kept, frame-exact sync, straight from the Video tab. A quality selector (Best to Small) replaces the old bitrate slider, and “Export every enabled clip separately” batches a whole dive's videos in one go.",
+          "showMe": "video"
         },
         {
-            "version": "0.3.0",
-            "highlights": [
-                {
-                    "title": "FIT support",
-                    "description": "Unabara can now import and process .fit files from Garmin/Suunto computers.",
-                    "showMe": "import_button"
-                },
-                {
-                    "title": "16 new templates",
-                    "description": "Three new bundled families — HUD, Social and Broadcast — eight designs in two color variations each, from full heads-up displays to vertical-video layouts and broadcast-style lower thirds. Pick them from the template selector.",
-                    "showMe": "template_selector"
-                },
-                {
-                    "title": "New data cells",
-                    "description": "Your overlays can now show TTS, CNS oxygen toxicity, mean depth, max depth, and the current breathing gas — plus dedicated STOP depth and STOP time cells that appear when you enter deco. Add any of them to any template from the Cells section.",
-                    "showMe": "cells_section"
-                },
-                {
-                    "title": "Make the text yours",
-                    "description": "Labels and values now have independent colors, and text can carry a shadow — crisp offset, soft blur, or outline, with adjustable color, size and opacity. Set them globally or override per cell from the Text section.",
-                    "showMe": "text_section"
-                },
-                {
-                    "title": "One canvas, two views",
-                    "description": "The overlay tab is now a single large canvas. Edit mode is where you arrange things — drag cells, snap them to the grid, and resize them with the corner handles (the Layout section controls alignment and auto-size). Render mode shows the exact pixels your export will produce.",
-                    "showMe": "canvas"
-                },
-                {
-                    "title": "All your cells in one list",
-                    "description": "The sidebar's Cells section lists every data field: its checkbox shows or hides the cell, clicking a row selects that cell on the canvas, and colored dots mark cells carrying their own font, color or shadow overrides.",
-                    "showMe": "cells_section"
-                },
-                {
-                    "title": "Templates can theme the dive profile",
-                    "description": "Templates carry an optional primary/secondary color scheme. Apply it to the dive profile — curve and deco zone take the primary color, indicator and grid the secondary — from the Dive Profile tab's Template Colors section.",
-                    "showMe": "profile"
-                },
-                {
-                    "title": "The timeline does more than you may think",
-                    "description": "It zooms, pans, and can be collapsed from its header chevron. The range you zoom into is what \"Export only visible time range\" exports — the export dialog now shows the exact times next to each range option.",
-                    "showMe": "timeline"
-                },
-                {
-                    "title": "A real Settings tab",
-                    "description": "Units, template directory, update checks and export defaults now live in their own tab — including the management of your saved camera profiles, which previously could not be edited anywhere.",
-                    "showMe": "settings"
-                }
-            ],
-            "changes": [
-                "Notifications appear as brief toasts instead of pop-up dialogs; export success includes an \"Open folder\" shortcut.",
-                "Exports can be cancelled at any point, including during video encoding.",
-                "Both editor sidebars collapse to give the canvas the full width.",
-                "Export is available from the Video Preview tab (overlays export with transparency — composited export comes in v0.4).",
-                "DejaVu Sans is bundled as the default overlay font, so templates render identically on Linux, macOS and Windows.",
-                "CCR PO2 sensor cells can now be added to any template from the Cells panel — previously only templates that already contained them could display them."
-            ]
+          "title": "Underwater colour correction, linked to your depth",
+          "description": "Three diver-friendly sliders — Red Recovery, Water Tint, Clarity — grade your footage live in the preview and in the export. Grade two depth anchors and Unabara interpolates between them as you descend, using the depth from your dive log. A neutral-colour eyedropper, .cube LUT import and savable presets round it out.",
+          "showMe": "video"
+        },
+        {
+          "title": "Multiple videos per dive",
+          "description": "Import all of a dive's clips at once (or drop them on the window): a clip strip and inspector manage them, every clip paints its own band on the timeline, and each keeps its own sync, overlay layout and colour grade.",
+          "showMe": "video"
+        },
+        {
+          "title": "Your video sync is remembered",
+          "description": "Syncing a video with your dive is no longer a per-session chore: each video's sync offset, name, enabled state and colour grade are saved and restored automatically the next time you open Unabara — no more re-dragging the orange band after every restart. Videos now belong to the dive they were synced with: switching dives swaps in that dive's own videos.",
+          "showMe": "video"
         }
-    ]
+      ],
+      "changes": [
+        "FFmpeg now ships inside the Windows and macOS packages and the Flatpak — no separate install needed.",
+        "Video exports stream frames straight to FFmpeg: no temporary PNG mountain, one accurate progress bar, and exact frame counts.",
+        "Overlays in the video preview now sit exactly where the export puts them, even with letterboxed footage.",
+        "Timecode auto-sync keeps negative offsets (cameras started before the dive) and understands high-frame-rate timecodes.",
+        "If a remembered video file has been moved or deleted, Unabara tells you once at restore instead of failing silently."
+      ]
+    },
+    {
+      "version": "0.3.1",
+      "highlights": [
+        {
+          "title": "Circuit Mode cell",
+          "description": "A new Circuit Mode cell for rebreather dives shows at a glance whether you are on the loop (CC), bailed out (BO), or on open circuit (OC) — following your dive computer's mode changes and gas switches. Add it from the Cells section's CCR group.",
+          "showMe": "cells_section"
+        }
+      ],
+      "changes": [
+        "Subsurface and FIT imports now carry each cylinder's gas role (diluent, oxygen, open-circuit gas), so bailouts are detected from gas switches even without explicit mode-change events."
+      ]
+    },
+    {
+      "version": "0.3.0",
+      "highlights": [
+        {
+          "title": "FIT support",
+          "description": "Unabara can now import and process .fit files from Garmin/Suunto computers.",
+          "showMe": "import_button"
+        },
+        {
+          "title": "16 new templates",
+          "description": "Three new bundled families — HUD, Social and Broadcast — eight designs in two color variations each, from full heads-up displays to vertical-video layouts and broadcast-style lower thirds. Pick them from the template selector.",
+          "showMe": "template_selector"
+        },
+        {
+          "title": "New data cells",
+          "description": "Your overlays can now show TTS, CNS oxygen toxicity, mean depth, max depth, and the current breathing gas — plus dedicated STOP depth and STOP time cells that appear when you enter deco. Add any of them to any template from the Cells section.",
+          "showMe": "cells_section"
+        },
+        {
+          "title": "Make the text yours",
+          "description": "Labels and values now have independent colors, and text can carry a shadow — crisp offset, soft blur, or outline, with adjustable color, size and opacity. Set them globally or override per cell from the Text section.",
+          "showMe": "text_section"
+        },
+        {
+          "title": "One canvas, two views",
+          "description": "The overlay tab is now a single large canvas. Edit mode is where you arrange things — drag cells, snap them to the grid, and resize them with the corner handles (the Layout section controls alignment and auto-size). Render mode shows the exact pixels your export will produce.",
+          "showMe": "canvas"
+        },
+        {
+          "title": "All your cells in one list",
+          "description": "The sidebar's Cells section lists every data field: its checkbox shows or hides the cell, clicking a row selects that cell on the canvas, and colored dots mark cells carrying their own font, color or shadow overrides.",
+          "showMe": "cells_section"
+        },
+        {
+          "title": "Templates can theme the dive profile",
+          "description": "Templates carry an optional primary/secondary color scheme. Apply it to the dive profile — curve and deco zone take the primary color, indicator and grid the secondary — from the Dive Profile tab's Template Colors section.",
+          "showMe": "profile"
+        },
+        {
+          "title": "The timeline does more than you may think",
+          "description": "It zooms, pans, and can be collapsed from its header chevron. The range you zoom into is what \"Export only visible time range\" exports — the export dialog now shows the exact times next to each range option.",
+          "showMe": "timeline"
+        },
+        {
+          "title": "A real Settings tab",
+          "description": "Units, template directory, update checks and export defaults now live in their own tab — including the management of your saved camera profiles, which previously could not be edited anywhere.",
+          "showMe": "settings"
+        }
+      ],
+      "changes": [
+        "Notifications appear as brief toasts instead of pop-up dialogs; export success includes an \"Open folder\" shortcut.",
+        "Exports can be cancelled at any point, including during video encoding.",
+        "Both editor sidebars collapse to give the canvas the full width.",
+        "Export is available from the Video tab (overlays export with transparency — composited export comes in v0.4).",
+        "DejaVu Sans is bundled as the default overlay font, so templates render identically on Linux, macOS and Windows.",
+        "CCR PO2 sensor cells can now be added to any template from the Cells panel — previously only templates that already contained them could display them."
+      ]
+    }
+  ]
 }

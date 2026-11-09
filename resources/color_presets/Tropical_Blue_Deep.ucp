@@ -1,0 +1,7 @@
+{
+    "name": "Tropical Blue (Deep)",
+    "description": "Blue open water below ~15 m, where red light is fully absorbed: strong red recovery rebuilds the lost channel, a warm tint push, medium clarity. Calibrated against a reference edit of deep Red Sea footage at 50-55 m (C6). For a dive crossing 15 m, pair with the Shallow variant on the two depth anchors.",
+    "redRecovery": 0.7,
+    "waterTint": -0.4,
+    "clarity": 0.6
+}

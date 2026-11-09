@@ -1,0 +1,7 @@
+{
+    "name": "Temperate Green (Deep)",
+    "description": "Green coastal water below ~10 m, red light gone: red recovery near maximum does the de-greening by borrowing the dominant green into the starved red channel, neutral tint, no added clarity. Calibrated against reference edits of Monterey kelp-water footage at ~25 m (C6).",
+    "redRecovery": 0.95,
+    "waterTint": 0.0,
+    "clarity": 0.0
+}

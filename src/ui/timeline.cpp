@@ -1,11 +1,13 @@
 #include "include/ui/timeline.h"
+#include "include/core/clip_list_model.h"
+#include "include/core/video_clip.h"
 #include "include/generators/overlay_image_provider.h"
 #include "include/generators/profile_image_provider.h"
+#include <QDebug>
 #include <QVariantList>
 #include <QVariantMap>
 #include <cmath>
 #include <algorithm>
-#include "include/generators/overlay_image_provider.h"
 
 Timeline::Timeline(QObject *parent)
     : QObject(parent)
@@ -14,9 +16,80 @@ Timeline::Timeline(QObject *parent)
     , m_startTime(0.0)
     , m_endTime(0.0)
     , m_zoomFactor(1.0)
-    , m_videoOffset(0.0)
-    , m_videoDuration(0.0)
 {
+}
+
+void Timeline::setClipModel(ClipListModel* model)
+{
+    if (m_clipModel == model)
+        return;
+
+    if (m_clipModel)
+        disconnect(m_clipModel, nullptr, this, nullptr);
+
+    m_clipModel = model;
+
+    if (m_clipModel) {
+        // Active-clip switches (add/remove/activate) move the whole facade.
+        connect(m_clipModel, &ClipListModel::activeIndexChanged,
+                this, &Timeline::refreshActiveClip);
+    }
+
+    emit clipModelChanged();
+    refreshActiveClip();
+}
+
+VideoClip* Timeline::activeClip() const
+{
+    return m_clipModel ? m_clipModel->activeClip() : nullptr;
+}
+
+void Timeline::refreshActiveClip()
+{
+    VideoClip* clip = activeClip();
+
+    if (clip != m_facadeClip) {
+        if (m_facadeClip)
+            disconnect(m_facadeClip, nullptr, this, nullptr);
+        m_facadeClip = clip;
+        if (clip) {
+            // Re-emit the clip's own change signals as the facade NOTIFYs so
+            // existing QML bindings keep reacting, whichever path (facade
+            // write, timecode auto-sync, camera profile, PR A3 restore)
+            // changed the clip.
+            connect(clip, &VideoClip::syncOffsetChanged,
+                    this, &Timeline::videoOffsetChanged);
+            connect(clip, &VideoClip::probeDataChanged,
+                    this, &Timeline::videoDurationChanged);
+        }
+        emit activeClipChanged();
+    }
+
+    // The clip (or the model) changed, so every facade value may have.
+    // Re-emitting on a same-value no-op only re-evaluates a few bindings.
+    emit videoPathChanged();
+    emit videoOffsetChanged();
+    emit videoDurationChanged();
+}
+
+double Timeline::videoOffset() const
+{
+    const VideoClip* clip = activeClip();
+    return clip ? clip->syncOffset() : 0.0;
+}
+
+QString Timeline::videoPath() const
+{
+    const VideoClip* clip = activeClip();
+    return clip ? clip->path() : QString();
+}
+
+double Timeline::videoDuration() const
+{
+    // VideoClip uses -1 for "unknown"; the historical facade value for
+    // "no duration yet" was 0 (what the zone paint and export dialog gate on).
+    const VideoClip* clip = activeClip();
+    return (clip && clip->durationSeconds() > 0.0) ? clip->durationSeconds() : 0.0;
 }
 
 void Timeline::setDiveData(DiveData* data)
@@ -115,35 +188,49 @@ void Timeline::setZoomFactor(double factor)
 
 void Timeline::setVideoOffset(double offset)
 {
-    if (m_videoOffset != offset) {
-        m_videoOffset = offset;
-        emit videoOffsetChanged();
+    VideoClip* clip = activeClip();
+    if (!clip) {
+        qWarning() << "Timeline::setVideoOffset: no active clip — write dropped";
+        return;
+    }
+    if (clip->syncOffset() != offset) {
+        // A facade write is a user sync gesture (zone drag, SpinBox, nudge,
+        // dive-time field) → the clip is now manually synced. The NOTIFY
+        // re-emission arrives via the syncOffsetChanged connection.
+        clip->setSyncOffset(offset);
+        clip->setSyncSource(VideoClip::Manual);
     }
 }
 
 void Timeline::setVideoPath(const QString &path)
 {
-    if (m_videoPath != path) {
-        m_videoPath = path;
-        
-        // If the path is empty, reset video duration
-        if (path.isEmpty()) {
-            setVideoDuration(0.0);
-        }
-        
-        emit videoPathChanged();
-    }
+    // A clip's path is immutable; clips are created/activated through the
+    // ClipListModel (clipList.addClips / setActiveIndex). The facade only
+    // tolerates a redundant write of the current value.
+    VideoClip* clip = activeClip();
+    if (clip && clip->path() == path)
+        return;
+    qWarning() << "Timeline::setVideoPath is a facade over the active clip —"
+               << "use the clip model to add/activate clips; write of"
+               << path << "dropped";
 }
 
 void Timeline::setVideoDuration(double duration)
 {
-    // Ensure duration is non-negative
-    duration = std::max(0.0, duration);
-    
-    if (m_videoDuration != duration) {
-        m_videoDuration = duration;
-        emit videoDurationChanged();
+    VideoClip* clip = activeClip();
+    if (!clip) {
+        qWarning() << "Timeline::setVideoDuration: no active clip — write dropped";
+        return;
     }
+    // Only positive durations carry information. Dropping the rest keeps a
+    // known duration intact AND never overwrites the clip's -1 "never
+    // probed" sentinel with a known 0 — the facade reads non-positive as 0
+    // anyway, and the full VideoClip::toVariantMap() (reserved for a
+    // future project file; video/clipStates strips duration) keeps the
+    // "unknown" vs "known 0" distinction meaningful.
+    if (duration <= 0.0)
+        return;
+    clip->setDurationSeconds(duration);
 }
 
 double Timeline::maxDepth() const
@@ -380,18 +467,19 @@ void Timeline::ensureTimeIsVisible(double time)
     emit viewRangeChanged();
 }
 
-// Video utility functions
-double Timeline::getVideoStartTime() const 
-{ 
-    return m_videoOffset; 
+// Video utility functions (facade reads — active clip or 0)
+double Timeline::getVideoStartTime() const
+{
+    return videoOffset();
 }
 
-double Timeline::getVideoEndTime() const 
-{ 
-    return m_videoOffset + m_videoDuration; 
+double Timeline::getVideoEndTime() const
+{
+    return videoOffset() + videoDuration();
 }
 
-bool Timeline::isTimeInVideo(double time) const 
-{ 
-    return (time >= m_videoOffset && time <= (m_videoOffset + m_videoDuration)); 
+bool Timeline::isTimeInVideo(double time) const
+{
+    const double start = videoOffset();
+    return (time >= start && time <= (start + videoDuration()));
 }

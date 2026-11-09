@@ -181,7 +181,7 @@ Item {
                         wrapMode: Text.WordWrap
                         font.pixelSize: 11
                         color: palette.placeholderText
-                        text: qsTr("Saved camera clock offsets, used to suggest the video sync offset automatically. Profiles are created from the Video Preview tab.")
+                        text: qsTr("Saved camera clock offsets, used to suggest the video sync offset automatically. Profiles are created from the Video tab.")
                     }
 
                     Label {
@@ -268,10 +268,140 @@ Item {
                                 config.frameRate = value
                         }
                     }
+
+                    Label { text: qsTr("Video codec:") }
+                    ComboBox {
+                        id: videoCodecCombo
+                        Layout.fillWidth: true
+                        // Probe-driven like the export dialog's combo; the
+                        // dialog narrows this per export mode, this is just
+                        // the default preference.
+                        model: ffmpegInfo.availableCodecs
+                        currentIndex: Math.max(0, model.indexOf(config ? config.videoCodec : "vp9"))
+                        onModelChanged: {
+                            var idx = model.indexOf(config ? config.videoCodec : "vp9")
+                            currentIndex = idx >= 0 ? idx : 0
+                        }
+                        onActivated: {
+                            if (config)
+                                config.videoCodec = currentText
+                        }
+                    }
+
+                    Label { text: qsTr("Video quality:") }
+                    ComboBox {
+                        id: videoQualityCombo
+                        Layout.fillWidth: true
+                        model: [qsTr("Best"), qsTr("High"), qsTr("Standard"), qsTr("Small file")]
+                        readonly property var tiers: ["best", "high", "standard", "small"]
+                        currentIndex: {
+                            var idx = tiers.indexOf(config ? config.videoQuality : "standard")
+                            return idx >= 0 ? idx : 2
+                        }
+                        onActivated: {
+                            if (config)
+                                config.videoQuality = tiers[currentIndex]
+                        }
+                    }
+
+                    Label { text: qsTr("Video frame rate:") }
+                    SpinBox {
+                        editable: true
+                        from: 1
+                        to: 60
+                        value: config ? Math.round(config.videoFrameRate) : 30
+                        onValueModified: {
+                            if (config)
+                                config.videoFrameRate = value
+                        }
+                    }
+
+                    Label {
+                        Layout.columnSpan: 2
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: palette.placeholderText
+                        text: qsTr("The video frame rate applies to overlay-only video exports. Composited exports always use the clip's own resolution and frame rate.")
+                    }
+                }
+            }
+
+            GroupBox {
+                title: qsTr("FFmpeg")
+                Layout.fillWidth: true
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 8
+
+                    // All strings come pre-assembled from the C++ bridge:
+                    // ffmpegInfo probes version/encoders on a worker thread
+                    // (each tool run can block for seconds on a broken
+                    // install), so QML never calls into FFmpeg itself.
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        text: ffmpegInfo.summaryText
+                    }
+
+                    Label {
+                        visible: ffmpegInfo.available
+                        text: ffmpegInfo.capabilitiesText
+                        font.family: "monospace"
+                        color: palette.placeholderText
+                    }
+
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: palette.mid }
+
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: palette.placeholderText
+                        text: qsTr("Leave the override empty to use the FFmpeg found automatically. Set it to use a specific FFmpeg executable instead.")
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        TextField {
+                            Layout.fillWidth: true
+                            text: config ? config.ffmpegPath : ""
+                            placeholderText: qsTr("Auto-detect")
+                            readOnly: true
+                        }
+
+                        Button {
+                            text: qsTr("Browse...")
+                            onClicked: ffmpegFileDialog.open()
+                        }
+
+                        Button {
+                            text: qsTr("Clear")
+                            enabled: config !== null && config.ffmpegPath !== ""
+                            onClicked: {
+                                if (config)
+                                    config.ffmpegPath = ""
+                            }
+                        }
+                    }
                 }
             }
 
             Item { Layout.preferredHeight: 8 }
+        }
+    }
+
+    FileDialog {
+        id: ffmpegFileDialog
+        title: qsTr("Select FFmpeg Executable")
+        onAccepted: {
+            if (config) {
+                // The Config setter persists eagerly; FfmpegInfo pushes the
+                // override into FFmpegProbe and re-probes asynchronously.
+                config.ffmpegPath = mainWindow.urlToLocalFile(selectedFile.toString())
+            }
         }
     }
 

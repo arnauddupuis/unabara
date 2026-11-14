@@ -158,10 +158,14 @@ Rectangle {
             // First-frame thumbnail (follow-up C), served asynchronously by
             // image://clipthumb/ (ClipThumbImageProvider). The provider
             // answers a 1x1 transparent image when FFmpeg is missing or the
-            // clip can't be decoded, so "has a thumbnail" = Ready and wider
-            // than 1 px; without one the card is exactly the plain card.
-            // Not gated on probing: the image simply appears when ready.
-            readonly property bool hasThumbnail: thumbnail.status === Image.Ready
+            // clip can't be decoded, so "has a thumbnail" = wider than 1 px;
+            // without one the card is exactly the plain card. Loading counts
+            // once a frame exists (implicitWidth > 1 from the retained
+            // image): a grade edit swaps the url, and the card must not
+            // blink back to plain while the regraded frame renders. Not
+            // gated on probing: the image simply appears when ready.
+            readonly property bool hasThumbnail: (thumbnail.status === Image.Ready
+                                                  || thumbnail.status === Image.Loading)
                                                  && thumbnail.implicitWidth > 1
 
             width: 160
@@ -190,18 +194,29 @@ Rectangle {
                     Image {
                         id: thumbnail
                         anchors.fill: parent
-                        // Re-evaluated when ffmpegReady flips; the url
-                        // carries the file's mtime, so an overwritten clip
-                        // re-extracts on delegate recreation. The "?f=" query
-                        // is stripped by the provider's id decoder.
+                        // Re-evaluated when ffmpegReady flips or the clip's
+                        // debounced thumbnailUrl NOTIFY fires (grade edits).
+                        // The url carries the file's mtime (overwritten clip
+                        // re-extracts on delegate recreation) and, when the
+                        // clip is graded, a "?g=" ops query the provider
+                        // applies — so the vignette is the GRADED frame. The
+                        // "f=" FFmpeg-availability param rides the same query
+                        // string; the provider's id decoder strips the query
+                        // for path/mtime and parses "g=" separately.
                         source: {
                             if (!card.videoClip)
                                 return ""
-                            var u = card.videoClip.thumbnailUrl()
-                            return u === "" ? ""
-                                            : u + "?f=" + (root.ffmpegReady ? "1" : "0")
+                            var u = card.videoClip.thumbnailUrl
+                            if (u === "")
+                                return ""
+                            return u + (u.indexOf("?") >= 0 ? "&f=" : "?f=")
+                                     + (root.ffmpegReady ? "1" : "0")
                         }
                         asynchronous: true
+                        // Keep showing the previous frame while a regraded
+                        // url loads — without this every grade edit blinks
+                        // the card back to plain (Qt 6.8+).
+                        retainWhileLoading: true
                         fillMode: Image.PreserveAspectCrop
                         smooth: true
                         opacity: card.hasThumbnail ? 1.0 : 0.0

@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include "include/core/color_grade.h"
 #include "include/core/ffmpeg_probe.h"
 
 namespace {
@@ -44,8 +45,13 @@ QQuickImageResponse* ClipThumbImageProvider::requestImageResponse(const QString&
         return new ClipThumbImageResponse(QtFuture::makeReadyValueFuture(transparentPlaceholder()));
     }
 
+    // Resolved grade ops ride in the url's "g=" query (VideoClip builds it);
+    // decoded here, applied on the pool thread over the cached raw frame.
+    Unabara::GradeOps ops;
+    const bool graded = ClipThumbnail::decodeOpsQuery(id, &ops);
+
     std::shared_ptr<State> state = m_state;
-    QFuture<QImage> future = QtConcurrent::run(&m_pool, [state, path]() -> QImage {
+    QFuture<QImage> future = QtConcurrent::run(&m_pool, [state, path, ops, graded]() -> QImage {
         if (state->aborting.load())
             return transparentPlaceholder();
         // Re-stat here: the cache keys on the file's REAL mtime, not the
@@ -66,7 +72,9 @@ QQuickImageResponse* ClipThumbImageProvider::requestImageResponse(const QString&
                                    << QFileInfo(path).fileName() << "-" << error;
             state->cache.insert(path, mtime, ffmpeg, img);
         }
-        return img.isNull() ? transparentPlaceholder() : img;
+        if (img.isNull())
+            return transparentPlaceholder();
+        return graded ? ClipThumbnail::applyOps(ops, img) : img;
     });
     return new ClipThumbImageResponse(future);
 }

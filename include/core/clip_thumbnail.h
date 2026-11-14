@@ -9,6 +9,10 @@
 
 #include <atomic>
 
+namespace Unabara {
+struct GradeOps;
+}
+
 // Pure (Core+Gui, Quick-free) half of the ClipStrip first-frame thumbnails
 // (follow-up C). The Quick half — the async image provider registered as
 // image://clipthumb/ — lives in include/generators/clip_thumb_image_provider.h
@@ -38,6 +42,27 @@ QString imageUrl(const QString& path);
 
 // Cache key: path AND mtime, so an overwritten file misses.
 QString cacheKey(const QString& path, qint64 mtimeMs);
+
+// --- Graded vignettes -------------------------------------------------------
+// The clip's colour grade rides in the thumbnail URL as a "g=" query
+// parameter carrying the RESOLVED per-pixel ops (not the stored grade): the
+// GUI side resolves depth links / eyedropper samples however it wants
+// (VideoClip::thumbnailUrl mirrors the export's no-dive branch), the provider
+// stays a pure function of its id, and a grade edit changes the URL — which
+// is exactly what busts Qt Quick's per-url pixmap cache. The raw first-frame
+// cache stays keyed on (path, mtime): extraction is the expensive half,
+// re-applying ops to a ~200px image is sub-millisecond.
+
+// 16 comma-joined doubles ('g'/17 — exact round-trip): matrix row-major 9,
+// black 3, lift 3, contrast. Identity ops encode as an EMPTY string so an
+// ungraded clip keeps the bare (query-less) URL of a raw thumbnail.
+QString encodeOps(const Unabara::GradeOps& ops);
+// Parses the "g=" parameter out of a provider id's query ("...?g=...&f=1",
+// any parameter order). False (ops untouched) when absent or malformed.
+bool decodeOpsQuery(const QString& id, Unabara::GradeOps* ops);
+// Applies ops per pixel (GradeOps::apply over [0,1] doubles, rounded back to
+// 8-bit). Null images pass through null.
+QImage applyOps(const Unabara::GradeOps& ops, QImage image);
 
 // Height of the extracted thumbnail (width follows the aspect ratio). The
 // ClipStrip card is ~88 px tall; 120 leaves headroom for HiDPI crops.

@@ -10,6 +10,7 @@
 #include <QtTest/QtTest>
 
 #include "include/core/clip_thumbnail.h"
+#include "include/core/color_grade.h"
 #include "include/core/ffmpeg_probe.h"
 #include "include/core/video_clip.h"
 
@@ -24,6 +25,29 @@ QString idAsSeenByProvider(const QString& sourceUrl)
 {
     const QUrl url(sourceUrl);
     return url.toString(QUrl::RemoveScheme | QUrl::RemoveAuthority).mid(1);
+}
+
+// A deliberately non-trivial resolve: warm tint + red recovery + clarity
+// touch every encoded field (matrix off-diagonals, black, lift, contrast).
+Unabara::GradeOps testOps()
+{
+    Unabara::GradeParams p;
+    p.redRecovery = 0.7;
+    p.waterTint = -0.4;
+    p.clarity = 0.6;
+    return Unabara::ColorGrade::resolve(p);
+}
+
+bool opsEqual(const Unabara::GradeOps& a, const Unabara::GradeOps& b)
+{
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            if (a.matrix[r][c] != b.matrix[r][c])
+                return false;
+    for (int c = 0; c < 3; ++c)
+        if (a.black[c] != b.black[c] || a.lift[c] != b.lift[c])
+            return false;
+    return a.contrast == b.contrast;
 }
 } // namespace
 
@@ -41,6 +65,12 @@ private slots:
     void cacheKeysOnPathAndMtime();
     void failureCachedPerFfmpegPath();
     void videoClipThumbnailUrl();
+    void opsEncodeIdentityEmpty();
+    void opsQueryRoundTrip();
+    void opsQueryMalformedRejected();
+    void applyOpsMatchesGradeOps();
+    void thumbnailUrlCarriesGrade();
+    void thumbnailUrlNotifyDebounced();
     void extractRealFrame();
     void extractFailsGracefully();
 };
@@ -200,6 +230,168 @@ void ClipThumbnailTest::videoClipThumbnailUrl()
     QString decoded;
     QVERIFY(decodeId(idAsSeenByProvider(clip.thumbnailUrl()), &decoded, nullptr));
     QCOMPARE(decoded, path);
+}
+
+void ClipThumbnailTest::opsEncodeIdentityEmpty()
+{
+    // Default-constructed ops are the identity.
+    QCOMPARE(encodeOps(Unabara::GradeOps{}), QString());
+    // And so is a resolve of all-neutral params: s=t=c=0 with no neutral
+    // sample must compose to EXACTLY unit diagonal (the tint
+    // luma-normalisation divides (1,1,1) by 1) — assert it rather than
+    // trust it, since "ungraded clip keeps the bare url" depends on it.
+    QCOMPARE(encodeOps(Unabara::ColorGrade::resolve(Unabara::GradeParams{})), QString());
+    // Non-identity ops do encode.
+    QVERIFY(!encodeOps(testOps()).isEmpty());
+}
+
+void ClipThumbnailTest::opsQueryRoundTrip()
+{
+    const Unabara::GradeOps ops = testOps();
+    const QString path = QStringLiteral("/home/u/Videos/GX010001.MP4");
+    // Exactly as ClipStrip builds it: thumbnailUrl's "?g=" plus the QML
+    // "&f=" suffix, pushed through the engine's id extraction.
+    const QString url = QStringLiteral("image://clipthumb/") + encodeId(path, 123)
+                        + QStringLiteral("?g=") + encodeOps(ops) + QStringLiteral("&f=1");
+    const QString id = idAsSeenByProvider(url);
+
+    // Path/mtime decode ignores the whole query, as before.
+    QString outPath;
+    qint64 outMtime = 0;
+    QVERIFY(decodeId(id, &outPath, &outMtime));
+    QCOMPARE(outPath, path);
+    QCOMPARE(outMtime, qint64(123));
+
+    // Ops round-trip exactly ('g'/17 is lossless for doubles).
+    Unabara::GradeOps decoded;
+    QVERIFY(decodeOpsQuery(id, &decoded));
+    QVERIFY(opsEqual(decoded, ops));
+
+    // Parameter order is not load-bearing.
+    Unabara::GradeOps decoded2;
+    QVERIFY(decodeOpsQuery(encodeId(path, 123) + QStringLiteral("?f=0&g=")
+                               + encodeOps(ops),
+                           &decoded2));
+    QVERIFY(opsEqual(decoded2, ops));
+}
+
+void ClipThumbnailTest::opsQueryMalformedRejected()
+{
+    const Unabara::GradeOps sentinel = testOps();
+    Unabara::GradeOps ops = sentinel;
+    // No query / no g param.
+    QVERIFY(!decodeOpsQuery(QStringLiteral("abc/123"), &ops));
+    QVERIFY(!decodeOpsQuery(QStringLiteral("abc/123?f=1"), &ops));
+    // Wrong value count.
+    QVERIFY(!decodeOpsQuery(QStringLiteral("abc/123?g=1,2,3"), &ops));
+    // Non-numeric value.
+    QVERIFY(!decodeOpsQuery(
+        QStringLiteral("abc/123?g=1,1,1,1,1,1,1,1,1,0,0,0,0,0,x,1"), &ops));
+    // Outputs untouched by the failures.
+    QVERIFY(opsEqual(ops, sentinel));
+}
+
+void ClipThumbnailTest::applyOpsMatchesGradeOps()
+{
+    // Null passes through null.
+    QVERIFY(applyOps(testOps(), QImage()).isNull());
+
+    // A small image covering blacks, whites, saturated and mixed pixels.
+    QImage src(4, 2, QImage::Format_RGB32);
+    const QRgb pixels[8] = {
+        qRgb(0, 0, 0),     qRgb(255, 255, 255), qRgb(255, 0, 0), qRgb(0, 255, 0),
+        qRgb(0, 0, 255),   qRgb(18, 52, 86),    qRgb(200, 180, 40), qRgb(127, 128, 129),
+    };
+    for (int y = 0; y < 2; ++y)
+        for (int x = 0; x < 4; ++x)
+            src.setPixel(x, y, pixels[y * 4 + x]);
+
+    const Unabara::GradeOps ops = testOps();
+    const QImage out = applyOps(ops, src);
+    QCOMPARE(out.size(), src.size());
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            double r = qRed(pixels[y * 4 + x]) / 255.0;
+            double g = qGreen(pixels[y * 4 + x]) / 255.0;
+            double b = qBlue(pixels[y * 4 + x]) / 255.0;
+            ops.apply(r, g, b); // the ground-truth path the provider must match
+            const QRgb expected = qRgb(qRound(r * 255.0), qRound(g * 255.0),
+                                       qRound(b * 255.0));
+            QCOMPARE(out.pixel(x, y), expected);
+        }
+    }
+}
+
+void ClipThumbnailTest::thumbnailUrlCarriesGrade()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("graded.mp4"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.close();
+    VideoClip clip(path);
+
+    // No grade → bare url, no query.
+    QVERIFY(!clip.thumbnailUrl().contains(QLatin1Char('?')));
+
+    Unabara::ColorGrade grade;
+    grade.enabled = true;
+    grade.anchors.resize(1);
+    grade.anchors[0].params.redRecovery = 0.7;
+    grade.anchors[0].params.waterTint = -0.4;
+    grade.anchors[0].params.clarity = 0.6;
+
+    // Disabled grade → still the bare url.
+    Unabara::ColorGrade disabled = grade;
+    disabled.enabled = false;
+    clip.setColorGrade(disabled.toJson());
+    QVERIFY(!clip.thumbnailUrl().contains(QLatin1Char('?')));
+
+    // Enabled grade → "?g=" query decoding to exactly resolveStatic().
+    clip.setColorGrade(grade.toJson());
+    const QString url = clip.thumbnailUrl();
+    QVERIFY(url.contains(QStringLiteral("?g=")));
+    Unabara::GradeOps decoded;
+    QVERIFY(decodeOpsQuery(idAsSeenByProvider(url), &decoded));
+    QVERIFY(opsEqual(decoded, grade.resolveStatic()));
+
+    // Enabled but all-neutral sliders → identity ops → bare url again (the
+    // provider skips the apply entirely).
+    Unabara::ColorGrade neutral;
+    neutral.enabled = true;
+    neutral.anchors.resize(1);
+    clip.setColorGrade(neutral.toJson());
+    QVERIFY(!clip.thumbnailUrl().contains(QLatin1Char('?')));
+}
+
+void ClipThumbnailTest::thumbnailUrlNotifyDebounced()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("notify.mp4"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.close();
+    VideoClip clip(path);
+    QSignalSpy spy(&clip, &VideoClip::thumbnailUrlChanged);
+
+    // A burst of grade writes (slider drag) → not immediate, ONE emission.
+    Unabara::ColorGrade grade;
+    grade.enabled = true;
+    grade.anchors.resize(1);
+    for (int i = 1; i <= 5; ++i) {
+        grade.anchors[0].params.redRecovery = i * 0.1;
+        clip.setColorGrade(grade.toJson());
+    }
+    QCOMPARE(spy.count(), 0); // debounced, not synchronous
+    QVERIFY(spy.wait(5000));
+    QCOMPARE(spy.count(), 1);
+
+    // A no-op write (same JSON) never arms the timer.
+    clip.setColorGrade(grade.toJson());
+    QVERIFY(!spy.wait(1500));
+    QCOMPARE(spy.count(), 1);
 }
 
 void ClipThumbnailTest::extractRealFrame()

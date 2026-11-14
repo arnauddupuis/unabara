@@ -1,13 +1,24 @@
 #include "include/core/video_clip.h"
 #include "include/core/clip_thumbnail.h"
+#include "include/core/color_grade.h"
 
 #include <QFileInfo>
+
+namespace {
+// Vignette refresh debounce: long enough that a slider drag doesn't spam
+// re-renders, short enough that the strip feels live.
+constexpr int kThumbUrlDebounceMs = 1000;
+} // namespace
 
 VideoClip::VideoClip(const QString& path, QObject* parent)
     : QObject(parent)
     , m_path(path)
     , m_displayName(QFileInfo(path).completeBaseName())
 {
+    m_thumbUrlDebounce.setSingleShot(true);
+    m_thumbUrlDebounce.setInterval(kThumbUrlDebounceMs);
+    connect(&m_thumbUrlDebounce, &QTimer::timeout,
+            this, &VideoClip::thumbnailUrlChanged);
 }
 
 void VideoClip::setDisplayName(const QString& name)
@@ -64,6 +75,7 @@ void VideoClip::setColorGrade(const QJsonObject& grade)
     if (m_colorGrade != grade) {
         m_colorGrade = grade;
         emit colorGradeChanged();
+        m_thumbUrlDebounce.start(); // restarts a running debounce
     }
 }
 
@@ -216,5 +228,24 @@ VideoClip* VideoClip::fromVariantMap(const QVariantMap& map, QObject* parent)
 
 QString VideoClip::thumbnailUrl() const
 {
-    return ClipThumbnail::imageUrl(m_path);
+    QString url = ClipThumbnail::imageUrl(m_path);
+    if (url.isEmpty() || m_colorGrade.isEmpty())
+        return url;
+    bool ok = false;
+    const Unabara::ColorGrade grade = Unabara::ColorGrade::fromJson(m_colorGrade, &ok);
+    if (!ok || !grade.enabled)
+        return url;
+    // Resolve mirrors the export's no-dive branch (color_grade_export.cpp):
+    // VideoClip has no dive access, so a depth-linked grade clamps to the
+    // shallow anchor. The user LUT (applied outside GradeOps) is skipped —
+    // the vignette is an at-a-glance approximation, not a parity surface.
+    // (v0.5 refinement: ClipListModel knows the dive and could resolve at
+    // the clip's first-frame depth.)
+    const Unabara::GradeOps ops = grade.depthLinked
+        ? grade.resolveAtDepth(-1.0e9) // weight clamps to the shallow anchor
+        : grade.resolveStatic();
+    const QString query = ClipThumbnail::encodeOps(ops);
+    if (!query.isEmpty())
+        url += QStringLiteral("?g=") + query;
+    return url;
 }

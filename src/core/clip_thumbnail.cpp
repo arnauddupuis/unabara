@@ -5,6 +5,9 @@
 #include <QFileInfo>
 #include <QMutexLocker>
 #include <QProcess>
+#include <QStringList>
+
+#include "include/core/color_grade.h"
 
 namespace ClipThumbnail {
 
@@ -67,6 +70,104 @@ QString cacheKey(const QString& path, qint64 mtimeMs)
     // '\n' cannot appear in the decimal mtime, so (path, mtime) pairs map
     // to distinct keys even for paths ending in digits.
     return path + QLatin1Char('\n') + QString::number(mtimeMs);
+}
+
+namespace {
+
+// The 16 ops values in their fixed encode/decode order.
+constexpr int kOpsValueCount = 16;
+
+void flattenOps(const Unabara::GradeOps& ops, double out[kOpsValueCount])
+{
+    int i = 0;
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            out[i++] = ops.matrix[r][c];
+    for (int c = 0; c < 3; ++c)
+        out[i++] = ops.black[c];
+    for (int c = 0; c < 3; ++c)
+        out[i++] = ops.lift[c];
+    out[i++] = ops.contrast;
+}
+
+} // namespace
+
+QString encodeOps(const Unabara::GradeOps& ops)
+{
+    double values[kOpsValueCount];
+    double identity[kOpsValueCount];
+    flattenOps(ops, values);
+    flattenOps(Unabara::GradeOps{}, identity);
+
+    bool isIdentity = true;
+    for (int i = 0; i < kOpsValueCount && isIdentity; ++i)
+        isIdentity = values[i] == identity[i];
+    if (isIdentity)
+        return QString();
+
+    QStringList parts;
+    parts.reserve(kOpsValueCount);
+    for (int i = 0; i < kOpsValueCount; ++i)
+        parts << QString::number(values[i], 'g', 17); // C locale, exact round-trip
+    return parts.join(QLatin1Char(','));
+}
+
+bool decodeOpsQuery(const QString& id, Unabara::GradeOps* ops)
+{
+    const qsizetype query = id.indexOf(QLatin1Char('?'));
+    if (query < 0)
+        return false;
+    const QStringList params =
+        id.mid(query + 1).split(QLatin1Char('&'), Qt::SkipEmptyParts);
+    for (const QString& param : params) {
+        if (!param.startsWith(QLatin1String("g=")))
+            continue;
+        const QStringList nums = param.mid(2).split(QLatin1Char(','));
+        if (nums.size() != kOpsValueCount)
+            return false;
+        double values[kOpsValueCount];
+        for (int i = 0; i < kOpsValueCount; ++i) {
+            bool ok = false;
+            values[i] = nums.at(i).toDouble(&ok); // C locale, matches encode
+            if (!ok)
+                return false;
+        }
+        if (ops) {
+            int i = 0;
+            for (int r = 0; r < 3; ++r)
+                for (int c = 0; c < 3; ++c)
+                    ops->matrix[r][c] = values[i++];
+            for (int c = 0; c < 3; ++c)
+                ops->black[c] = values[i++];
+            for (int c = 0; c < 3; ++c)
+                ops->lift[c] = values[i++];
+            ops->contrast = values[i++];
+        }
+        return true;
+    }
+    return false;
+}
+
+QImage applyOps(const Unabara::GradeOps& ops, QImage image)
+{
+    if (image.isNull())
+        return image;
+    // Opaque video frame, not golden-gated: plain convertToFormat is fine
+    // here (the CLAUDE.md warning is about unpremultiply in golden paths).
+    image = std::move(image).convertToFormat(QImage::Format_RGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            double r = qRed(line[x]) / 255.0;
+            double g = qGreen(line[x]) / 255.0;
+            double b = qBlue(line[x]) / 255.0;
+            ops.apply(r, g, b);
+            line[x] = qRgb(qBound(0, qRound(r * 255.0), 255),
+                           qBound(0, qRound(g * 255.0), 255),
+                           qBound(0, qRound(b * 255.0), 255));
+        }
+    }
+    return image;
 }
 
 QStringList extractArgs(const QString& path)

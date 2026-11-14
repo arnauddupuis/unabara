@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -57,6 +58,14 @@ class VideoClip : public QObject
     // Opaque colour grade (track C defines the contents; the clip model only
     // round-trips it).
     Q_PROPERTY(QVariantMap colorGradeMap READ colorGradeMap WRITE setColorGradeMap NOTIFY colorGradeChanged)
+    // image://clipthumb/ source for the ClipStrip card background (follow-up
+    // C). Each READ stats the file (overwritten clip = new mtime = new url)
+    // and appends the resolved colour-grade ops as a "?g=" query, so the
+    // vignette shows the GRADED first frame. The NOTIFY fires through a
+    // debounced member timer armed by setColorGrade() — the ClipStrip binding
+    // refreshes ~1 s after the grade last changed, whatever changed it
+    // (sliders, preset, batch apply, eyedropper), with no per-trigger wiring.
+    Q_PROPERTY(QString thumbnailUrl READ thumbnailUrl NOTIFY thumbnailUrlChanged)
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(ProbeState probeState READ probeState NOTIFY probeStateChanged)
     Q_PROPERTY(QString probeError READ probeError NOTIFY probeStateChanged)
@@ -84,10 +93,8 @@ public:
     QString path() const { return m_path; }
     QUrl url() const { return QUrl::fromLocalFile(m_path); }
 
-    // image://clipthumb/ source for the ClipStrip card background
-    // (follow-up C). Invokable, not a CONSTANT property: each call stats the
-    // file so an overwritten clip yields a new url (Qt Quick caches per url).
-    Q_INVOKABLE QString thumbnailUrl() const;
+    // See the Q_PROPERTY comment above.
+    QString thumbnailUrl() const;
 
     QString displayName() const { return m_displayName; }
     void setDisplayName(const QString& name);
@@ -178,6 +185,7 @@ signals:
     void syncSourceChanged();
     void overlayLayoutChanged();
     void colorGradeChanged();
+    void thumbnailUrlChanged();
     void enabledChanged();
     void probeStateChanged();
 
@@ -210,6 +218,10 @@ private:
     SyncSource m_syncSource = Unsynced;
     VideoOverlayLayout m_overlayLayout;
     QJsonObject m_colorGrade;
+    // Debounces thumbnailUrlChanged over slider-drag bursts. Member timer,
+    // never a detached singleShot (the no-fire-and-forget rule): it dies
+    // with the clip, so a removed clip can't signal from the grave.
+    QTimer m_thumbUrlDebounce;
     bool m_enabled = true;
     ProbeState m_probeState = NotProbed;
     QString m_probeError;

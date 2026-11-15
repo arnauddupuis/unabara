@@ -124,6 +124,12 @@ private slots:
     void overlayLayoutRestoreSeedsDeterministically();
     void configOverlayLayoutBlobCompat();
 
+    // Per-template placement memory ("Overlay Positions", Loïc's request)
+    void templateLayoutKeyFormat();
+    void overlayLayoutTemplateMemory();
+    void applyTemplatePlacementAllBuckets();
+    void seedTemplatePlacementOnSave();
+
 private:
     QString makeFile(const QString& name);
     // Installs a stub prober serving per-path results from m_stubResults.
@@ -1652,6 +1658,142 @@ void ClipListModelTest::configOverlayLayoutBlobCompat()
         raw.value("video/lastOverlayLayout").toString().toUtf8()).object();
     QCOMPARE(VideoOverlayLayout::fromVariantMap(last.toVariantMap()), layoutAt(0.9));
 #endif
+}
+
+// ---- Per-template placement memory ("Overlay Positions") -----------------
+
+void ClipListModelTest::templateLayoutKeyFormat()
+{
+    // "tpl:" can never be an absolute path on any OS — the same inertness
+    // argument the dive buckets rely on.
+    QCOMPARE(ClipListModel::templateLayoutKey(QStringLiteral(":/templates/HUD_Classic.utp")),
+             QStringLiteral("tpl::/templates/HUD_Classic.utp"));
+    // qrc:/ normalizes to :/ so one template cannot grow two memories.
+    QCOMPARE(ClipListModel::templateLayoutKey(QStringLiteral("qrc:/templates/HUD_Classic.utp")),
+             QStringLiteral("tpl::/templates/HUD_Classic.utp"));
+    QCOMPARE(ClipListModel::templateLayoutKey(QStringLiteral("/home/u/t/My.utp")),
+             QStringLiteral("tpl:/home/u/t/My.utp"));
+    QVERIFY(ClipListModel::templateLayoutKey(QString()).isEmpty());
+
+    // The property setter applies the same normalization.
+    m_model->setActiveTemplatePath(QStringLiteral("qrc:/templates/HUD_Classic.utp"));
+    QCOMPARE(m_model->activeTemplatePath(), QStringLiteral(":/templates/HUD_Classic.utp"));
+}
+
+void ClipListModelTest::overlayLayoutTemplateMemory()
+{
+    // Resolution chain with a template: bucket → path → TEMPLATE →
+    // last-used → defaults; commits also write the template key.
+    m_model->setSessionStore(&m_store);
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/T.utp"));
+    const QString tplKey = QStringLiteral("tpl::/templates/T.utp");
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 1), QTime(9, 0, 0)));
+    m_model->setDive(&dive);
+
+    const VideoOverlayLayout tplL = layoutAt(0.25);
+    const VideoOverlayLayout lastL = layoutAt(0.35);
+    m_store.layouts.insert(tplKey, tplL.toVariantMap());
+    m_store.lastLayout = lastL.toVariantMap();
+
+    // No bucket entry, no path entry: the template beats last-used.
+    m_stubResults.insert(QStringLiteral("t1.mp4"), probeOf(1920, 1080));
+    VideoClip* clip = addProbedClip(makeFile("t1.mp4"));
+    QCOMPARE(clip->overlayLayout(), tplL);
+
+    // A user edit updates the template memory in the SAME single write as
+    // bucket + path.
+    const int writesBefore = m_store.layoutWrites;
+    const VideoOverlayLayout edit = layoutAt(0.45);
+    m_model->commitOverlayLayout(clip, edit.toVariantMap());
+    QCOMPARE(m_store.layoutWrites, writesBefore + 1);
+    QCOMPARE(m_store.layouts.value(tplKey), edit.toVariantMap());
+    QCOMPARE(m_store.layouts.value(m_model->overlayBucketKey(clip)), edit.toVariantMap());
+    QCOMPARE(m_store.layouts.value(clip->path()), edit.toVariantMap());
+
+    // No active template → no tpl key in the write (pre-feature behaviour).
+    m_model->setActiveTemplatePath(QString());
+    const VideoOverlayLayout edit2 = layoutAt(0.55);
+    m_model->commitOverlayLayout(clip, edit2.toVariantMap());
+    QCOMPARE(m_store.layouts.value(tplKey), edit.toVariantMap()); // untouched
+}
+
+void ClipListModelTest::applyTemplatePlacementAllBuckets()
+{
+    // Loading a template re-applies its remembered RECTS to all clips in
+    // the strip — across mixed-resolution buckets — while each clip's own
+    // visible flags stay (visibility is clip state, not template placement).
+    m_model->setSessionStore(&m_store);
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 2), QTime(9, 0, 0)));
+    m_model->setDive(&dive);
+    m_stubResults.insert(QStringLiteral("hd1.mp4"), probeOf(1920, 1080));
+    m_stubResults.insert(QStringLiteral("hd2.mp4"), probeOf(1920, 1080));
+    m_stubResults.insert(QStringLiteral("sd.mp4"), probeOf(1280, 720));
+    VideoClip* hd1 = addProbedClip(makeFile("hd1.mp4"));
+    VideoClip* hd2 = addProbedClip(makeFile("hd2.mp4"));
+    VideoClip* sd = addProbedClip(makeFile("sd.mp4"));
+    QVERIFY(hd1 && hd2 && sd);
+    m_model->commitOverlayLayout(hd1, layoutAt(0.11).toVariantMap());
+    m_model->commitOverlayLayout(sd, layoutAt(0.22, /*profVisible=*/false).toVariantMap());
+
+    // No template / nothing stored: both are no-ops.
+    m_model->setActiveTemplatePath(QString());
+    m_model->applyActiveTemplatePlacement();
+    QCOMPARE(hd1->overlayLayout(), layoutAt(0.11));
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/T.utp"));
+    m_model->applyActiveTemplatePlacement();
+    QCOMPARE(hd1->overlayLayout(), layoutAt(0.11));
+
+    const VideoOverlayLayout tplL = layoutAt(0.77);
+    m_store.layouts.insert(QStringLiteral("tpl::/templates/T.utp"), tplL.toVariantMap());
+    m_model->applyActiveTemplatePlacement();
+
+    // Rects follow the template everywhere (hd2 via the bucket broadcast).
+    QCOMPARE(hd1->overlayLayout().diveComputer.normalizedRect,
+             tplL.diveComputer.normalizedRect);
+    QCOMPARE(hd2->overlayLayout().diveComputer.normalizedRect,
+             tplL.diveComputer.normalizedRect);
+    QCOMPARE(sd->overlayLayout().diveProfile.normalizedRect,
+             tplL.diveProfile.normalizedRect);
+    // sd's hidden profile stays hidden; the HD bucket's stays visible.
+    QCOMPARE(sd->overlayLayout().diveProfile.visible, false);
+    QCOMPARE(hd1->overlayLayout().diveProfile.visible, true);
+    // Both buckets persisted their merged layout.
+    QCOMPARE(VideoOverlayLayout::fromVariantMap(
+                 m_store.layouts.value(m_model->overlayBucketKey(sd)))
+                 .diveProfile.visible,
+             false);
+    QCOMPARE(VideoOverlayLayout::fromVariantMap(
+                 m_store.layouts.value(m_model->overlayBucketKey(hd1)))
+                 .diveComputer.normalizedRect,
+             tplL.diveComputer.normalizedRect);
+}
+
+void ClipListModelTest::seedTemplatePlacementOnSave()
+{
+    // Save As: the new template captures the active clip's placement —
+    // store write only, nothing moves, last-used is not a user edit here.
+    m_model->setSessionStore(&m_store);
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 3), QTime(9, 0, 0)));
+    m_model->setDive(&dive);
+    m_stubResults.insert(QStringLiteral("s.mp4"), probeOf(1920, 1080));
+    VideoClip* clip = addProbedClip(makeFile("s.mp4"));
+    const VideoOverlayLayout cur = layoutAt(0.66, /*profVisible=*/false);
+    m_model->commitOverlayLayout(clip, cur.toVariantMap());
+    const QVariantMap lastBefore = m_store.lastLayout;
+
+    m_model->seedTemplatePlacement(QStringLiteral("qrc:/templates/New.utp"));
+    QCOMPARE(m_store.layouts.value(QStringLiteral("tpl::/templates/New.utp")),
+             cur.toVariantMap());
+    QCOMPARE(m_store.lastLayout, lastBefore);
+    QCOMPARE(clip->overlayLayout(), cur);
+
+    // Empty path: no write.
+    const int writesBefore = m_store.layoutWrites;
+    m_model->seedTemplatePlacement(QString());
+    QCOMPARE(m_store.layoutWrites, writesBefore);
 }
 
 QTEST_GUILESS_MAIN(ClipListModelTest)

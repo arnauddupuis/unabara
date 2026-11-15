@@ -427,12 +427,27 @@ ApplicationWindow {
         }
     }
 
+    // Per-template overlay placement memory (Loïc's request): the model
+    // only ever learns the active template through this binding — it never
+    // reads Config or the generator itself.
+    Binding {
+        target: clipList
+        property: "activeTemplatePath"
+        value: config.activeTemplatePath
+    }
+
     // Offer to theme the dive profile with the template's color scheme.
     // templateLoaded only fires on explicit file loads (never on undo
     // restores; the startup load happens before QML exists).
     Connections {
         target: overlayGenerator
         function onTemplateLoaded(filePath) {
+            // Placement follows the template: re-apply its remembered
+            // placement to all clips in the strip. Runs BEFORE the color-
+            // scheme early-returns below. (loadTemplateFromFile updates
+            // config.activeTemplatePath before emitting templateLoaded, so
+            // the Binding above has already pushed the new path.)
+            clipList.applyActiveTemplatePlacement()
             if (!overlayGenerator.hasColorScheme)
                 return
             if (profileGenerator.colorSchemeApplied(overlayGenerator.primaryColor,
@@ -449,6 +464,11 @@ ApplicationWindow {
             var name = filePath.split("/").pop().replace(/\.utp$/, "").replace(/_/g, " ")
             templateColorsDialog.templateName = name
             templateColorsDialog.open()
+        }
+        // Save As: the freshly saved template captures the placement it was
+        // saved with (store write only — nothing moves).
+        function onTemplateSaved(filePath) {
+            clipList.seedTemplatePlacement(filePath)
         }
     }
 

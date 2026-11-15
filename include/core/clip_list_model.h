@@ -68,6 +68,14 @@ class ClipListModel : public QAbstractListModel
     // Stitched-export hook (v0.5): what fills the gap between clips. No UI
     // yet; persisted with the session in PR A3.
     Q_PROPERTY(int gapPolicy READ gapPolicy WRITE setGapPolicy NOTIFY gapPolicyChanged)
+    // The active overlay template's .utp path (bound from
+    // config.activeTemplatePath in main.qml). Feeds the per-template
+    // placement memory ("Overlay Positions", Loïc's request): layouts are
+    // ALSO stored under "tpl:<path>" in the same video/overlayLayouts blob
+    // as the path and dive-bucket keys. The model never reads Config or the
+    // generator itself — the binding pushes the value in.
+    Q_PROPERTY(QString activeTemplatePath READ activeTemplatePath
+                   WRITE setActiveTemplatePath NOTIFY activeTemplatePathChanged)
 
 public:
     enum Roles {
@@ -103,6 +111,8 @@ public:
     void setDive(DiveData* dive);
     int gapPolicy() const { return m_gapPolicy; }
     void setGapPolicy(int policy);
+    QString activeTemplatePath() const { return m_activeTemplatePath; }
+    void setActiveTemplatePath(const QString& templatePath);
 
     // Adds (and activates) a clip. Duplicates — same canonical path — are
     // not re-added: the existing clip is re-activated, duplicateRequested()
@@ -193,6 +203,42 @@ public:
     // Config write of their own — the bucket entry covers them.
     Q_INVOKABLE void commitOverlayLayout(VideoClip* clip, const QVariantMap& layout);
 
+    // ---- Per-template placement memory ("Overlay Positions") -------------
+    //
+    // Key for a template's stored placement: "tpl:" + the template path,
+    // qrc:/ normalized to :/ (the generator's own normalization) so one
+    // template cannot grow two memories. Lives in the same
+    // video/overlayLayouts blob as the path and dive-bucket keys — "tpl:"
+    // can never be an absolute path, the value shape is identical, so older
+    // builds load, ignore and re-write it intact. Path (not display name):
+    // collision-free across bundled + user templates; moving the user
+    // template directory orphans the memory, which simply reseeds on the
+    // next edit. Empty for an empty path.
+    static QString templateLayoutKey(const QString& templatePath);
+
+    // Applies the active template's remembered placement RECTS to every
+    // clip in the list ("all the clips in the ClipStrip" — Arnaud), one
+    // commitOverlayLayout() per distinct bucket plus each unbucketed clip,
+    // preserving every clip's own visible flags (visibility is clip state,
+    // not template placement). No-op when nothing is stored for the
+    // template, there are no clips, or there is no active template. Called
+    // from main.qml's overlayGenerator.onTemplateLoaded handler — which
+    // never fires on undo restores (the loadTemplate()/loadTemplateFromFile()
+    // asymmetry) — so undo cannot move overlays.
+    Q_INVOKABLE void applyActiveTemplatePlacement();
+
+    // templateSaved (Save As) hook: stores the ACTIVE clip's current layout
+    // under `templatePath`'s key (store write only, nothing moves) so a
+    // freshly saved template captures the placement it was saved with.
+    Q_INVOKABLE void seedTemplatePlacement(const QString& templatePath);
+
+    // The compiled-in default placements, for the Overlay Positions "Reset"
+    // button — QML must not duplicate the default numbers.
+    Q_INVOKABLE QVariantMap defaultOverlayLayout() const
+    {
+        return VideoOverlayLayout().toVariantMap();
+    }
+
     // Sync offset from the clip's embedded timecode vs the dive start's
     // local time of day. Ported from the two duplicated main.qml sites;
     // decision (v0.4 plan): NO negative-offset clamp. Returns false when the
@@ -235,6 +281,7 @@ signals:
     void activeIndexChanged();
     void diveChanged();
     void gapPolicyChanged();
+    void activeTemplatePathChanged();
     // Structural or band-affecting change (add/remove, offset/enabled/
     // duration edits) — the timeline repaints off this.
     void clipsChanged();
@@ -288,6 +335,7 @@ private:
     int m_activeIndex = -1;
     QPointer<DiveData> m_dive;
     int m_gapPolicy = HoldLastFrame;
+    QString m_activeTemplatePath;
     std::function<VideoProbe::Result(const QString&)> m_prober;
     QSet<QFutureWatcherBase*> m_watchers;
 

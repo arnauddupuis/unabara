@@ -15,6 +15,7 @@
         <file alias="VideoSyncPlayer.qml">src/ui/qml/VideoSyncPlayer.qml</file>
         <file alias="ClipStrip.qml">src/ui/qml/ClipStrip.qml</file>
         <file alias="VideoInspector.qml">src/ui/qml/VideoInspector.qml</file>
+        <file alias="PercentField.qml">src/ui/qml/PercentField.qml</file>
         <file alias="SyncSection.qml">src/ui/qml/SyncSection.qml</file>
         <file alias="ColorPanel.qml">src/ui/qml/ColorPanel.qml</file>
         <!-- Only the compiled .qsb is loaded at runtime; the .frag source

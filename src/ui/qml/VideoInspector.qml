@@ -64,6 +64,63 @@ Item {
         return tag && tag !== "" ? tag : qsTr("untagged")
     }
 
+    // ── Overlay Positions helpers (Loïc's request) ───────────────────────
+    // The fields edit videoClip.overlayLayoutMap (normalized rects) in
+    // percent and commit through clipList.commitOverlayLayout — the ONE
+    // layout channel; the player re-applies via overlayLayoutChanged, so no
+    // player wiring. During a handle drag the fields show the last
+    // committed values and refresh on release (gesture-commit contract).
+
+    function overlayPct(overlay, key) {
+        if (!videoClip)
+            return 0
+        var m = videoClip.overlayLayoutMap[overlay]
+        return (m && m[key] !== undefined) ? m[key] * 100 : 0
+    }
+
+    // Mirror of VideoOverlayItem._clampRect semantics (C++ fromVariantMap
+    // does not clamp): w/h into [0.05, 1] first, then x/y into what remains.
+    function clampPlacement(p) {
+        p.w = Math.max(0.05, Math.min(1, p.w))
+        p.h = Math.max(0.05, Math.min(1, p.h))
+        p.x = Math.max(0, Math.min(1 - p.w, p.x))
+        p.y = Math.max(0, Math.min(1 - p.h, p.y))
+        return p
+    }
+
+    function commitOverlayField(overlay, key, percent) {
+        if (!videoClip)
+            return
+        var map = videoClip.overlayLayoutMap
+        var dc = Object.assign({}, map.diveComputer)
+        var dp = Object.assign({}, map.diveProfile)
+        var target = (overlay === "diveComputer") ? dc : dp
+        target[key] = percent / 100
+        clampPlacement(target) // a grown W/H pulls X/Y back in range
+        clipList.commitOverlayLayout(videoClip,
+                                     { diveComputer: dc, diveProfile: dp })
+    }
+
+    function resetOverlayPositions() {
+        if (!videoClip)
+            return
+        var defs = clipList.defaultOverlayLayout()
+        var cur = videoClip.overlayLayoutMap
+        // Rects reset; visibility is clip state and stays.
+        defs.diveComputer.visible = cur.diveComputer.visible
+        defs.diveProfile.visible = cur.diveProfile.visible
+        clipList.commitOverlayLayout(videoClip, defs)
+    }
+
+    // Same display-name derivation as refreshTemplateList() / main.qml's
+    // template-colors dialog.
+    function templateDisplayName() {
+        var p = config.activeTemplatePath
+        if (!p)
+            return ""
+        return p.split("/").pop().replace(/\.utp$/, "").replace(/_/g, " ")
+    }
+
     ColumnLayout {
         id: mainColumn
         anchors.fill: parent
@@ -308,6 +365,141 @@ Item {
                 onProfileApplied: function(profileName, clipCount) {
                     root.profileApplied(profileName, clipCount)
                 }
+            }
+        }
+
+        // ── Overlay Positions: numeric placement (Loïc's request) ────────
+        CollapsibleSection {
+            title: qsTr("Overlay Positions")
+            Layout.fillWidth: true
+            expanded: false
+            settingsKey: "video_overlay_positions"
+
+            Label {
+                visible: !root.hasClip
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: palette.placeholderText
+                text: qsTr("No clip selected — import or select a video to place overlays.")
+            }
+
+            // Scope hint: makes the two-layer placement memory visible at
+            // the exact place numbers are typed.
+            Label {
+                visible: root.hasClip
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: palette.placeholderText
+                font.pixelSize: 12
+                text: root.templateDisplayName() !== ""
+                      ? qsTr("Applies to this dive's matching clips and is remembered for template \"%1\".").arg(root.templateDisplayName())
+                      : qsTr("Applies to this dive's matching clips.")
+            }
+
+            Label {
+                visible: root.hasClip
+                text: qsTr("Dive Computer (% of frame)")
+                font.bold: true
+            }
+
+            GridLayout {
+                visible: root.hasClip
+                Layout.fillWidth: true
+                columns: 4
+                columnSpacing: 6
+
+                Label { text: qsTr("X") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveComputer", "x")
+                    maxPercent: 100 - root.overlayPct("diveComputer", "w")
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveComputer", "x", percent)
+                    }
+                }
+                Label { text: qsTr("Y") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveComputer", "y")
+                    maxPercent: 100 - root.overlayPct("diveComputer", "h")
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveComputer", "y", percent)
+                    }
+                }
+                Label { text: qsTr("W") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveComputer", "w")
+                    minPercent: 5
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveComputer", "w", percent)
+                    }
+                }
+                Label { text: qsTr("H") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveComputer", "h")
+                    minPercent: 5
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveComputer", "h", percent)
+                    }
+                }
+            }
+
+            Label {
+                visible: root.hasClip
+                text: qsTr("Dive Profile (% of frame)")
+                font.bold: true
+            }
+
+            GridLayout {
+                visible: root.hasClip
+                Layout.fillWidth: true
+                columns: 4
+                columnSpacing: 6
+
+                Label { text: qsTr("X") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveProfile", "x")
+                    maxPercent: 100 - root.overlayPct("diveProfile", "w")
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveProfile", "x", percent)
+                    }
+                }
+                Label { text: qsTr("Y") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveProfile", "y")
+                    maxPercent: 100 - root.overlayPct("diveProfile", "h")
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveProfile", "y", percent)
+                    }
+                }
+                Label { text: qsTr("W") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveProfile", "w")
+                    minPercent: 5
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveProfile", "w", percent)
+                    }
+                }
+                Label { text: qsTr("H") }
+                PercentField {
+                    Layout.fillWidth: true
+                    modelValue: root.overlayPct("diveProfile", "h")
+                    minPercent: 5
+                    onCommitted: function(percent) {
+                        root.commitOverlayField("diveProfile", "h", percent)
+                    }
+                }
+            }
+
+            Button {
+                visible: root.hasClip
+                text: qsTr("Reset positions")
+                onClicked: root.resetOverlayPositions()
             }
         }
 

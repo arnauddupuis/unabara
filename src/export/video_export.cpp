@@ -1083,10 +1083,8 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
                                               const QString &videoFilePath,
                                               const QString &contentType)
 {
-    // Shared base-name builder (same naming as ImageExporter's directories),
-    // plus the codec-derived extension.
-    QString baseName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
-    baseName += "." + extension;
+    // Shared base-name builder (same naming as ImageExporter's directories).
+    const QString baseName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
 
     // Create full path under the QML-bound base export directory - make
     // sure the directory exists before returning the file path
@@ -1095,6 +1093,8 @@ QString VideoExporter::generateUniqueFileName(DiveData* dive,
         dir.mkpath(".");
     }
 
-    // Create and return the full path
-    return QDir(m_baseDirectory).filePath(baseName);
+    // FFmpeg runs with -y, so the name itself must never land on an
+    // existing file: index-suffix past anything already on disk.
+    return ExportMath::uniqueDestination(m_baseDirectory, baseName,
+                                         QLatin1Char('.') + extension);
 }

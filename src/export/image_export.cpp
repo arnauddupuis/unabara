@@ -229,8 +229,11 @@ QString ImageExporter::createDefaultExportDir(DiveData* dive,
         qWarning() << "createDefaultExportDir: no base directory set";
         return QString();
     }
+    // Never reuse an existing directory: a re-export into it would overwrite
+    // frames in place and, when shorter than the earlier run, leave a mixed
+    // sequence behind.
     QString dirName = ExportMath::exportBaseName(dive, videoFilePath, contentType);
-    QString path = QDir(m_baseDirectory).filePath(dirName);
+    QString path = ExportMath::uniqueDestination(m_baseDirectory, dirName);
 
     QDir dir;
     if (!dir.mkpath(path)) {

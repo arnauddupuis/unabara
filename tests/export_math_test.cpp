@@ -10,6 +10,7 @@
 
 #include "include/export/export_math.h"
 #include "include/export/image_export.h"
+#include "include/export/video_export.h"
 #include "include/core/dive_data.h"
 #include "include/generators/i_frame_generator.h"
 
@@ -65,6 +66,14 @@ private slots:
     void frameFileName();
     void sanitizeFileName();
     void exportBaseName();
+    void uniqueDestination_freeNameIsUnsuffixed();
+    void uniqueDestination_indexesPastExistingFiles();
+    void uniqueDestination_firstFreeIndexWins();
+    void uniqueDestination_directoriesAndCrossTypeCollisions();
+    void uniqueDestination_twoDigitPadThenWidens();
+    void uniqueDestination_fallsBackPastIndexCap();
+    void imageExporter_defaultDirNeverReusesExisting();
+    void videoExporter_defaultFileNeverReusesExisting();
     void removeWrittenFiles_keepsForeignFiles();
     void removeWrittenFiles_removesEmptiedDirectory();
     void removeWrittenFiles_removesOnlyListedFiles();
@@ -245,6 +254,183 @@ void ExportMathTest::exportBaseName()
     // dotted names intact up to the final dot)
     QCOMPARE(ExportMath::exportBaseName(&dive, QStringLiteral("/videos/clip.v2.mp4")),
              QStringLiteral("2026-01-15_103005_Wreck_ Zenobia_Blue_Hole_clip.v2"));
+}
+
+void ExportMathTest::uniqueDestination_freeNameIsUnsuffixed()
+{
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base.mp4")));
+    // Pure lookup: nothing was created.
+    QVERIFY(QDir(tmp.path()).isEmpty());
+
+    // Another extension at the same base is not a collision.
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base.mov"))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base.mp4")));
+}
+
+void ExportMathTest::uniqueDestination_indexesPastExistingFiles()
+{
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base.mp4"))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base_01.mp4")));
+
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base_01.mp4"))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base_02.mp4")));
+}
+
+void ExportMathTest::uniqueDestination_firstFreeIndexWins()
+{
+    // base + base_02 taken, base_01 free: the gap is reused (no max+1 scan).
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base.mp4"))));
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base_02.mp4"))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base_01.mp4")));
+}
+
+void ExportMathTest::uniqueDestination_directoriesAndCrossTypeCollisions()
+{
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+
+    // Frame-directory form (empty suffix): an existing directory is taken,
+    // even when empty.
+    QVERIFY(QDir(tmp.path()).mkdir(QStringLiteral("frames")));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("frames")),
+             tmp.filePath(QStringLiteral("frames_01")));
+
+    // A FILE sitting at the directory name blocks it just the same...
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("frames_01"))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("frames")),
+             tmp.filePath(QStringLiteral("frames_02")));
+
+    // ...and a DIRECTORY sitting at an output-file name blocks the file.
+    QVERIFY(QDir(tmp.path()).mkdir(QStringLiteral("clip.mp4")));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("clip"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("clip_01.mp4")));
+}
+
+void ExportMathTest::uniqueDestination_twoDigitPadThenWidens()
+{
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base.mp4"))));
+    for (int i = 1; i <= 9; ++i)
+        QVERIFY(writeFile(tmp.filePath(QStringLiteral("base_0%1.mp4").arg(i))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base_10.mp4")));
+
+    for (int i = 10; i <= 99; ++i)
+        QVERIFY(writeFile(tmp.filePath(QStringLiteral("base_%1.mp4").arg(i))));
+    QCOMPARE(ExportMath::uniqueDestination(tmp.path(), QStringLiteral("base"),
+                                           QStringLiteral(".mp4")),
+             tmp.filePath(QStringLiteral("base_100.mp4")));
+}
+
+void ExportMathTest::uniqueDestination_fallsBackPastIndexCap()
+{
+    // Every indexed name through _999 taken: the lookup must terminate and
+    // still hand back a free, recognisable name (epoch-seconds suffix).
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    QVERIFY(writeFile(tmp.filePath(QStringLiteral("base.mp4"))));
+    for (int i = 1; i <= 999; ++i) {
+        QVERIFY(writeFile(tmp.filePath(
+            QStringLiteral("base_%1.mp4").arg(i, 2, 10, QLatin1Char('0')))));
+    }
+
+    const qint64 before = QDateTime::currentSecsSinceEpoch();
+    const QString path = ExportMath::uniqueDestination(
+        tmp.path(), QStringLiteral("base"), QStringLiteral(".mp4"));
+    const qint64 after = QDateTime::currentSecsSinceEpoch();
+
+    QVERIFY(!QFileInfo::exists(path));
+    QCOMPARE(QFileInfo(path).absolutePath(), QFileInfo(tmp.path()).absoluteFilePath());
+    const QString name = QFileInfo(path).fileName();
+    QVERIFY2(name.startsWith(QStringLiteral("base_")) && name.endsWith(QStringLiteral(".mp4")),
+             qPrintable(name));
+    bool ok = false;
+    const qint64 stamp = name.mid(5, name.size() - 5 - 4).toLongLong(&ok);
+    QVERIFY2(ok, qPrintable(name));
+    QVERIFY(stamp >= before && stamp <= after);
+}
+
+void ExportMathTest::imageExporter_defaultDirNeverReusesExisting()
+{
+    // A repeated PNG export of the same dive/content must land in a fresh
+    // directory: reusing the first one overwrites frames in place and, when
+    // the second run is shorter, leaves a mixed sequence behind.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 1, 15), QTime(10, 30, 5), QTimeZone::utc()));
+
+    ImageExporter exporter;
+    exporter.setBaseDirectory(tmp.path());
+
+    const QString first = exporter.createDefaultExportDir(
+        &dive, QString(), QStringLiteral("dive_computer"));
+    QCOMPARE(first, tmp.filePath(QStringLiteral("2026-01-15_103005_dive_computer")));
+    QVERIFY(QDir(first).exists());
+    QVERIFY(writeFile(QDir(first).filePath(ExportMath::frameFileName(0))));
+
+    const QString second = exporter.createDefaultExportDir(
+        &dive, QString(), QStringLiteral("dive_computer"));
+    QCOMPARE(second, tmp.filePath(QStringLiteral("2026-01-15_103005_dive_computer_01")));
+    QVERIFY(QDir(second).exists());
+    QVERIFY(QDir(second).isEmpty());
+
+    // The first run's frames are untouched.
+    QVERIFY(QFile::exists(QDir(first).filePath(ExportMath::frameFileName(0))));
+}
+
+void ExportMathTest::videoExporter_defaultFileNeverReusesExisting()
+{
+    // FFmpeg runs with -y: the default output name itself must step past
+    // whatever an earlier export left on disk.
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 1, 15), QTime(10, 30, 5), QTimeZone::utc()));
+
+    VideoExporter exporter;
+    exporter.setBaseDirectory(tmp.path());
+    exporter.setVideoCodec(QStringLiteral("h264"));
+
+    const QString clip = QStringLiteral("/videos/GOPR0001.MP4");
+    const QString first = exporter.createDefaultExportFile(
+        &dive, clip, QStringLiteral("composited"));
+    QCOMPARE(first, tmp.filePath(QStringLiteral("2026-01-15_103005_GOPR0001_composited.mp4")));
+    // Naming alone creates nothing, so asking again is stable...
+    QVERIFY(!QFileInfo::exists(first));
+    QCOMPARE(exporter.createDefaultExportFile(&dive, clip, QStringLiteral("composited")),
+             first);
+
+    // ...until an export actually lands there.
+    QVERIFY(writeFile(first));
+    QCOMPARE(exporter.createDefaultExportFile(&dive, clip, QStringLiteral("composited")),
+             tmp.filePath(QStringLiteral("2026-01-15_103005_GOPR0001_composited_01.mp4")));
+
+    // A different container for the same base is a separate name space.
+    exporter.setVideoCodec(QStringLiteral("prores"));
+    QCOMPARE(exporter.createDefaultExportFile(&dive, clip, QStringLiteral("composited")),
+             tmp.filePath(QStringLiteral("2026-01-15_103005_GOPR0001_composited.mov")));
 }
 
 static QStringList frameNames(int count)

@@ -96,6 +96,25 @@ QString exportBaseName(DiveData *dive,
     return baseName;
 }
 
+QString uniqueDestination(const QString &dirPath,
+                          const QString &baseName,
+                          const QString &suffix)
+{
+    constexpr int kMaxIndex = 999;
+    const QDir dir(dirPath);
+    for (int i = 0; i <= kMaxIndex; ++i) {
+        QString name = baseName;
+        if (i > 0)
+            name += QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
+        const QString candidate = dir.filePath(name + suffix);
+        if (!QFileInfo::exists(candidate))
+            return candidate;
+    }
+    return dir.filePath(baseName + QLatin1Char('_')
+                        + QString::number(QDateTime::currentSecsSinceEpoch())
+                        + suffix);
+}
+
 void removeWrittenFiles(const QString &dirPath, const QStringList &fileNames)
 {
     QDir dir(dirPath);

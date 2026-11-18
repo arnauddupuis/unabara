@@ -62,6 +62,21 @@ QString exportBaseName(DiveData *dive,
                        const QString &videoFilePath = QString(),
                        const QString &contentType = QString());
 
+// First collision-free destination for an export under dirPath, as a full
+// path: "<base><suffix>", else "<base>_01<suffix>", "<base>_02<suffix>", …
+// (two-digit zero-pad so listings sort; widens naturally at _100). `suffix`
+// is ".<ext>" for an output file and empty for a frame directory. Anything
+// already at a candidate path — file OR directory — counts as taken, and the
+// first free index wins (gaps are reused, no max+1 scan). exportBaseName() is
+// deterministic per dive+clip+content, so without this a repeated export
+// overwrote the previous one (FFmpeg runs with -y; a PNG re-export shorter
+// than the earlier run left a mixed frame sequence behind). Both exporters
+// name their destination through here. Pure lookup: nothing is created. Past
+// index 999 it falls back to "<base>_<epoch seconds><suffix>".
+QString uniqueDestination(const QString &dirPath,
+                          const QString &baseName,
+                          const QString &suffix = QString());
+
 // Cancellation cleanup: remove exactly the named files (the ones the current
 // run recorded as written — never a name pattern, which could delete
 // same-named files from an earlier export into the same directory), then the

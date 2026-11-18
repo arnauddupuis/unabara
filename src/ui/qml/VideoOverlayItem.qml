@@ -67,6 +67,12 @@ Item {
     }
 
     // ---- Helpers -------------------------------------------------------
+    // Live-drag clamp, for interactive feedback during the gesture.
+    // KEEP IN SYNC with OverlayPlacement::fromVariantMap
+    // (video_overlay_layout.h) — the parse-time clamp every commit and
+    // restore goes through; same semantics (w/h into [minNormSize, 1]
+    // first, then x/y into what remains), and minNormSize mirrors its
+    // kMinNormSize. Change one side, change the other.
     function _clampRect(x, y, w, h) {
         w = Math.max(root.minNormSize, Math.min(1.0, w))
         h = Math.max(root.minNormSize, Math.min(1.0, h))

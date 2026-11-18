@@ -703,6 +703,13 @@ QStringList OverlayGenerator::getAvailableTemplates()
     return m_templateNames;
 }
 
+QString OverlayGenerator::templateDisplayName(const QString& filePath)
+{
+    // completeBaseName, not baseName: "My.Template.utp" must stay
+    // "My.Template", not "My".
+    return QFileInfo(filePath).completeBaseName().replace('_', ' ');
+}
+
 QString OverlayGenerator::getTemplatePath(int index)
 {
     if (index >= 0 && index < m_templatePaths.size()) {
@@ -725,7 +732,7 @@ int OverlayGenerator::indexOfTemplatePath(const QString& filePath)
     }
 
     // Not found — read template name from file and append to lists
-    QString displayName = QFileInfo(filePath).baseName().replace('_', ' ');
+    QString displayName = templateDisplayName(filePath);
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly)) {
         QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
@@ -753,7 +760,7 @@ void OverlayGenerator::refreshTemplateList()
             QString filePath = ":/templates/" + fileName;
             // Try to read templateName from the file
             QFile file(filePath);
-            QString displayName = QFileInfo(fileName).baseName().replace('_', ' ');
+            QString displayName = templateDisplayName(fileName);
             if (file.open(QIODevice::ReadOnly)) {
                 QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
                 if (doc.isObject()) {
@@ -779,7 +786,7 @@ void OverlayGenerator::refreshTemplateList()
                 QString filePath = userDir.absoluteFilePath(fileName);
                 // Try to read templateName from the file
                 QFile file(filePath);
-                QString displayName = QFileInfo(fileName).baseName().replace('_', ' ');
+                QString displayName = templateDisplayName(fileName);
                 if (file.open(QIODevice::ReadOnly)) {
                     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
                     if (doc.isObject()) {

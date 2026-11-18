@@ -254,6 +254,11 @@ public:
     Q_INVOKABLE QStringList getAvailableTemplates();
     Q_INVOKABLE QString getTemplatePath(int index);
     Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
+    // THE path→display-name derivation for templates (file name minus the
+    // .utp extension, underscores as spaces): the template list's fallback
+    // when a file carries no templateName, main.qml's template-colors
+    // dialog, and the Video Inspector's placement scope hint all share it.
+    Q_INVOKABLE static QString templateDisplayName(const QString& filePath);
     Q_INVOKABLE void refreshTemplateList();
 
     // Hit-test for the Render-mode preview: returns the id of the topmost

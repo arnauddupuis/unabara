@@ -78,16 +78,6 @@ Item {
         return (m && m[key] !== undefined) ? m[key] * 100 : 0
     }
 
-    // Mirror of VideoOverlayItem._clampRect semantics (C++ fromVariantMap
-    // does not clamp): w/h into [0.05, 1] first, then x/y into what remains.
-    function clampPlacement(p) {
-        p.w = Math.max(0.05, Math.min(1, p.w))
-        p.h = Math.max(0.05, Math.min(1, p.h))
-        p.x = Math.max(0, Math.min(1 - p.w, p.x))
-        p.y = Math.max(0, Math.min(1 - p.h, p.y))
-        return p
-    }
-
     function commitOverlayField(overlay, key, percent) {
         if (!videoClip)
             return
@@ -96,7 +86,10 @@ Item {
         var dp = Object.assign({}, map.diveProfile)
         var target = (overlay === "diveComputer") ? dc : dp
         target[key] = percent / 100
-        clampPlacement(target) // a grown W/H pulls X/Y back in range
+        // No clamping here: OverlayPlacement::fromVariantMap clamps at the
+        // parse boundary (the ONE enforcement site — a grown W/H pulls X/Y
+        // back in range there), and the committed model values re-display
+        // into the fields.
         clipList.commitOverlayLayout(videoClip,
                                      { diveComputer: dc, diveProfile: dp })
     }
@@ -112,13 +105,11 @@ Item {
         clipList.commitOverlayLayout(videoClip, defs)
     }
 
-    // Same display-name derivation as refreshTemplateList() / main.qml's
-    // template-colors dialog.
+    // ONE derivation for template display names, shared with the template
+    // list and main.qml's template-colors dialog.
     function templateDisplayName() {
         var p = config.activeTemplatePath
-        if (!p)
-            return ""
-        return p.split("/").pop().replace(/\.utp$/, "").replace(/_/g, " ")
+        return p ? overlayGenerator.templateDisplayName(p) : ""
     }
 
     ColumnLayout {

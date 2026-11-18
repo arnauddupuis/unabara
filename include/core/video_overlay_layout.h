@@ -13,6 +13,11 @@ struct OverlayPlacement {
     bool visible = true;
     QRectF normalizedRect; // x, y, w, h ∈ [0..1]
 
+    // Smallest usable overlay rect, as a fraction of the frame. KEEP IN
+    // SYNC with VideoOverlayItem.qml's minNormSize (the live-drag clamp —
+    // same semantics, applied during the gesture before anything commits).
+    static constexpr double kMinNormSize = 0.05;
+
     QVariantMap toVariantMap() const {
         QVariantMap m;
         m.insert(QStringLiteral("visible"), visible);
@@ -23,14 +28,24 @@ struct OverlayPlacement {
         return m;
     }
 
+    // Parse-time clamp: w/h into [kMinNormSize, 1] first, then x/y into
+    // what remains. THE single enforcement of rect sanity — every commit
+    // and restore path parses through here (commitOverlayLayout, Config's
+    // blob load, VideoClip::fromVariantMap), so a stale or hand-edited
+    // stored rect is healed at the boundary instead of being re-clamped in
+    // each UI site.
     static OverlayPlacement fromVariantMap(const QVariantMap& m) {
         OverlayPlacement p;
         p.visible = m.value(QStringLiteral("visible"), true).toBool();
-        p.normalizedRect = QRectF(
-            m.value(QStringLiteral("x"), 0.0).toDouble(),
-            m.value(QStringLiteral("y"), 0.0).toDouble(),
-            m.value(QStringLiteral("w"), 0.3).toDouble(),
-            m.value(QStringLiteral("h"), 0.3).toDouble());
+        const double w = qBound(kMinNormSize,
+                                m.value(QStringLiteral("w"), 0.3).toDouble(), 1.0);
+        const double h = qBound(kMinNormSize,
+                                m.value(QStringLiteral("h"), 0.3).toDouble(), 1.0);
+        const double x = qBound(0.0, m.value(QStringLiteral("x"), 0.0).toDouble(),
+                                1.0 - w);
+        const double y = qBound(0.0, m.value(QStringLiteral("y"), 0.0).toDouble(),
+                                1.0 - h);
+        p.normalizedRect = QRectF(x, y, w, h);
         return p;
     }
 

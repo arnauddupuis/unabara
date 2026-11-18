@@ -46,7 +46,11 @@ TextField {
 
     function showValue() {
         shownPercent = quantized(root.modelValue)
-        text = Number(shownPercent).toLocaleString(locale, 'f', 1)
+        // Qt.locale(), not a bare `locale`: TextField has no locale
+        // property — the bare name only resolves through the outer
+        // document's context (ApplicationWindow) and would throw under any
+        // other root.
+        text = Number(shownPercent).toLocaleString(Qt.locale(), 'f', 1)
     }
 
     function commitPercent(p) {
@@ -62,7 +66,7 @@ TextField {
     function commitText() {
         var v = NaN
         try {
-            v = Number.fromLocaleString(locale, text)
+            v = Number.fromLocaleString(Qt.locale(), text)
         } catch (e) {
             v = NaN
         }
@@ -84,8 +88,18 @@ TextField {
             commitText()
     }
 
-    Keys.onUpPressed: commitPercent(quantized(root.modelValue) + 0.1)
-    Keys.onDownPressed: commitPercent(quantized(root.modelValue) - 0.1)
+    // Commit any half-typed text FIRST, then nudge from the committed
+    // value — otherwise typing "70" and pressing Up would discard the 70
+    // and nudge the old value instead. The signal chain is synchronous, so
+    // modelValue is current again when the nudge reads it.
+    Keys.onUpPressed: {
+        commitText()
+        commitPercent(quantized(root.modelValue) + 0.1)
+    }
+    Keys.onDownPressed: {
+        commitText()
+        commitPercent(quantized(root.modelValue) - 0.1)
+    }
     Keys.onEscapePressed: {
         showValue()
         focus = false

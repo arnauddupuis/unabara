@@ -150,11 +150,9 @@ void ClipListModel::setGapPolicy(int policy)
 
 void ClipListModel::setActiveTemplatePath(const QString& templatePath)
 {
-    // Normalize here, not just in templateLayoutKey(): the property should
-    // never hold two spellings of one template.
-    QString normalized = templatePath;
-    if (normalized.startsWith(QLatin1String("qrc:/")))
-        normalized = normalized.mid(3); // "qrc:/" -> ":/"
+    // Normalize here too, not just in templateLayoutKey(): the property
+    // should never hold two spellings of one template.
+    const QString normalized = normalizeTemplatePath(templatePath);
     if (m_activeTemplatePath != normalized) {
         m_activeTemplatePath = normalized;
         emit activeTemplatePathChanged();
@@ -868,12 +866,14 @@ VideoOverlayLayout ClipListModel::resolveOverlayLayout(const VideoClip* clip) co
     if (!own.isEmpty())
         return VideoOverlayLayout::fromVariantMap(own);
     // Template memory: a dive/clip never seen before starts where the
-    // active template was last placed.
+    // active template was last placed. RECTS only — visibility is clip
+    // state, so a hidden overlay on one dive must never leak into a fresh
+    // dive through the template entry (templateRectsFromMap resets it).
     const QString tplKey = templateLayoutKey(m_activeTemplatePath);
     if (!tplKey.isEmpty()) {
         const QVariantMap tpl = m_store->loadOverlayLayout(tplKey);
         if (!tpl.isEmpty())
-            return VideoOverlayLayout::fromVariantMap(tpl);
+            return templateRectsFromMap(tpl);
     }
     const QVariantMap last = m_store->loadLastOverlayLayout();
     if (!last.isEmpty())
@@ -960,14 +960,33 @@ void ClipListModel::commitOverlayLayout(VideoClip* clip, const QVariantMap& layo
 
 // ---- Per-template placement memory ("Overlay Positions") -----------------
 
+QString ClipListModel::normalizeTemplatePath(const QString& templatePath)
+{
+    // "qrc:/" -> ":/", the generator's own normalization — one template
+    // must never grow two spellings (and so two memories).
+    if (templatePath.startsWith(QLatin1String("qrc:/")))
+        return templatePath.mid(3);
+    return templatePath;
+}
+
 QString ClipListModel::templateLayoutKey(const QString& templatePath)
 {
-    QString p = templatePath;
-    if (p.startsWith(QLatin1String("qrc:/")))
-        p = p.mid(3); // "qrc:/" -> ":/", the generator's own normalization
+    const QString p = normalizeTemplatePath(templatePath);
     if (p.isEmpty())
         return QString();
     return QStringLiteral("tpl:") + p;
+}
+
+VideoOverlayLayout ClipListModel::templateRectsFromMap(const QVariantMap& stored)
+{
+    // The tpl: entry keeps the uniform blob value shape (so old builds
+    // round-trip it like any other key), but only its RECTS are meaningful:
+    // visibility is clip state and is reset to the default here, the ONE
+    // read boundary for template entries.
+    VideoOverlayLayout l = VideoOverlayLayout::fromVariantMap(stored);
+    l.diveComputer.visible = true;
+    l.diveProfile.visible = true;
+    return l;
 }
 
 void ClipListModel::applyActiveTemplatePlacement()
@@ -980,26 +999,33 @@ void ClipListModel::applyActiveTemplatePlacement()
     const QVariantMap stored = m_store->loadOverlayLayout(tplKey);
     if (stored.isEmpty())
         return; // template has no memory yet: the next manual commit seeds it
-    const VideoOverlayLayout tpl = VideoOverlayLayout::fromVariantMap(stored);
+    const VideoOverlayLayout tpl = templateRectsFromMap(stored);
 
-    // One commit per distinct bucket (its broadcast covers the siblings,
-    // and within a bucket visibility is already shared state) plus each
-    // unbucketed clip individually. Only the RECTS come from the template:
-    // visibility is clip state, not template placement.
-    QSet<QString> doneBuckets;
-    const QList<VideoClip*> clips = m_clips; // commit can't change the list,
-                                             // but iterate a copy anyway
-    for (VideoClip* clip : clips) {
-        const QString bucket = overlayBucketKey(clip);
-        if (!bucket.isEmpty()) {
-            if (doneBuckets.contains(bucket))
-                continue;
-            doneBuckets.insert(bucket);
-        }
+    // NOT routed through commitOverlayLayout(): a template load is not a
+    // user edit. Committing would rewrite the tpl: entry with whichever
+    // clip's visible flags the iteration ended on and stomp the last-used
+    // layout for unrelated future videos. Instead: set every clip's merged
+    // layout directly (rects from the template, each clip's own visible
+    // flags kept), then persist one write per distinct bucket and one per
+    // unbucketed clip's path — updateLastUsed=false, like the other
+    // non-user-edit writers (joinOverlayBucket, seedTemplatePlacement).
+    QSet<QString> savedBuckets;
+    for (VideoClip* clip : std::as_const(m_clips)) {
         VideoOverlayLayout merged = clip->overlayLayout();
         merged.diveComputer.normalizedRect = tpl.diveComputer.normalizedRect;
         merged.diveProfile.normalizedRect = tpl.diveProfile.normalizedRect;
-        commitOverlayLayout(clip, merged.toVariantMap());
+        clip->setOverlayLayout(merged);
+        if (m_restoring)
+            continue;
+        const QString bucket = overlayBucketKey(clip);
+        if (bucket.isEmpty()) {
+            m_store->saveOverlayLayout(QStringList{ clip->path() },
+                                       merged.toVariantMap(), false);
+        } else if (!savedBuckets.contains(bucket)) {
+            savedBuckets.insert(bucket);
+            m_store->saveOverlayLayout(QStringList{ bucket },
+                                       merged.toVariantMap(), false);
+        }
     }
 }
 

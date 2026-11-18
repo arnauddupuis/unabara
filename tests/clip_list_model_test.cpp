@@ -125,6 +125,7 @@ private slots:
     void configOverlayLayoutBlobCompat();
 
     // Per-template placement memory ("Overlay Positions", Loïc's request)
+    void placementParseClamp();
     void templateLayoutKeyFormat();
     void overlayLayoutTemplateMemory();
     void applyTemplatePlacementAllBuckets();
@@ -1629,9 +1630,9 @@ void ClipListModelTest::configOverlayLayoutBlobCompat()
              layoutAt(0.56));
     const QString newPath = QStringLiteral("/videos/new.mp4");
     config->setVideoOverlayLayoutEntries(QStringList{ bucket, newPath },
-                                         layoutAt(0.9).toVariantMap(), true);
+                                         layoutAt(0.8).toVariantMap(), true);
     QCOMPARE(VideoOverlayLayout::fromVariantMap(config->lastVideoOverlayLayout()),
-             layoutAt(0.9));
+             layoutAt(0.8));
 
     // Raw blob: ONE JSON object holding path and bucket keys side by side,
     // every value the plain {diveComputer, diveProfile} shape — exactly
@@ -1651,16 +1652,42 @@ void ClipListModelTest::configOverlayLayoutBlobCompat()
                                  QStringLiteral("diveProfile") }));
     }
     QCOMPARE(VideoOverlayLayout::fromVariantMap(root.value(bucket).toObject().toVariantMap()),
-             layoutAt(0.9));
+             layoutAt(0.8));
     QCOMPARE(VideoOverlayLayout::fromVariantMap(root.value(legacyPath).toObject().toVariantMap()),
              layoutAt(0.12)); // untouched
     const QJsonObject last = QJsonDocument::fromJson(
         raw.value("video/lastOverlayLayout").toString().toUtf8()).object();
-    QCOMPARE(VideoOverlayLayout::fromVariantMap(last.toVariantMap()), layoutAt(0.9));
+    QCOMPARE(VideoOverlayLayout::fromVariantMap(last.toVariantMap()), layoutAt(0.8));
 #endif
 }
 
 // ---- Per-template placement memory ("Overlay Positions") -----------------
+
+void ClipListModelTest::placementParseClamp()
+{
+    // OverlayPlacement::fromVariantMap is THE clamp boundary (mirrors
+    // VideoOverlayItem._clampRect): w/h into [kMinNormSize, 1] first, then
+    // x/y into what remains — stale or hand-edited stored rects heal here,
+    // and the numeric fields need no clamp copy of their own.
+    QVariantMap m;
+    m.insert(QStringLiteral("x"), 0.9);
+    m.insert(QStringLiteral("y"), -0.2);
+    m.insert(QStringLiteral("w"), 0.5);
+    m.insert(QStringLiteral("h"), 3.0);
+    const OverlayPlacement p = OverlayPlacement::fromVariantMap(m);
+    QCOMPARE(p.normalizedRect, QRectF(0.5, 0.0, 0.5, 1.0));
+
+    QVariantMap tiny;
+    tiny.insert(QStringLiteral("w"), 0.001);
+    tiny.insert(QStringLiteral("h"), 0.0);
+    const OverlayPlacement q = OverlayPlacement::fromVariantMap(tiny);
+    QCOMPARE(q.normalizedRect.width(), OverlayPlacement::kMinNormSize);
+    QCOMPARE(q.normalizedRect.height(), OverlayPlacement::kMinNormSize);
+
+    // In-range values are untouched (byte-identical round-trip).
+    const OverlayPlacement ok{ false, QRectF(0.1, 0.2, 0.25, 0.35) };
+    QCOMPARE(OverlayPlacement::fromVariantMap(ok.toVariantMap()), ok);
+}
 
 void ClipListModelTest::templateLayoutKeyFormat()
 {
@@ -1691,15 +1718,21 @@ void ClipListModelTest::overlayLayoutTemplateMemory()
     dive.setStartTime(QDateTime(QDate(2026, 7, 1), QTime(9, 0, 0)));
     m_model->setDive(&dive);
 
-    const VideoOverlayLayout tplL = layoutAt(0.25);
+    // The stored tpl entry carries a HIDDEN profile — read must take the
+    // rects only and reset visibility to the default (a hidden overlay on
+    // one dive must never leak into a fresh dive through template memory).
+    const VideoOverlayLayout tplStored = layoutAt(0.25, /*profVisible=*/false);
     const VideoOverlayLayout lastL = layoutAt(0.35);
-    m_store.layouts.insert(tplKey, tplL.toVariantMap());
+    m_store.layouts.insert(tplKey, tplStored.toVariantMap());
     m_store.lastLayout = lastL.toVariantMap();
 
-    // No bucket entry, no path entry: the template beats last-used.
+    // No bucket entry, no path entry: the template beats last-used — with
+    // visibility back at the default.
     m_stubResults.insert(QStringLiteral("t1.mp4"), probeOf(1920, 1080));
     VideoClip* clip = addProbedClip(makeFile("t1.mp4"));
-    QCOMPARE(clip->overlayLayout(), tplL);
+    QCOMPARE(clip->overlayLayout(), layoutAt(0.25));
+    QCOMPARE(ClipListModel::templateRectsFromMap(tplStored.toVariantMap()),
+             layoutAt(0.25));
 
     // A user edit updates the template memory in the SAME single write as
     // bucket + path.
@@ -1747,7 +1780,16 @@ void ClipListModelTest::applyTemplatePlacementAllBuckets()
 
     const VideoOverlayLayout tplL = layoutAt(0.77);
     m_store.layouts.insert(QStringLiteral("tpl::/templates/T.utp"), tplL.toVariantMap());
+    // Applying is NOT a user edit: the tpl entry and the last-used layout
+    // must come through byte-identical (a commit-based apply used to
+    // rewrite both — the tpl entry with iteration-order-dependent visible
+    // flags, last-used as if the user had edited).
+    const QVariantMap tplBefore =
+        m_store.layouts.value(QStringLiteral("tpl::/templates/T.utp"));
+    const QVariantMap lastBefore = m_store.lastLayout;
     m_model->applyActiveTemplatePlacement();
+    QCOMPARE(m_store.layouts.value(QStringLiteral("tpl::/templates/T.utp")), tplBefore);
+    QCOMPARE(m_store.lastLayout, lastBefore);
 
     // Rects follow the template everywhere (hd2 via the bucket broadcast).
     QCOMPARE(hd1->overlayLayout().diveComputer.normalizedRect,

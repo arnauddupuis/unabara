@@ -461,8 +461,7 @@ ApplicationWindow {
                                                   overlayGenerator.secondaryColor)
                 return
             }
-            var name = filePath.split("/").pop().replace(/\.utp$/, "").replace(/_/g, " ")
-            templateColorsDialog.templateName = name
+            templateColorsDialog.templateName = overlayGenerator.templateDisplayName(filePath)
             templateColorsDialog.open()
         }
         // Save As: the freshly saved template captures the placement it was

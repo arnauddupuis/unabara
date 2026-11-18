@@ -216,15 +216,25 @@ public:
     // next edit. Empty for an empty path.
     static QString templateLayoutKey(const QString& templatePath);
 
+    // Reading a tpl: entry: parses the stored map and RESETS both visible
+    // flags to the default — only the rects are template state; visibility
+    // is clip state and must never leak from one dive into another through
+    // the template memory. The one read boundary for template entries
+    // (resolveOverlayLayout and applyActiveTemplatePlacement go through it).
+    static VideoOverlayLayout templateRectsFromMap(const QVariantMap& stored);
+
     // Applies the active template's remembered placement RECTS to every
-    // clip in the list ("all the clips in the ClipStrip" — Arnaud), one
-    // commitOverlayLayout() per distinct bucket plus each unbucketed clip,
+    // clip in the list ("all the clips in the ClipStrip" — Arnaud),
     // preserving every clip's own visible flags (visibility is clip state,
-    // not template placement). No-op when nothing is stored for the
-    // template, there are no clips, or there is no active template. Called
-    // from main.qml's overlayGenerator.onTemplateLoaded handler — which
-    // never fires on undo restores (the loadTemplate()/loadTemplateFromFile()
-    // asymmetry) — so undo cannot move overlays.
+    // not template placement). NOT a user edit: it sets each clip's layout
+    // directly and persists one write per distinct bucket (plus one per
+    // unbucketed clip's path) with updateLastUsed=false — it never rewrites
+    // the tpl: entry and never touches the last-used layout. No-op when
+    // nothing is stored for the template, there are no clips, or there is
+    // no active template. Called from main.qml's
+    // overlayGenerator.onTemplateLoaded handler — which never fires on undo
+    // restores (the loadTemplate()/loadTemplateFromFile() asymmetry) — so
+    // undo cannot move overlays.
     Q_INVOKABLE void applyActiveTemplatePlacement();
 
     // templateSaved (Save As) hook: stores the ACTIVE clip's current layout
@@ -303,6 +313,11 @@ signals:
     void clipsOutsideDive(int count, int stackedCount, const QString& firstName);
 
 private:
+    // qrc:/ → :/ (the generator's own normalization), shared by the
+    // activeTemplatePath setter and templateLayoutKey() — one spelling per
+    // template, defined once.
+    static QString normalizeTemplatePath(const QString& templatePath);
+
     void connectClip(VideoClip* clip);
     void startProbe(VideoClip* clip);
     void finishProbe(VideoClip* clip, const VideoProbe::Result& result);

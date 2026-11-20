@@ -47,34 +47,36 @@ jobs:
         sudo flatpak install -y flathub org.kde.Sdk//6.8
         sudo flatpak install -y org.kde.Platform//6.8
 
-    - name: Set up Flatpak manifest
-      run: |
-        cat > org.unabara.unabara.yml << EOF
-        app-id: ${{ env.APP_ID }}
-        runtime: org.kde.Platform
-        runtime-version: '6.8'
-        sdk: org.kde.Sdk
-        command: unabara
-        finish-args:
-          - --share=ipc
-          - --socket=x11
-          - --socket=wayland
-          - --filesystem=host
-          - --device=dri
-        modules:
-          - name: unabara
-            buildsystem: cmake-ninja
-            config-opts:
-              - -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-            sources:
-              - type: dir
-                path: .
-        EOF
+    # The manifest lives in packaging/flatpak/ (also the Flathub submission
+    # source). Besides the app it builds the FFmpeg CLI (+ x264/x265/libvpx),
+    # so cache flatpak-builder's state dir: the codec modules come before the
+    # app module and are only rebuilt when the manifest changes.
+    - name: Restore flatpak-builder cache
+      uses: actions/cache@v4
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-${{ runner.os }}-${{ hashFiles('packaging/flatpak/**') }}
+        restore-keys: |
+          flatpak-builder-${{ runner.os }}-
 
     - name: Build Flatpak
       run: |
-        flatpak-builder --repo=repo --force-clean build-dir org.unabara.unabara.yml
+        flatpak-builder --repo=repo --force-clean build-dir packaging/flatpak/org.unabara.unabara.yml
         flatpak build-bundle repo ${{ env.APP_ID }}_${{ needs.determine-version.outputs.version }}.flatpak ${{ env.APP_ID }}
+
+    - name: Verify bundled FFmpeg
+      shell: bash
+      run: |
+        test -x build-dir/files/bin/ffmpeg
+        test -x build-dir/files/bin/ffprobe
+        encoders=$(flatpak-builder --run build-dir packaging/flatpak/org.unabara.unabara.yml ffmpeg -hide_banner -encoders)
+        for enc in libx264 libx265 libvpx-vp9 prores_ks; do
+          if ! grep -q " $enc " <<< "$encoders"; then
+            echo "Bundled ffmpeg is missing encoder: $enc"
+            exit 1
+          fi
+        done
+        echo "Bundled ffmpeg OK (libx264, libx265, libvpx-vp9, prores_ks)"
 
     - name: Upload Linux Flatpak Artifact
       uses: actions/upload-artifact@v4
@@ -140,6 +142,33 @@ jobs:
         windeployqt unabara.exe --release --no-translations --qmldir=../../src/ui/qml
         cd ..
         mv package unabara-windows-${{ needs.determine-version.outputs.version }}
+
+    # Pinned FFmpeg build (see packaging/ffmpeg-bundle.env). Only KEY=value
+    # lines are loaded; $GITHUB_ENV rejects the comment lines.
+    - name: Load FFmpeg bundle pins
+      shell: bash
+      run: grep -E '^[A-Z0-9_]+=' packaging/ffmpeg-bundle.env >> "$GITHUB_ENV"
+
+    # Static GPL build: ffmpeg.exe/ffprobe.exe are self-contained, so nothing
+    # can clash with the FFmpeg DLLs windeployqt ships for Qt Multimedia.
+    # They sit next to unabara.exe, where app-dir discovery finds them.
+    - name: Bundle FFmpeg
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: |
+        curl -fsSL --retry 3 -o ffmpeg-bundle.zip "$FFMPEG_WIN_URL"
+        echo "$FFMPEG_WIN_SHA256  ffmpeg-bundle.zip" | sha256sum -c -
+        7z x -offmpeg-bundle ffmpeg-bundle.zip
+        src="ffmpeg-bundle/${FFMPEG_WIN_ASSET%.zip}"
+        dest="unabara-windows-${{ needs.determine-version.outputs.version }}"
+        cp "$src/bin/ffmpeg.exe" "$src/bin/ffprobe.exe" "$dest/"
+        cp "$src/LICENSE.txt" "$dest/ffmpeg-LICENSE.txt"
+        rm -rf ffmpeg-bundle ffmpeg-bundle.zip
+        test -f "$dest/ffmpeg.exe"
+        test -f "$dest/ffprobe.exe"
+        test -f "$dest/ffmpeg-LICENSE.txt"
+        version_out=$("$dest/ffmpeg.exe" -hide_banner -version)
+        echo "${version_out%%$'\n'*}"
 
     - name: Create ZIP Archive
       working-directory: ${{github.workspace}}/build
@@ -243,6 +272,53 @@ jobs:
         </dict>
         </plist>
         EOF
+
+    # Pinned FFmpeg builds (see packaging/ffmpeg-bundle.env). Only KEY=value
+    # lines are loaded; $GITHUB_ENV rejects the comment lines.
+    - name: Load FFmpeg bundle pins
+      run: grep -E '^[A-Z0-9_]+=' packaging/ffmpeg-bundle.env >> "$GITHUB_ENV"
+
+    # Static builds for both arches, merged into universal binaries and placed
+    # in Contents/MacOS BEFORE macdeployqt -dmg so they land in the DMG. They
+    # link only system dylibs, so macdeployqt has nothing to rewrite (and must
+    # not: install_name_tool would invalidate the publisher's per-slice
+    # signatures, which lipo preserves). The job is unsigned today.
+    - name: Bundle FFmpeg (universal)
+      run: |
+        APP=${{github.workspace}}/build-universal/bin/unabara.app
+        WORK=${{github.workspace}}/ffmpeg-bundle
+        mkdir -p "$WORK"
+        cd "$WORK"
+
+        fetch() { # url sha256 outfile
+          curl -fsSL --retry 3 -o "$3" "$1"
+          echo "$2  $3" | shasum -a 256 -c -
+        }
+        fetch "$FFMPEG_MAC_ARM64_FFMPEG_URL"   "$FFMPEG_MAC_ARM64_FFMPEG_SHA256"   arm64-ffmpeg.zip
+        fetch "$FFMPEG_MAC_ARM64_FFPROBE_URL"  "$FFMPEG_MAC_ARM64_FFPROBE_SHA256"  arm64-ffprobe.zip
+        fetch "$FFMPEG_MAC_X86_64_FFMPEG_URL"  "$FFMPEG_MAC_X86_64_FFMPEG_SHA256"  x86_64-ffmpeg.zip
+        fetch "$FFMPEG_MAC_X86_64_FFPROBE_URL" "$FFMPEG_MAC_X86_64_FFPROBE_SHA256" x86_64-ffprobe.zip
+        fetch "$FFMPEG_LICENSE_URL"            "$FFMPEG_LICENSE_SHA256"            ffmpeg-LICENSE.txt
+
+        for arch in arm64 x86_64; do
+          mkdir -p "$arch"
+          unzip -o -q "$arch-ffmpeg.zip" -d "$arch"
+          unzip -o -q "$arch-ffprobe.zip" -d "$arch"
+        done
+
+        for tool in ffmpeg ffprobe; do
+          lipo -create arm64/$tool x86_64/$tool -output "$APP/Contents/MacOS/$tool"
+          chmod +x "$APP/Contents/MacOS/$tool"
+          lipo -info "$APP/Contents/MacOS/$tool"
+          lipo "$APP/Contents/MacOS/$tool" -verify_arch arm64 x86_64
+        done
+        cp ffmpeg-LICENSE.txt "$APP/Contents/Resources/ffmpeg-LICENSE.txt"
+
+        version_out=$("$APP/Contents/MacOS/ffmpeg" -hide_banner -version)
+        echo "${version_out%%$'\n'*}"
+
+        cd ${{github.workspace}}
+        rm -rf "$WORK"
 
     - name: Package Universal App with macdeployqt
       run: |

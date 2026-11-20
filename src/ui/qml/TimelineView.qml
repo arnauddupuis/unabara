@@ -22,7 +22,7 @@ Item {
     property color canvasGridColor: palette.mid
     property color canvasTextColor: palette.windowText
 
-    // True while the Video Preview tab is active with a video loaded. In this
+    // True while the Video tab is active with a video loaded. In this
     // mode the red cursor is driven by video playback (cursorTime = videoPos +
     // videoOffset), so clicking the timeline must NOT seek the cursor — that
     // would clobber the derived position. Dragging the zone/cursor still adjusts
@@ -45,20 +45,15 @@ Item {
         ToolTip.delay: 500
     }
 
-    // Reference to C++ Timeline object
+    // Reference to C++ Timeline object. Its videoPath/videoOffset/
+    // videoDuration properties are a facade over clipList's active clip
+    // (PR A2) — same names/signals, data lives on the VideoClip.
     Timeline {
         id: timeline
         diveData: mainWindow.currentDive
+        clipModel: clipList
     }
-    
-    function setVideoPath(path) {
-        timeline.videoPath = path
-    }
-    
-    function setVideoDuration(duration) {
-        timeline.videoDuration = duration
-    }
-    
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -165,42 +160,160 @@ Item {
                         color: palette.windowText
                     }
                     
+                    // Whole-second view of the active clip's syncOffset (a
+                    // double — timecode auto-sync yields fractions).
+                    //
+                    // Write contract (the old flag + 50 ms timer echo
+                    // suppression lost typed input — see the follow-up plan):
+                    //  - ONLY user edits write timeline.videoOffset, and a
+                    //    facade write marks the clip SyncSource::Manual:
+                    //    arrow clicks / unfocused wheel commit per step via
+                    //    valueModified; typed text commits on Enter or
+                    //    focus-out (commitText), never per keystroke. The
+                    //    focus gate matters under the KDE desktop style,
+                    //    whose editable field sets value AND emits
+                    //    valueModified on every acceptable keystroke
+                    //    ("-3" of "-3723").
+                    //  - A commit writes only when the entered whole second
+                    //    differs from the displayed rounding, so a bare
+                    //    focus-out can't shave a stored sub-second fraction.
+                    //  - Facade echoes (auto-sync, camera profile, restore,
+                    //    our own writes) only re-display via showOffset():
+                    //    programmatic value writes never emit valueModified,
+                    //    so they can't write back. No flag, no timer.
                     SpinBox {
                         id: videoOffsetSpinBox
                         from: -18000
                         to: 18000
+                        editable: true
                         Layout.maximumHeight: 28
 
-                        Component.onCompleted: {
-                            // Set initial value without creating a binding
-                            value = timeline.videoOffset
+                        // Every style's contentItem is a TextInput (the KDE
+                        // style's T.TextField derives from it).
+                        readonly property TextInput field: contentItem as TextInput
+                        // The exact offset currently displayed; facade
+                        // re-emits of an unchanged offset (refreshActiveClip
+                        // fires on any clip-model change) are ignored so they
+                        // can't wipe text the user is still typing.
+                        property real shownOffset: 0
+
+                        function showOffset() {
+                            shownOffset = timeline.videoOffset
+                            value = Math.round(shownOffset)
+                            // Re-sync the text even when value didn't change
+                            // (declined/invalid/no-op entry left stale text):
+                            // re-installing the style's own text binding
+                            // re-evaluates it.
+                            if (field)
+                                field.text = Qt.binding(function() {
+                                    return videoOffsetSpinBox.displayText
+                                })
                         }
-                        
-                        onValueChanged: {
-                            // Only update if the change originated from UI
-                            if (!updatingFromTimeline && Math.abs(value - timeline.videoOffset) > 0.01) {
-                                timeline.videoOffset = value
+
+                        function commitOffset(seconds) {
+                            if (!isNaN(seconds) && seconds !== Math.round(timeline.videoOffset))
+                                timeline.videoOffset = seconds
+                            showOffset()
+                        }
+
+                        // No group separators ("-3 723" under Fusion in
+                        // some locales); the KDE style already omits them.
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0)
+                                    .split(locale.groupSeparator).join("")
+                        }
+
+                        // Unparseable text ("" or a lone "-") means "keep the
+                        // current offset". The default throws (or yields
+                        // NaN), which SpinBox's own focus-out update turns
+                        // into 0 — a lone "-" then committed a 0 offset.
+                        valueFromText: function(text, locale) {
+                            var v = NaN
+                            try {
+                                v = Number.fromLocaleString(locale, text)
+                            } catch (e) {
+                                v = NaN
+                            }
+                            return isNaN(v) ? Math.round(timeline.videoOffset) : v
+                        }
+
+                        function commitText() {
+                            // Non-acceptable text only re-syncs the display.
+                            var v = (field && field.acceptableInput)
+                                    ? Math.max(from, Math.min(to, Math.round(valueFromText(field.text, locale))))
+                                    : NaN
+                            commitOffset(v)
+                        }
+
+                        Component.onCompleted: showOffset()
+
+                        onValueModified: {
+                            // While the field has focus, value moves with
+                            // typing (KDE style) — defer to commitText().
+                            // The up/down.pressed escape covers keyboard
+                            // Up/Down and press-and-hold auto-repeat, which
+                            // emit while pressed is still true; a single
+                            // indicator CLICK clears pressed before emitting
+                            // and is committed by the release-edge handlers
+                            // below instead.
+                            if (!field || !field.activeFocus || up.pressed || down.pressed)
+                                commitOffset(value)
+                        }
+
+                        // Single indicator click while the text field keeps
+                        // focus: Qt clears up/down.pressed BEFORE emitting
+                        // valueModified on release, so the focus gate above
+                        // would defer it and the preview would lag the
+                        // display. Commit on the release edge, but only when
+                        // the step really changed the whole second — a
+                        // cancelled press (drag off the arrow) must not wipe
+                        // text the user is still typing via showOffset().
+                        Connections {
+                            target: videoOffsetSpinBox.up
+                            function onPressedChanged() {
+                                var sb = videoOffsetSpinBox
+                                if (!sb.up.pressed && sb.field && sb.field.activeFocus
+                                        && sb.value !== Math.round(timeline.videoOffset))
+                                    sb.commitOffset(sb.value)
                             }
                         }
-                        
-                        // Flag to prevent binding loops
-                        property bool updatingFromTimeline: false
-                        
+                        Connections {
+                            target: videoOffsetSpinBox.down
+                            function onPressedChanged() {
+                                var sb = videoOffsetSpinBox
+                                if (!sb.down.pressed && sb.field && sb.field.activeFocus
+                                        && sb.value !== Math.round(timeline.videoOffset))
+                                    sb.commitOffset(sb.value)
+                            }
+                        }
+
                         Connections {
                             target: timeline
                             function onVideoOffsetChanged() {
-                                // Set flag to prevent echoing the change back
-                                videoOffsetSpinBox.updatingFromTimeline = true
-                                videoOffsetSpinBox.value = Math.round(timeline.videoOffset)
-                                // Use a Timer to reset the flag to avoid potential issues
-                                resetTimer.start()
+                                if (timeline.videoOffset !== videoOffsetSpinBox.shownOffset)
+                                    videoOffsetSpinBox.showOffset()
+                            }
+                            // A clip switch is never an echo: re-display
+                            // unconditionally, wiping any half-typed text so
+                            // it can't commit onto the NEW clip (the equal-
+                            // offset case would otherwise slip past the
+                            // shownOffset guard above).
+                            function onActiveClipChanged() {
+                                videoOffsetSpinBox.showOffset()
                             }
                         }
-                        
-                        Timer {
-                            id: resetTimer
-                            interval: 50
-                            onTriggered: videoOffsetSpinBox.updatingFromTimeline = false
+
+                        Connections {
+                            target: videoOffsetSpinBox.field
+                            function onEditingFinished() {
+                                videoOffsetSpinBox.commitText()
+                            }
+                            // editingFinished needs acceptable input; this
+                            // also restores the display after "" or "-".
+                            function onActiveFocusChanged() {
+                                if (!videoOffsetSpinBox.field.activeFocus)
+                                    videoOffsetSpinBox.commitText()
+                            }
                         }
                     }
                     
@@ -225,7 +338,178 @@ Item {
                 anchors.margins: 10
                 
                 property var timelineData: []
-                
+
+                // Per-clip timeline bands (clipList.bandData()), refreshed
+                // off the clip model's signals. Each entry carries path,
+                // displayName, start, end, enabled, active, synced,
+                // probeState, plus (follow-up K) outOfDive, stacked and
+                // visualStart/visualEnd — see ClipListModel::bandData().
+                property var clipBands: []
+
+                function refreshBands() {
+                    clipBands = clipList.bandData()
+                    requestPaint()
+                }
+
+                // Pixel-space geometry for all bands, shared by onPaint and
+                // the mouse hit-testing so the clickable regions always
+                // match what is drawn. A clip whose duration is still
+                // unknown (probe pending or failed, player duration not in
+                // yet) keeps the historical provisional length: 5 minutes
+                // or half the visible range.
+                //
+                // Stacked bands (clip FULLY outside the dive, follow-up K)
+                // are drawn at the C++-assigned slot [visualStart,
+                // visualEnd] — never recomputed here, so slots can't drift
+                // from what the model laid out — and are listed FIRST: the
+                // inactive paint pass is ascending and the inactive hit-test
+                // descending, so a real band sharing pixels with a stacked
+                // one always paints on top AND wins the click.
+                function bandRangesPx() {
+                    var ranges = []
+                    var timeRange = timeline.endTime - timeline.startTime
+                    if (timeRange <= 0)
+                        return ranges
+                    var w = depthCanvas.width
+                    for (var pass = 0; pass < 2; pass++) {
+                        for (var i = 0; i < clipBands.length; i++) {
+                            var b = clipBands[i]
+                            if ((pass === 0) !== b.stacked)
+                                continue
+                            var t0, t1, provisional
+                            if (b.stacked) {
+                                t0 = b.visualStart
+                                t1 = b.visualEnd
+                                provisional = b.end - b.start <= 0
+                            } else {
+                                var dur = b.end - b.start
+                                provisional = dur <= 0
+                                if (provisional)
+                                    dur = Math.min(300, timeRange / 2)
+                                t0 = b.start
+                                t1 = b.start + dur
+                            }
+                            ranges.push({
+                                index: i,
+                                startX: ((t0 - timeline.startTime) / timeRange) * w,
+                                endX: ((t1 - timeline.startTime) / timeRange) * w,
+                                // Dive time of the band's drawn left edge:
+                                // the drag origin for a stacked band.
+                                visualStartTime: t0,
+                                active: b.active,
+                                enabled: b.enabled,
+                                stacked: b.stacked,
+                                outOfDive: b.outOfDive,
+                                name: b.displayName,
+                                duration: provisional ? -1 : b.end - b.start
+                            })
+                        }
+                    }
+                    return ranges
+                }
+
+                // Rounded-rect path for a band (fill, clip and stroke share it).
+                function bandPath(ctx, x0, x1, height) {
+                    var cornerRadius = 5
+                    ctx.beginPath()
+                    ctx.moveTo(x0 + cornerRadius, 0)
+                    ctx.lineTo(x1 - cornerRadius, 0)
+                    ctx.quadraticCurveTo(x1, 0, x1, cornerRadius)
+                    ctx.lineTo(x1, height - cornerRadius)
+                    ctx.quadraticCurveTo(x1, height, x1 - cornerRadius, height)
+                    ctx.lineTo(x0 + cornerRadius, height)
+                    ctx.quadraticCurveTo(x0, height, x0, height - cornerRadius)
+                    ctx.lineTo(x0, cornerRadius)
+                    ctx.quadraticCurveTo(x0, 0, x0 + cornerRadius, 0)
+                    ctx.closePath()
+                }
+
+                // One rounded clip band. Active keeps the historical orange;
+                // inactive bands are the same hue dimmed; disabled is grey.
+                // A STACKED band (clip fully outside the dive, drawn at a
+                // placeholder slot — not a real sync) is dimmed further,
+                // diagonally hatched, dash-outlined and labelled
+                // "UNPLACED", so it can never pass for a synced position.
+                // A band only PARTLY outside keeps its real look plus a ⚠
+                // label prefix.
+                function drawBand(ctx, x0, x1, height, band) {
+                    var fill, stroke, labelColor, hatch
+                    if (!band.enabled) {
+                        fill = "rgba(128, 128, 128, 0.15)"
+                        stroke = "rgba(128, 128, 128, 0.5)"
+                        labelColor = "rgba(160, 160, 160, 0.8)"
+                        hatch = "rgba(160, 160, 160, 0.35)"
+                    } else if (band.active) {
+                        fill = band.stacked ? "rgba(255, 165, 0, 0.12)"
+                                            : "rgba(255, 165, 0, 0.3)"
+                        stroke = "rgba(255, 140, 0, 0.8)"
+                        labelColor = "rgba(255, 140, 0, 0.9)"
+                        hatch = "rgba(255, 140, 0, 0.45)"
+                    } else {
+                        fill = band.stacked ? "rgba(255, 165, 0, 0.05)"
+                                            : "rgba(255, 165, 0, 0.12)"
+                        stroke = "rgba(255, 140, 0, 0.35)"
+                        labelColor = "rgba(255, 140, 0, 0.5)"
+                        hatch = "rgba(255, 140, 0, 0.25)"
+                    }
+
+                    depthCanvas.bandPath(ctx, x0, x1, height)
+                    ctx.fillStyle = fill
+                    ctx.fill()
+
+                    if (band.stacked) {
+                        // Diagonal hatching clipped to the band.
+                        ctx.save()
+                        depthCanvas.bandPath(ctx, x0, x1, height)
+                        ctx.clip()
+                        ctx.strokeStyle = hatch
+                        ctx.lineWidth = 1.5
+                        ctx.beginPath()
+                        var step = 10
+                        for (var hx = x0 - height; hx < x1; hx += step) {
+                            ctx.moveTo(hx, height)
+                            ctx.lineTo(hx + height, 0)
+                        }
+                        ctx.stroke()
+                        ctx.restore()
+                    }
+
+                    depthCanvas.bandPath(ctx, x0, x1, height)
+                    ctx.strokeStyle = stroke
+                    ctx.lineWidth = 2
+                    if (band.stacked)
+                        ctx.setLineDash([6, 4])
+                    ctx.stroke()
+                    if (band.stacked)
+                        ctx.setLineDash([])
+
+                    if (x1 - x0 > 80) {
+                        var label = band.name
+                        if (band.duration >= 0) {
+                            var durationMins = Math.floor(band.duration / 60)
+                            var durationSecs = Math.floor(band.duration % 60)
+                            label += " (" + durationMins + ":"
+                                   + (durationSecs < 10 ? "0" : "") + durationSecs + ")"
+                        }
+                        // Marker FIRST: a stacked slot is often narrow and
+                        // the label is clipped to the band.
+                        if (band.stacked)
+                            label = "\u26A0 " + qsTr("UNPLACED") + " · " + label
+                        else if (band.outOfDive)
+                            label = "\u26A0 " + label
+                        ctx.fillStyle = labelColor
+                        ctx.font = "bold 12px sans-serif"
+                        // Clip the label to the band so a narrow stacked
+                        // slot never spills its text over its neighbours.
+                        ctx.save()
+                        ctx.beginPath()
+                        ctx.rect(x0, 0, x1 - x0 - 4, height)
+                        ctx.clip()
+                        ctx.fillText(label, x0 + 10, band.active ? 20 : 34)
+                        ctx.restore()
+                    }
+                }
+
                 onPaint: {
                     var ctx = getContext("2d");
                     ctx.reset();
@@ -355,68 +639,20 @@ Item {
                     ctx.fillStyle = "rgba(0, 102, 204, 0.2)";
                     ctx.fill();
                     
-                    // Draw video representation if available
-                    if (timeline.videoPath !== "") {
-                        // Calculate video start position based on offset
-                        var videoStartTime = timeline.videoOffset;
-                        
-                        // Use actual duration if available, otherwise use a default duration
-                        var videoDuration = (timeline.videoDuration > 0) ? 
-                                            timeline.videoDuration : 
-                                            Math.min(300, (timeline.endTime - timeline.startTime) / 2); // Default to 5 minutes or half the visible range
-                        
-                        var videoEndTime = videoStartTime + videoDuration;
-                        
-                        // Check if video is visible in current view
-                        if (videoEndTime >= timeline.startTime && videoStartTime <= timeline.endTime) {
-                            // Calculate visible portion coordinates
-                            var startX = Math.max(0, ((videoStartTime - timeline.startTime) / timeRange) * width);
-                            var endX = Math.min(width, ((videoEndTime - timeline.startTime) / timeRange) * width);
-                            var videoWidth = endX - startX;
-                            
-                            // Draw video rectangle - semi-transparent orange with rounded corners
-                            ctx.beginPath();
-                            var cornerRadius = 5;
-                            
-                            // Draw rounded rectangle
-                            ctx.moveTo(startX + cornerRadius, 0);
-                            ctx.lineTo(endX - cornerRadius, 0);
-                            ctx.quadraticCurveTo(endX, 0, endX, cornerRadius);
-                            ctx.lineTo(endX, height - cornerRadius);
-                            ctx.quadraticCurveTo(endX, height, endX - cornerRadius, height);
-                            ctx.lineTo(startX + cornerRadius, height);
-                            ctx.quadraticCurveTo(startX, height, startX, height - cornerRadius);
-                            ctx.lineTo(startX, cornerRadius);
-                            ctx.quadraticCurveTo(startX, 0, startX + cornerRadius, 0);
-                            
-                            ctx.fillStyle = "rgba(255, 165, 0, 0.3)"; // Semi-transparent orange
-                            ctx.fill();
-                            
-                            ctx.strokeStyle = "rgba(255, 140, 0, 0.8)"; // Darker orange for border
-                            ctx.lineWidth = 2;
-                            ctx.stroke();
-                            
-                            // Draw video label
-                            ctx.fillStyle = "rgba(255, 140, 0, 0.9)";
-                            ctx.font = "bold 12px sans-serif";
-                            
-                            // Format duration as MM:SS if available
-                            var videoLabel = "Video";
-                            
-                            if (timeline.videoDuration > 0) {
-                                var durationMins = Math.floor(timeline.videoDuration / 60);
-                                var durationSecs = Math.floor(timeline.videoDuration % 60);
-                                var durationText = durationMins + ":" + (durationSecs < 10 ? "0" : "") + durationSecs;
-                                videoLabel += " (" + durationText + ")";
-                            }
-                            
-                            // Check if there's enough space to draw the text
-                            if (videoWidth > 80) {
-                                ctx.fillText(videoLabel, startX + 10, 20);
-                            }
+                    // Draw every clip as a band (PR A4). Inactive bands first
+                    // so the active one paints on top where they overlap.
+                    var bands = depthCanvas.bandRangesPx();
+                    for (var pass = 0; pass < 2; pass++) {
+                        for (var bi = 0; bi < bands.length; bi++) {
+                            var band = bands[bi];
+                            if ((pass === 1) !== band.active) continue;
+                            if (band.endX < 0 || band.startX > width) continue;
+                            var bx0 = Math.max(0, band.startX);
+                            var bx1 = Math.min(width, band.endX);
+                            depthCanvas.drawBand(ctx, bx0, bx1, height, band);
                         }
                     }
-                    
+
                     // Draw current time indicator
                     var currentX = ((timeline.currentTime - timeline.startTime) / timeRange) * width;
                     ctx.beginPath();
@@ -439,15 +675,19 @@ Item {
                     function onDiveDataChanged() {
                         depthCanvas.updateTimelineData()
                     }
-                    function onVideoPathChanged() {
-                        depthCanvas.requestPaint()
-                    }
-                    function onVideoDurationChanged() {
-                        depthCanvas.requestPaint()
-                    }
-                    function onVideoOffsetChanged() {
-                        depthCanvas.requestPaint()
-                    }
+                }
+
+                // Band changes all flow through the clip model: add/remove
+                // and offset/enabled/duration edits emit clipsChanged, a
+                // finished probe emits clipProbed, and activation changes
+                // which band is highlighted. (The Timeline facade's video*
+                // signals mirror the active clip, so listening there too
+                // would only double the repaints.)
+                Connections {
+                    target: clipList
+                    function onClipsChanged() { depthCanvas.refreshBands() }
+                    function onClipProbed(clip) { depthCanvas.refreshBands() }
+                    function onActiveIndexChanged() { depthCanvas.refreshBands() }
                 }
 
                 // Repaint when palette colors change
@@ -474,6 +714,7 @@ Item {
                 
                 Component.onCompleted: {
                     updateTimelineData()
+                    refreshBands()
                 }
                 
                 // Handle mouse interactions
@@ -483,91 +724,139 @@ Item {
                     hoverEnabled: true
                     
                     property bool isDraggingVideo: false
+                    // Offset writes start only once the press has moved
+                    // past dragThreshold: a plain click (or sub-threshold
+                    // jitter) on the active band must not rewrite its sync —
+                    // for a stacked band that would destroy the preserved
+                    // out-of-dive offset.
+                    property bool dragEngaged: false
                     property double dragStartX: 0
                     property double initialVideoOffset: 0
                     property int dragThreshold: 3
-                    
+                    // Row index of the inactive band under the press;
+                    // release without drag activates it (click-to-activate).
+                    property int pendingActivateIndex: -1
+                    property double pressX: 0
+                    // Set in onReleased when the gesture was a band drag or
+                    // a band activation: the trailing clicked event must
+                    // then neither seek the cursor nor double-handle.
+                    property bool suppressClick: false
+
                     onClicked: function(mouseEvent) {
+                        if (suppressClick) {
+                            suppressClick = false;
+                            return;
+                        }
                         // In video-sync mode the cursor mirrors the video position;
                         // a click must not seek it independently.
                         if (root.videoSyncMode) return;
-                        if (!isDraggingVideo) {
-                            var timeRange = timeline.endTime - timeline.startTime;
-                            var clickTime = timeline.startTime + (mouseEvent.x / parent.width) * timeRange;
-                            timeline.currentTime = clickTime;
-                        }
-                    }
-                    
-                    onPressed: function(mouseEvent) {
                         var timeRange = timeline.endTime - timeline.startTime;
-                        var width = depthCanvas.width;
-                        
-                        // Check if click is on the video rectangle
-                        if (timeline.videoPath !== "") {
-                            var videoStartTime = timeline.videoOffset;
-                            // Use actual duration if available, otherwise use a default
-                            var videoDuration = (timeline.videoDuration > 0) ? 
-                                                timeline.videoDuration : 
-                                                Math.min(300, (timeline.endTime - timeline.startTime) / 2);
-                            
-                            var videoEndTime = videoStartTime + videoDuration;
-                            
-                            var startX = ((videoStartTime - timeline.startTime) / timeRange) * width;
-                            var endX = ((videoEndTime - timeline.startTime) / timeRange) * width;
-                            
-                            // If mouse is over the video rectangle, start dragging
-                            if (mouseEvent.x >= startX && mouseEvent.x <= endX) {
+                        var clickTime = timeline.startTime + (mouseEvent.x / parent.width) * timeRange;
+                        timeline.currentTime = clickTime;
+                    }
+
+                    onPressed: function(mouseEvent) {
+                        pressX = mouseEvent.x;
+                        pendingActivateIndex = -1;
+                        // A release outside the area emits no clicked, so a
+                        // stale flag from that gesture must not swallow the
+                        // next legitimate click.
+                        suppressClick = false;
+
+                        var bands = depthCanvas.bandRangesPx();
+
+                        // Only the ACTIVE band drags (it paints on top, so
+                        // it also wins overlap hit-testing).
+                        for (var i = 0; i < bands.length; i++) {
+                            var b = bands[i];
+                            if (b.active && mouseEvent.x >= b.startX && mouseEvent.x <= b.endX) {
                                 isDraggingVideo = true;
+                                dragEngaged = false;
                                 dragStartX = mouseEvent.x;
-                                initialVideoOffset = timeline.videoOffset;
-                                
+                                // Dragging a STACKED band (follow-up K) is a
+                                // normal sync gesture from where the band is
+                                // DRAWN: the drag origin is its slot, so the
+                                // written offset follows the pointer and the
+                                // clip becomes a placed clip. (Starting from
+                                // the real out-of-dive offset would move an
+                                // invisible span and leave the band stacked.)
+                                initialVideoOffset = b.stacked ? b.visualStartTime
+                                                               : timeline.videoOffset;
+
                                 // Change cursor to indicate draggable
                                 cursorShape = Qt.SizeHorCursor;
+                                return;
+                            }
+                        }
+
+                        // An inactive band never moves on drag; a clean
+                        // click on it activates its clip on release.
+                        // Reverse order: overlapping inactive bands paint
+                        // ascending (higher index on top), so the topmost
+                        // painted band must win the click too.
+                        for (var j = bands.length - 1; j >= 0; j--) {
+                            var ib = bands[j];
+                            if (!ib.active && mouseEvent.x >= ib.startX && mouseEvent.x <= ib.endX) {
+                                pendingActivateIndex = ib.index;
+                                break;
                             }
                         }
                     }
-                    
+
                     onReleased: function(mouseEvent) {
+                        // A band drag must not fall through to the
+                        // click-to-seek handler at the release position.
+                        if (isDraggingVideo && Math.abs(mouseEvent.x - pressX) > dragThreshold)
+                            suppressClick = true;
+                        if (pendingActivateIndex >= 0) {
+                            if (Math.abs(mouseEvent.x - pressX) <= dragThreshold) {
+                                clipList.activeIndex = pendingActivateIndex;
+                                suppressClick = true;
+                            }
+                            pendingActivateIndex = -1;
+                        }
                         isDraggingVideo = false;
+                        dragEngaged = false;
                         cursorShape = Qt.ArrowCursor;
                     }
-                    
+
                     onPositionChanged: function(mouseEvent) {
                         if (isDraggingVideo) {
                             var timeRange = timeline.endTime - timeline.startTime;
                             var dx = mouseEvent.x - dragStartX;
-                            
+                            if (!dragEngaged) {
+                                if (Math.abs(dx) <= dragThreshold)
+                                    return;
+                                dragEngaged = true;
+                            }
+
                             // Convert pixel movement to time offset
                             var timeOffset = (dx / depthCanvas.width) * timeRange;
-                            
-                            // Update video offset with new position
+
+                            // Update video offset with new position (writes
+                            // through the Timeline facade: active clip only,
+                            // marks the clip manually synced)
                             timeline.videoOffset = initialVideoOffset + timeOffset;
                         } else {
-                            // Update cursor when hovering over video
-                            if (timeline.videoPath !== "") {
-                                var timeRange = timeline.endTime - timeline.startTime;
-                                var width = depthCanvas.width;
-                                
-                                var videoStartTime = timeline.videoOffset;
-                                // Use actual duration if available, otherwise use a default
-                                var videoDuration = (timeline.videoDuration > 0) ? 
-                                                    timeline.videoDuration : 
-                                                    Math.min(300, (timeline.endTime - timeline.startTime) / 2);
-                                
-                                var videoEndTime = videoStartTime + videoDuration;
-                                
-                                var startX = ((videoStartTime - timeline.startTime) / timeRange) * width;
-                                var endX = ((videoEndTime - timeline.startTime) / timeRange) * width;
-                                
-                                if (mouseEvent.x >= startX && mouseEvent.x <= endX) {
+                            // Hover cursor per band: the active band keeps
+                            // the sync-mode resize hint; inactive bands show
+                            // a pointing hand (click to activate).
+                            var bands = depthCanvas.bandRangesPx();
+                            var shape = Qt.ArrowCursor;
+                            for (var i = 0; i < bands.length; i++) {
+                                var b = bands[i];
+                                if (mouseEvent.x < b.startX || mouseEvent.x > b.endX)
+                                    continue;
+                                if (b.active) {
                                     // In sync mode dragging the zone/cursor adjusts the
                                     // offset horizontally — signal that with a resize cursor.
-                                    cursorShape = root.videoSyncMode ? Qt.SizeHorCursor
-                                                                     : Qt.PointingHandCursor;
-                                } else {
-                                    cursorShape = Qt.ArrowCursor;
+                                    shape = root.videoSyncMode ? Qt.SizeHorCursor
+                                                               : Qt.PointingHandCursor;
+                                    break; // active band wins overlaps
                                 }
+                                shape = Qt.PointingHandCursor;
                             }
+                            cursorShape = shape;
                         }
                     }
                     

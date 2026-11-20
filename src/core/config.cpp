@@ -40,6 +40,9 @@ Config::Config(QObject *parent)
     , m_showStopTime(true)
     , m_unitSystem(Units::UnitSystem::Metric)
     , m_frameRate(10.0)
+    , m_videoCodec("vp9")
+    , m_videoQuality("standard")
+    , m_videoFrameRate(30.0)
     , m_showPO2Cell1(false)
     , m_showPO2Cell2(false)
     , m_showPO2Cell3(false)
@@ -355,6 +358,64 @@ void Config::setFrameRate(double fps)
         m_frameRate = fps;
         persistNow("export/frameRate", m_frameRate);
         emit frameRateChanged();
+    }
+}
+
+QString Config::ffmpegPath() const
+{
+    return m_ffmpegPath;
+}
+
+void Config::setFfmpegPath(const QString &path)
+{
+    if (m_ffmpegPath != path) {
+        m_ffmpegPath = path;
+        persistNow("export/ffmpegPath", m_ffmpegPath);
+        emit ffmpegPathChanged();
+    }
+}
+
+// Video-export defaults (PR B3). Dialog/Settings-tab settings → eager
+// persistNow, like the other export keys.
+QString Config::videoCodec() const
+{
+    return m_videoCodec;
+}
+
+void Config::setVideoCodec(const QString &codec)
+{
+    if (m_videoCodec != codec) {
+        m_videoCodec = codec;
+        persistNow("export/videoCodec", m_videoCodec);
+        emit videoCodecChanged();
+    }
+}
+
+QString Config::videoQuality() const
+{
+    return m_videoQuality;
+}
+
+void Config::setVideoQuality(const QString &quality)
+{
+    if (m_videoQuality != quality) {
+        m_videoQuality = quality;
+        persistNow("export/videoQuality", m_videoQuality);
+        emit videoQualityChanged();
+    }
+}
+
+double Config::videoFrameRate() const
+{
+    return m_videoFrameRate;
+}
+
+void Config::setVideoFrameRate(double fps)
+{
+    if (m_videoFrameRate != fps) {
+        m_videoFrameRate = fps;
+        persistNow("export/videoFrameRate", m_videoFrameRate);
+        emit videoFrameRateChanged();
     }
 }
 
@@ -773,6 +834,10 @@ void Config::loadConfig()
 
     // Load export settings
     m_frameRate = m_settings.value("export/frameRate", 10.0).toDouble();
+    m_ffmpegPath = m_settings.value("export/ffmpegPath", "").toString();
+    m_videoCodec = m_settings.value("export/videoCodec", "vp9").toString();
+    m_videoQuality = m_settings.value("export/videoQuality", "standard").toString();
+    m_videoFrameRate = m_settings.value("export/videoFrameRate", 30.0).toDouble();
 
     // Load profile settings
     {
@@ -847,6 +912,33 @@ void Config::loadConfig()
             if (lastDoc.isObject()) {
                 m_lastUsedVideoOverlayLayout = VideoOverlayLayout::fromVariantMap(
                     lastDoc.object().toVariantMap());
+            }
+        }
+    }
+
+    // Load per-clip states and per-dive clip sessions (both JSON objects
+    // keyed by path / dive key; same blob pattern as overlayLayouts)
+    {
+        m_clipStates.clear();
+        const QString json = m_settings.value("video/clipStates", "{}").toString();
+        const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        if (doc.isObject()) {
+            const QJsonObject root = doc.object();
+            for (auto it = root.constBegin(); it != root.constEnd(); ++it) {
+                if (it.value().isObject())
+                    m_clipStates.insert(it.key(), it.value().toObject().toVariantMap());
+            }
+        }
+    }
+    {
+        m_diveSessions.clear();
+        const QString json = m_settings.value("video/diveSessions", "{}").toString();
+        const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        if (doc.isObject()) {
+            const QJsonObject root = doc.object();
+            for (auto it = root.constBegin(); it != root.constEnd(); ++it) {
+                if (it.value().isObject())
+                    m_diveSessions.insert(it.key(), it.value().toObject().toVariantMap());
             }
         }
     }
@@ -938,6 +1030,10 @@ void Config::saveConfig()
 
     // Save export settings
     m_settings.setValue("export/frameRate", m_frameRate);
+    m_settings.setValue("export/ffmpegPath", m_ffmpegPath);
+    m_settings.setValue("export/videoCodec", m_videoCodec);
+    m_settings.setValue("export/videoQuality", m_videoQuality);
+    m_settings.setValue("export/videoFrameRate", m_videoFrameRate);
 
     // Save profile settings
     m_settings.setValue("profile/backgroundColorR", m_profileBackgroundColor.red());
@@ -976,6 +1072,12 @@ void Config::saveConfig()
     // Save per-video overlay layouts
     writeVideoOverlayLayouts();
 
+    // Save per-clip states and per-dive clip sessions (write-through
+    // setters already persisted them; re-serializing here keeps the exit
+    // hook consistent with the in-memory caches)
+    writeClipStates();
+    writeDiveSessions();
+
     // Save inspector section expand/collapse states
     {
         m_settings.beginGroup("ui/sections");
@@ -1012,6 +1114,24 @@ void Config::writeVideoOverlayLayouts()
         QJsonObject::fromVariantMap(m_lastUsedVideoOverlayLayout.toVariantMap());
     m_settings.setValue("video/lastOverlayLayout",
                         QString::fromUtf8(QJsonDocument(lastObj).toJson(QJsonDocument::Compact)));
+}
+
+void Config::writeClipStates()
+{
+    QJsonObject root;
+    for (auto it = m_clipStates.constBegin(); it != m_clipStates.constEnd(); ++it)
+        root.insert(it.key(), QJsonObject::fromVariantMap(it.value()));
+    m_settings.setValue("video/clipStates",
+                        QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)));
+}
+
+void Config::writeDiveSessions()
+{
+    QJsonObject root;
+    for (auto it = m_diveSessions.constBegin(); it != m_diveSessions.constEnd(); ++it)
+        root.insert(it.key(), QJsonObject::fromVariantMap(it.value()));
+    m_settings.setValue("video/diveSessions",
+                        QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)));
 }
 
 void Config::writeCameraPairings()
@@ -1070,14 +1190,76 @@ QVariantMap Config::videoOverlayLayout(const QString &videoPath) const
 
 void Config::setVideoOverlayLayout(const QString &videoPath, const QVariantMap &layout)
 {
-    if (videoPath.isEmpty())
+    setVideoOverlayLayoutEntries(QStringList{ videoPath }, layout, true);
+}
+
+QVariantMap Config::storedVideoOverlayLayout(const QString &key) const
+{
+    auto it = m_videoOverlayLayouts.constFind(key);
+    if (it != m_videoOverlayLayouts.constEnd())
+        return it.value().toVariantMap();
+    return QVariantMap();
+}
+
+QVariantMap Config::lastVideoOverlayLayout() const
+{
+    return m_lastUsedVideoOverlayLayout.toVariantMap();
+}
+
+void Config::setVideoOverlayLayoutEntries(const QStringList &keys,
+                                          const QVariantMap &layout,
+                                          bool updateLastUsed)
+{
+    const VideoOverlayLayout parsed = VideoOverlayLayout::fromVariantMap(layout);
+    QStringList written;
+    for (const QString &key : keys) {
+        if (key.isEmpty())
+            continue;
+        m_videoOverlayLayouts.insert(key, parsed);
+        written.append(key);
+    }
+    if (written.isEmpty())
         return;
-    VideoOverlayLayout parsed = VideoOverlayLayout::fromVariantMap(layout);
-    m_videoOverlayLayouts.insert(videoPath, parsed);
-    m_lastUsedVideoOverlayLayout = parsed;
+    if (updateLastUsed)
+        m_lastUsedVideoOverlayLayout = parsed;
+    // One targeted blob rewrite + one sync for the whole commit (bucket +
+    // path + last-used), never a full saveConfig().
     writeVideoOverlayLayouts();
     m_settings.sync();
-    emit videoOverlayLayoutChanged(videoPath);
+    for (const QString &key : written)
+        emit videoOverlayLayoutChanged(key);
+}
+
+// ---- Per-clip states & per-dive clip sessions (PR A3) --------------------
+// Same discipline as setVideoOverlayLayout: in-memory cache + targeted
+// write-through of the one JSON blob that changed, never a full saveConfig().
+
+QVariantMap Config::clipState(const QString &path) const
+{
+    return m_clipStates.value(path);
+}
+
+void Config::setClipState(const QString &path, const QVariantMap &state)
+{
+    if (path.isEmpty())
+        return;
+    m_clipStates.insert(path, state);
+    writeClipStates();
+    m_settings.sync();
+}
+
+QVariantMap Config::diveSession(const QString &diveKey) const
+{
+    return m_diveSessions.value(diveKey);
+}
+
+void Config::setDiveSession(const QString &diveKey, const QVariantMap &session)
+{
+    if (diveKey.isEmpty())
+        return;
+    m_diveSessions.insert(diveKey, session);
+    writeDiveSessions();
+    m_settings.sync();
 }
 
 // ---- Inspector section expand/collapse states ----------------------------

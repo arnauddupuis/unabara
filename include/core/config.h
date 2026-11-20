@@ -72,6 +72,21 @@ class Config : public QObject
     // Export settings
     Q_PROPERTY(double frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
+    // Video-export defaults (PR B3): codec id, quality tier
+    // ("best"/"high"/"standard"/"small" — FFmpegArgs' tables; the tier
+    // replaced the bitrate slider) and the overlay-only frame rate
+    // (composited exports always use the clip's native rate). Dialog
+    // settings — persisted eagerly via persistNow.
+    Q_PROPERTY(QString videoCodec READ videoCodec WRITE setVideoCodec NOTIFY videoCodecChanged)
+    Q_PROPERTY(QString videoQuality READ videoQuality WRITE setVideoQuality NOTIFY videoQualityChanged)
+    Q_PROPERTY(double videoFrameRate READ videoFrameRate WRITE setVideoFrameRate NOTIFY videoFrameRateChanged)
+
+    // FFmpeg executable override (Settings tab). Empty = auto-detect via
+    // FFmpegProbe's discovery order. FfmpegInfo pushes this into FFmpegProbe
+    // (which must not read Config itself — its discovery runs on worker
+    // threads under a mutex).
+    Q_PROPERTY(QString ffmpegPath READ ffmpegPath WRITE setFfmpegPath NOTIFY ffmpegPathChanged)
+
     // Dive profile settings
     Q_PROPERTY(QColor profileBackgroundColor READ profileBackgroundColor WRITE setProfileBackgroundColor NOTIFY profileBackgroundColorChanged)
     Q_PROPERTY(double profileBackgroundOpacity READ profileBackgroundOpacity WRITE setProfileBackgroundOpacity NOTIFY profileBackgroundOpacityChanged)
@@ -192,6 +207,16 @@ public:
     double frameRate() const;
     void setFrameRate(double fps);
 
+    QString ffmpegPath() const;
+    void setFfmpegPath(const QString &path);
+
+    QString videoCodec() const;
+    void setVideoCodec(const QString &codec);
+    QString videoQuality() const;
+    void setVideoQuality(const QString &quality);
+    double videoFrameRate() const;
+    void setVideoFrameRate(double fps);
+
     // Dive profile settings
     QColor profileBackgroundColor() const;
     void setProfileBackgroundColor(const QColor& color);
@@ -268,6 +293,41 @@ public:
     Q_INVOKABLE void setVideoOverlayLayout(const QString &videoPath,
                                            const QVariantMap &layout);
 
+    // Raw layout-blob access for the clip model's ClipSessionStore adapter
+    // (follow-up F). video/overlayLayouts holds two key kinds side by side:
+    // absolute clip paths (legacy + still written) and dive x resolution
+    // bucket keys built by ClipListModel::overlayBucketKey(). Config does
+    // not interpret keys — it only round-trips the map. C++-only.
+    //  - storedVideoOverlayLayout: the entry for `key`, or an EMPTY map when
+    //    none is stored (no last-used fallback — the caller needs to tell
+    //    "absent" from "fell back").
+    //  - lastVideoOverlayLayout: the last-used layout (defaults if none).
+    //  - setVideoOverlayLayoutEntries: stores `layout` under every key in
+    //    one targeted write of the blob (+ one sync); updateLastUsed also
+    //    replaces the last-used layout (a user edit does, a bucket seed
+    //    does not).
+    QVariantMap storedVideoOverlayLayout(const QString &key) const;
+    QVariantMap lastVideoOverlayLayout() const;
+    void setVideoOverlayLayoutEntries(const QStringList &keys,
+                                      const QVariantMap &layout,
+                                      bool updateLastUsed);
+
+    // Per-clip persistent state (video/clipStates), keyed by absolute clip
+    // path: the subset ClipListModel::persistentClipState() produces
+    // (displayName, syncOffset, syncSource, enabled, colorGrade). C++-only
+    // (main.cpp's ClipSessionStore adapter) — the clip model, not QML, is
+    // the consumer, so these are plain methods, not Q_INVOKABLE. Returns an
+    // empty map when nothing is stored (no last-used fallback — a clip
+    // either has saved state or it doesn't).
+    QVariantMap clipState(const QString &path) const;
+    void setClipState(const QString &path, const QVariantMap &state);
+
+    // Per-dive clip sessions (video/diveSessions), keyed by the dive-start
+    // epoch seconds as a string: {clipPaths (ordered), activePath,
+    // gapPolicy}. Same write-through pattern as the clip states.
+    QVariantMap diveSession(const QString &diveKey) const;
+    void setDiveSession(const QString &diveKey, const QVariantMap &session);
+
     // Inspector section expand/collapse persistence, keyed by a stable
     // section id (e.g. "overlay_template"). `defaultExpanded` is returned
     // for a section that was never toggled, so each QML section declares
@@ -298,6 +358,10 @@ signals:
     void showStopTimeChanged();
     void unitSystemChanged();
     void frameRateChanged();
+    void ffmpegPathChanged();
+    void videoCodecChanged();
+    void videoQualityChanged();
+    void videoFrameRateChanged();
     void templateDirectoryChanged();
     void activeTemplatePathChanged();
     void profileColorSchemePolicyChanged();
@@ -368,6 +432,10 @@ private:
     bool m_showStopTime;
     Units::UnitSystem m_unitSystem;
     double m_frameRate;
+    QString m_ffmpegPath;  // empty = auto-detect (default-constructed; loadConfig() fills it)
+    QString m_videoCodec;
+    QString m_videoQuality;
+    double m_videoFrameRate;
     QString m_templateDirectory;
     QString m_activeTemplatePath;
     QString m_profileColorSchemePolicy;
@@ -408,6 +476,11 @@ private:
 
     // Per-video overlay layouts, keyed by absolute video path.
     QHash<QString, VideoOverlayLayout> m_videoOverlayLayouts;
+    // Per-clip persistent state and per-dive clip sessions (PR A3). Kept
+    // as opaque QVariantMaps: Config only round-trips them; the field
+    // lists live with ClipListModel/VideoClip.
+    QHash<QString, QVariantMap> m_clipStates;
+    QHash<QString, QVariantMap> m_diveSessions;
     QHash<QString, bool> m_sectionExpanded;
     // Layout to seed a new video that has no saved entry yet.
     VideoOverlayLayout m_lastUsedVideoOverlayLayout;
@@ -425,6 +498,8 @@ private:
     // (camera pairings, per-video overlay layouts). No sync of their own.
     void writeVideoOverlayLayouts();
     void writeCameraPairings();
+    void writeClipStates();
+    void writeDiveSessions();
 };
 
 #endif // CONFIG_H

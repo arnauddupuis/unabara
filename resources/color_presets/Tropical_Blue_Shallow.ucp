@@ -1,0 +1,7 @@
+{
+    "name": "Tropical Blue (Shallow)",
+    "description": "Blue open water above ~15 m, where some red light still survives: moderate red recovery, a restrained warm push that keeps the water blue, strong clarity. Calibrated against a reference edit of Red Sea footage at 6 m (C6). For a dive crossing 15 m, pair with the Deep variant on the two depth anchors and the grade ramps between them.",
+    "redRecovery": 0.5,
+    "waterTint": -0.25,
+    "clarity": 0.75
+}

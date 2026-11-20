@@ -1,4 +1,6 @@
 #include "include/core/dive_data.h"
+#include <QDebug>
+#include <QMutexLocker>
 #include <algorithm>
 #include <cmath>
 
@@ -94,31 +96,52 @@ double DiveData::maxDepthUntil(double time) const
 {
     // Running maximum: the deepest point reached up to 'time', like the MAX
     // field on a dive computer display during the dive.
-    double max = 0.0;
-    for (int i = 0; i < m_dataPoints.size(); ++i) {
-        const DiveDataPoint &point = m_dataPoints[i];
-        if (point.timestamp > time) {
-            // 'time' falls inside the previous segment — include the
-            // interpolated depth so a descent between samples still registers
-            if (i > 0) {
-                const DiveDataPoint &prev = m_dataPoints[i - 1];
-                double dt = point.timestamp - prev.timestamp;
-                if (dt > 0.0 && time > prev.timestamp) {
-                    double factor = (time - prev.timestamp) / dt;
-                    double depth = prev.depth + factor * (point.depth - prev.depth);
-                    if (depth > max) {
-                        max = depth;
-                    }
+    //
+    // Every sample with timestamp <= time counts (equal timestamps included):
+    // upper_bound finds the first sample strictly after 'time', and the eager
+    // prefix-max (rebuilt on every m_dataPoints mutation — see
+    // rebuildPrefixMaxDepth()) gives the running max of everything before it
+    // in O(log n). Runs on the image-provider threads too, so no lazy state.
+    auto it = std::upper_bound(m_dataPoints.begin(), m_dataPoints.end(), time,
+                               [](double t, const DiveDataPoint &p) {
+                                   return t < p.timestamp;
+                               });
+    const int i = static_cast<int>(it - m_dataPoints.begin());
+    double max = i > 0 ? m_prefixMaxDepth[i - 1] : 0.0;
+
+    if (it != m_dataPoints.end()) {
+        const DiveDataPoint &point = *it;
+        // 'time' falls inside the previous segment — include the
+        // interpolated depth so a descent between samples still registers
+        if (i > 0) {
+            const DiveDataPoint &prev = m_dataPoints[i - 1];
+            double dt = point.timestamp - prev.timestamp;
+            if (dt > 0.0 && time > prev.timestamp) {
+                double factor = (time - prev.timestamp) / dt;
+                double depth = prev.depth + factor * (point.depth - prev.depth);
+                if (depth > max) {
+                    max = depth;
                 }
             }
-            break;
-        }
-        if (point.depth > max) {
-            max = point.depth;
         }
     }
 
     return max;
+}
+
+void DiveData::rebuildPrefixMaxDepth()
+{
+    // m_prefixMaxDepth[k] = running max of depth over samples [0, k], seeded
+    // at 0.0 with a strict '>' — exactly the accumulation the former linear
+    // maxDepthUntil() loop performed, so results are bit-identical.
+    m_prefixMaxDepth.resize(m_dataPoints.size());
+    double max = 0.0;
+    for (int k = 0; k < m_dataPoints.size(); ++k) {
+        if (m_dataPoints[k].depth > max) {
+            max = m_dataPoints[k].depth;
+        }
+        m_prefixMaxDepth[k] = max;
+    }
 }
 
 double DiveData::meanDepth() const
@@ -228,7 +251,8 @@ void DiveData::addDataPoint(const DiveDataPoint &point)
     
     int index = it - m_dataPoints.begin();
     m_dataPoints.insert(index, point);
-    
+    rebuildPrefixMaxDepth();
+
     emit dataChanged();
     emit durationChanged();
 }
@@ -236,6 +260,7 @@ void DiveData::addDataPoint(const DiveDataPoint &point)
 void DiveData::clearData()
 {
     m_dataPoints.clear();
+    rebuildPrefixMaxDepth();
     emit dataChanged();
     emit durationChanged();
 }
@@ -257,10 +282,13 @@ DiveDataPoint DiveData::dataAtTime(double time) const
     }
     
     // Find the two data points surrounding the requested time
-    int index = 0;
-    while (index < m_dataPoints.size() && m_dataPoints[index].timestamp < time) {
-        index++;
-    }
+    // (first sample with timestamp >= time; the early returns above keep
+    // index in [1, size-1])
+    auto it = std::lower_bound(m_dataPoints.begin(), m_dataPoints.end(), time,
+                               [](const DiveDataPoint &p, double t) {
+                                   return p.timestamp < t;
+                               });
+    const int index = static_cast<int>(it - m_dataPoints.begin());
     
     // Points surrounding the time
     const DiveDataPoint &prev = m_dataPoints[index - 1];
@@ -376,10 +404,7 @@ DiveDataPoint DiveData::dataAtTime(double time) const
 QVector<DiveDataPoint> DiveData::dataInRange(double startTime, double endTime) const
 {
     QVector<DiveDataPoint> result;
-    
-    qDebug() << "DiveData::dataInRange - Requested data from" << startTime << "to" << endTime;
-    qDebug() << "DiveData::dataInRange - Total data points available:" << m_dataPoints.size();
-    
+
     // Find the first point after or at startTime
     auto startIt = std::lower_bound(m_dataPoints.begin(), m_dataPoints.end(), DiveDataPoint(startTime),
                                     [](const DiveDataPoint &a, const DiveDataPoint &b) {
@@ -406,24 +431,7 @@ QVector<DiveDataPoint> DiveData::dataInRange(double startTime, double endTime) c
     if (endIt != m_dataPoints.begin() && endIt != m_dataPoints.end() && (endIt - 1)->timestamp != endTime) {
         result.append(dataAtTime(endTime));
     }
-    
-    qDebug() << "DiveData::dataInRange - Returning" << result.size() << "data points";
-    
-    // Print some sample data for debugging
-    if (!result.isEmpty()) {
-        qDebug() << "DiveData::dataInRange - First point:" 
-                 << "time=" << result.first().timestamp 
-                 << "depth=" << result.first().depth;
-        
-        if (result.size() > 1) {
-            qDebug() << "DiveData::dataInRange - Last point:" 
-                     << "time=" << result.last().timestamp 
-                     << "depth=" << result.last().depth;
-        }
-    } else {
-        qDebug() << "DiveData::dataInRange - No data points in range";
-    }
-    
+
     return result;
 }
 
@@ -532,56 +540,14 @@ bool DiveData::isCylinderActiveAtTime(int cylinderIndex, double timestamp) const
 
 double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp) const
 {
-    qDebug() << "INTERPOLATION FUNCTION CALLED for cylinder" << cylinderIndex << "at time" << timestamp;
-
-    // if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
-    //     qDebug() << "Invalid cylinder index for interpolation:" << cylinderIndex;
-    //     return 0.0;
-    // }
-    
-    // const CylinderInfo &cylinder = m_cylinders[cylinderIndex];
-    
-    // // For debugging
-    // qDebug() << "Interpolating pressure for" << cylinder.description
-    //          << "with start pressure:" << cylinder.startPressure
-    //          << "end pressure:" << cylinder.endPressure
-    //          << "at time:" << timestamp << "/" << this->durationSeconds()
-    //          << "(" << (timestamp * 100.0 / std::max(1.0, static_cast<double>(this->durationSeconds()))) << "%)";
-    
-    // if (cylinder.startPressure <= 0.0 || cylinder.endPressure <= 0.0) {
-    //     qDebug() << "Cannot interpolate: missing start or end pressure";
-    //     return 0.0;
-    // }
-    
-    // double diveDuration = this->durationSeconds();
-    // if (diveDuration <= 0.0) {
-    //     qDebug() << "Cannot interpolate: dive duration is zero";
-    //     return cylinder.startPressure;
-    // }
-    
-    // // Calculate how far we are through the dive (0.0 to 1.0)
-    // double diveFraction = timestamp / diveDuration;
-    
-    // // Cap to range [0,1]
-    // diveFraction = std::max(0.0, std::min(1.0, diveFraction));
-    
-    // // Linear interpolation between start and end pressures
-    // double interpolatedPressure = cylinder.startPressure - 
-    //                              (diveFraction * (cylinder.startPressure - cylinder.endPressure));
-    
-    // qDebug() << "Interpolated pressure:" << interpolatedPressure
-    //          << "at fraction:" << diveFraction;
-    
-    // return interpolatedPressure;
     if (cylinderIndex < 0 || cylinderIndex >= m_cylinders.size()) {
-        qDebug() << "Invalid cylinder index for interpolation:" << cylinderIndex;
+        qWarning() << "DiveData::interpolateCylinderPressure: invalid cylinder index" << cylinderIndex;
         return 0.0;
     }
     
     const CylinderInfo &cylinder = m_cylinders[cylinderIndex];
     
     if (cylinder.startPressure <= 0.0 || cylinder.endPressure <= 0.0) {
-        qDebug() << "Cannot interpolate: missing start or end pressure";
         return 0.0;
     }
     
@@ -614,31 +580,18 @@ double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp
         }
     }
     
-    qDebug() << "Interpolating pressure for" << cylinder.description
-             << "with start pressure:" << cylinder.startPressure
-             << "O2:" << cylinder.o2Percent
-             << "He:" << cylinder.hePercent
-             << "end pressure:" << cylinder.endPressure
-             << "from time" << startTime << "to" << endTime
-             << "at time:" << timestamp;
-    
     // If timestamp is outside the active period
     if (timestamp < startTime) {
-        qDebug() << "Timestamp before cylinder active period, returning start pressure:" 
-                 << cylinder.startPressure;
         return cylinder.startPressure;
     }
     
     if (timestamp > endTime) {
-        qDebug() << "Timestamp after cylinder active period, returning end pressure:" 
-                 << cylinder.endPressure;
         return cylinder.endPressure;
     }
     
     // Calculate fraction within the active period (0.0 to 1.0)
     double usageRange = endTime - startTime;
     if (usageRange <= 0.0) {
-        qDebug() << "Zero usage range, returning start pressure:" << cylinder.startPressure;
         return cylinder.startPressure;
     }
     
@@ -651,16 +604,19 @@ double DiveData::interpolateCylinderPressure(int cylinderIndex, double timestamp
     double interpolatedPressure = cylinder.startPressure - 
                                 (usageFraction * (cylinder.startPressure - cylinder.endPressure));
     
-    qDebug() << "Interpolated pressure:" << interpolatedPressure
-             << "at usage fraction:" << usageFraction;
-    
-    // Store the result for future reference
-    m_lastInterpolatedPressures[cylinderIndex] = interpolatedPressure;
+    // Store the result for future reference. This const path runs on the
+    // Qt Quick image-provider threads concurrently with the GUI thread, so
+    // the cache is mutex-guarded (ProfileGenerator's discipline).
+    {
+        QMutexLocker locker(&m_interpolatedPressuresMutex);
+        m_lastInterpolatedPressures[cylinderIndex] = interpolatedPressure;
+    }
 
     return interpolatedPressure;
 }
 
 double DiveData::getLastInterpolatedPressure(int cylinderIndex) const
 {
+    QMutexLocker locker(&m_interpolatedPressuresMutex);
     return m_lastInterpolatedPressures.value(cylinderIndex, 0.0);
 }

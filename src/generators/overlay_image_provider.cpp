@@ -12,8 +12,6 @@ OverlayImageProvider::OverlayImageProvider(OverlayGenerator* generator)
 
 QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize)
 {
-    qDebug() << "OverlayImageProvider::requestImage called with id:" << id;
-    
     if (!m_generator || !m_currentDive) {
         qWarning() << "OverlayImageProvider: Generator or dive data not set";
         QImage emptyImage(640, 120, QImage::Format_ARGB32);
@@ -55,7 +53,6 @@ QImage OverlayImageProvider::requestImage(const QString &id, QSize *size, const 
         }
     } else if (id.startsWith("preview/")) {
         // For preview images, use the current time
-        qDebug() << "OverlayImageProvider: Generating preview at time:" << m_currentTime;
         result = m_generator->generateOverlay(m_currentDive, m_currentTime);
     } else {
         // For specific time points

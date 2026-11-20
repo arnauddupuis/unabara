@@ -6,6 +6,7 @@
 // The generator is constructed without the app's resource bundle, so no
 // template image loads and it falls back to its 640x120 default canvas.
 
+#include "settings_isolation.h"
 #include <QtTest>
 
 #include <QJsonDocument>
@@ -91,8 +92,7 @@ private slots:
         QSKIP("Config's NativeFormat QSettings (registry/plist) cannot be redirected off Linux");
 #endif
         QVERIFY(m_settingsDir.isValid());
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_settingsDir.path());
+        isolateUserSettings(m_settingsDir.path()); // see settings_isolation.h
 
         m_dive = new DiveData(this);
         for (int t = 0; t <= 600; t += 10)
@@ -348,6 +348,80 @@ private slots:
 
         gen.setCellTypeVisible(QStringLiteral("depth"), false);
         QCOMPARE(layoutSpy.count(), 1);
+    }
+
+    // The template background is decoded once per template change and
+    // cached; the render path must still notice an on-disk background that
+    // was overwritten after the decode (cache keyed by path + mtime), and a
+    // background that was missing at load time but appears later.
+    void backgroundCacheFollowsOnDiskFile()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString bgPath = dir.filePath(QStringLiteral("bg.png"));
+        const auto writeSolid = [&](const QColor &color, const QDateTime &mtime) {
+            QImage img(400, 200, QImage::Format_RGB32);
+            img.fill(color);
+            QVERIFY(img.save(bgPath, "PNG"));
+            // Explicit mtime: two writes inside one filesystem timestamp
+            // tick must not look unchanged
+            QFile f(bgPath);
+            QVERIFY(f.open(QIODevice::ReadWrite));
+            QVERIFY(f.setFileTime(mtime, QFileDevice::FileModificationTime));
+        };
+        const auto isRed = [](QRgb p) { return qRed(p) > 200 && qBlue(p) < 50; };
+        const auto isBlue = [](QRgb p) { return qBlue(p) > 200 && qRed(p) < 50; };
+        const QDateTime t0 = QDateTime::currentDateTime().addSecs(-3600);
+
+        // Missing at load: placeholder canvas, no crash
+        OverlayTemplate templ = makeTemplate({depthCell(QStringLiteral("depth"), 0.5, 0.5)});
+        templ.setBackgroundImagePath(bgPath);
+        OverlayGenerator gen;
+        gen.loadTemplate(templ);
+        QCOMPARE(gen.generateOverlay(m_dive, m_t).size(), QSize(640, 120));
+
+        // Appears after the load: picked up by the very next frame
+        writeSolid(Qt::red, t0);
+        const QImage first = gen.generateOverlay(m_dive, m_t);
+        QCOMPARE(first.size(), QSize(400, 200));
+        QVERIFY(isRed(first.pixel(1, 1)));
+
+        // The pre-cache stale-path render must equal the cached render byte
+        // for byte (same decode + conversions, different code path)
+        QCOMPARE(first, gen.generateOverlay(m_dive, m_t));
+
+        // Template change re-caches; the cached render is byte-identical to
+        // a fresh generator's render of the same template
+        gen.loadTemplate(templ);
+        const QImage cached = gen.generateOverlay(m_dive, m_t);
+        QVERIFY(isRed(cached.pixel(1, 1)));
+        OverlayGenerator fresh;
+        fresh.loadTemplate(templ);
+        QCOMPARE(cached, fresh.generateOverlay(m_dive, m_t));
+        // Rendering never paints into the cache: a second render from the
+        // same cached image is byte-identical to the first
+        QCOMPARE(gen.generateOverlay(m_dive, m_t), cached);
+
+        // Overwritten on disk after the decode: the stale cache must not win
+        writeSolid(Qt::blue, t0.addSecs(10));
+        QVERIFY(isBlue(gen.generateOverlay(m_dive, m_t).pixel(1, 1)));
+        QVERIFY(isBlue(gen.generateOverlay(m_dive, m_t).pixel(1, 1)));
+
+        // Same-mtime overwrite (cp -p / coarse filesystem tick): the size
+        // part of the cache key must catch it. Write a DIFFERENT-SIZED
+        // image with the identical mtime the cache was refreshed with.
+        gen.loadTemplate(templ); // re-cache the blue 400x200 at t0+10
+        {
+            QImage bigger(500, 250, QImage::Format_RGB32);
+            bigger.fill(Qt::red);
+            QVERIFY(bigger.save(bgPath, "PNG"));
+            QFile f(bgPath);
+            QVERIFY(f.open(QIODevice::ReadWrite));
+            QVERIFY(f.setFileTime(t0.addSecs(10), QFileDevice::FileModificationTime));
+        }
+        const QImage afterSameMtime = gen.generateOverlay(m_dive, m_t);
+        QCOMPARE(afterSameMtime.size(), QSize(500, 250));
+        QVERIFY(isRed(afterSameMtime.pixel(1, 1)));
     }
 };
 

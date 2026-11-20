@@ -9,13 +9,51 @@
 
 namespace {
 
+// Hoisted value-with-unit patterns (built once, not per sample/attribute —
+// same pattern as cube_lut.cpp's whitespaceRe()). Each accessor is the single
+// definition of its pattern; every parse site shares it.
+const QRegularExpression& minSecRe()   // "M:SS min" (time, tts, ndl, stoptime)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+):(\\d+)\\s+min"));
+    return re;
+}
+
+const QRegularExpression& barRe()      // "200.0 bar" (pressures, sensors)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+\\.?\\d*)\\s+bar"));
+    return re;
+}
+
+const QRegularExpression& percentRe()  // "32.0%" / "32 %" (O2, He, CNS)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+\\.?\\d*)\\s*%"));
+    return re;
+}
+
+const QRegularExpression& metersRe()   // "12.3 m" (depth, mean, stopdepth)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+\\.?\\d*)\\s+m"));
+    return re;
+}
+
+const QRegularExpression& celsiusRe()  // "24.0 C" (temperatures)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+\\.?\\d*)\\s+C"));
+    return re;
+}
+
+const QRegularExpression& litersRe()   // "11.1 l" (cylinder size)
+{
+    static const QRegularExpression re(QStringLiteral("(\\d+\\.?\\d*)\\s+l"));
+    return re;
+}
+
 // Subsurface event 'time' attribute: "M:SS min" or a plain seconds value.
 // Shared by the gaschange and modechange event handlers so the two can
 // never drift apart.
 double parseEventTime(const QString &timeStr)
 {
-    static const QRegularExpression timeRe(QStringLiteral("(\\d+):(\\d+)\\s+min"));
-    const QRegularExpressionMatch match = timeRe.match(timeStr);
+    const QRegularExpressionMatch match = minSecRe().match(timeStr);
     if (match.hasMatch()) {
         return match.captured(1).toInt() * 60 + match.captured(2).toInt();
     }
@@ -267,8 +305,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("size")) {
         QString sizeStr = attrs.value("size").toString();
-        QRegularExpression sizeRe("(\\d+\\.?\\d*)\\s+l");
-        QRegularExpressionMatch match = sizeRe.match(sizeStr);
+        QRegularExpressionMatch match = litersRe().match(sizeStr);
 
         if (match.hasMatch()) {
             cylinder.size = match.captured(1).toDouble();
@@ -277,8 +314,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("workpressure")) {
         QString pressureStr = attrs.value("workpressure").toString();
-        QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
-        QRegularExpressionMatch match = pressureRe.match(pressureStr);
+        QRegularExpressionMatch match = barRe().match(pressureStr);
 
         if (match.hasMatch()) {
             cylinder.workPressure = match.captured(1).toDouble();
@@ -291,8 +327,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("o2")) {
         QString o2Str = attrs.value("o2").toString();
-        QRegularExpression o2Re("(\\d+\\.?\\d*)\\s*%");
-        QRegularExpressionMatch match = o2Re.match(o2Str);
+        QRegularExpressionMatch match = percentRe().match(o2Str);
 
         if (match.hasMatch()) {
             cylinder.o2Percent = match.captured(1).toDouble();
@@ -301,8 +336,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("he")) {
         QString heStr = attrs.value("he").toString();
-        QRegularExpression heRe("(\\d+\\.?\\d*)\\s*%");
-        QRegularExpressionMatch match = heRe.match(heStr);
+        QRegularExpressionMatch match = percentRe().match(heStr);
 
         if (match.hasMatch()) {
             cylinder.hePercent = match.captured(1).toDouble();
@@ -311,8 +345,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("start")) {
         QString startStr = attrs.value("start").toString();
-        QRegularExpression startRe("(\\d+\\.?\\d*)\\s+bar");
-        QRegularExpressionMatch match = startRe.match(startStr);
+        QRegularExpressionMatch match = barRe().match(startStr);
 
         if (match.hasMatch()) {
             cylinder.startPressure = match.captured(1).toDouble();
@@ -321,8 +354,7 @@ void SubsurfaceParser::parseCylinderElement(QXmlStreamReader &xml, DiveData *div
 
     if (attrs.hasAttribute("end")) {
         QString endStr = attrs.value("end").toString();
-        QRegularExpression endRe("(\\d+\\.?\\d*)\\s+bar");
-        QRegularExpressionMatch match = endRe.match(endStr);
+        QRegularExpressionMatch match = barRe().match(endStr);
 
         if (match.hasMatch()) {
             cylinder.endPressure = match.captured(1).toDouble();
@@ -409,8 +441,7 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
                 QXmlStreamAttributes attrs = xml.attributes();
                 if (attrs.hasAttribute("mean")) {
                     QString meanStr = attrs.value("mean").toString();
-                    QRegularExpression depthRe("(\\d+\\.?\\d*)\\s+m");
-                    QRegularExpressionMatch match = depthRe.match(meanStr);
+                    QRegularExpressionMatch match = metersRe().match(meanStr);
 
                     if (match.hasMatch()) {
                         dive->setMeanDepth(match.captured(1).toDouble());
@@ -424,8 +455,7 @@ void SubsurfaceParser::parseDiveComputerElement(QXmlStreamReader &xml, DiveData 
                 QXmlStreamAttributes attrs = xml.attributes();
                 if (attrs.hasAttribute("water")) {
                     QString tempStr = attrs.value("water").toString();
-                    QRegularExpression tempRe("(\\d+\\.?\\d*)\\s+C");
-                    QRegularExpressionMatch match = tempRe.match(tempStr);
+                    QRegularExpressionMatch match = celsiusRe().match(tempStr);
 
                     if (match.hasMatch()) {
                         lastTemperature = match.captured(1).toDouble();
@@ -501,8 +531,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("time")) {
         QString timeStr = attrs.value("time").toString();
-        QRegularExpression timeRe("(\\d+):(\\d+)\\s+min");
-        QRegularExpressionMatch match = timeRe.match(timeStr);
+        QRegularExpressionMatch match = minSecRe().match(timeStr);
 
         if (match.hasMatch()) {
             int minutes = match.captured(1).toInt();
@@ -521,8 +550,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("depth")) {
         QString depthStr = attrs.value("depth").toString();
-        QRegularExpression depthRe("(\\d+\\.?\\d*)\\s+m");
-        QRegularExpressionMatch match = depthRe.match(depthStr);
+        QRegularExpressionMatch match = metersRe().match(depthStr);
 
         if (match.hasMatch()) {
             point.depth = match.captured(1).toDouble();
@@ -539,8 +567,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("temp")) {
         QString tempStr = attrs.value("temp").toString();
-        QRegularExpression tempRe("(\\d+\\.?\\d*)\\s+C");
-        QRegularExpressionMatch match = tempRe.match(tempStr);
+        QRegularExpressionMatch match = celsiusRe().match(tempStr);
 
         if (match.hasMatch()) {
             point.temperature = match.captured(1).toDouble();
@@ -563,8 +590,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("pressure")) {
         QString pressureStr = attrs.value("pressure").toString();
-        QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
-        QRegularExpressionMatch match = pressureRe.match(pressureStr);
+        QRegularExpressionMatch match = barRe().match(pressureStr);
 
         if (match.hasMatch()) {
             double pressure = match.captured(1).toDouble();
@@ -585,8 +611,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
         if (attrs.hasAttribute(pressureAttr)) {
             QString pressureStr = attrs.value(pressureAttr).toString();
-            QRegularExpression pressureRe("(\\d+\\.?\\d*)\\s+bar");
-            QRegularExpressionMatch match = pressureRe.match(pressureStr);
+            QRegularExpressionMatch match = barRe().match(pressureStr);
 
             if (match.hasMatch()) {
                 double pressure = match.captured(1).toDouble();
@@ -610,8 +635,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
         if (attrs.hasAttribute(sensorAttr)) {
             QString sensorStr = attrs.value(sensorAttr).toString();
-            QRegularExpression sensorRe("(\\d+\\.?\\d*)\\s+bar");
-            QRegularExpressionMatch match = sensorRe.match(sensorStr);
+            QRegularExpressionMatch match = barRe().match(sensorStr);
 
             if (match.hasMatch()) {
                 double sensorValue = match.captured(1).toDouble();
@@ -663,8 +687,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("tts")) {
         QString ttsStr = attrs.value("tts").toString();
-        QRegularExpression ttsRe("(\\d+):(\\d+)\\s+min");
-        QRegularExpressionMatch match = ttsRe.match(ttsStr);
+        QRegularExpressionMatch match = minSecRe().match(ttsStr);
 
         if (match.hasMatch()) {
             int minutes = match.captured(1).toInt();
@@ -689,8 +712,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("ndl")) {
         QString ndlStr = attrs.value("ndl").toString();
-        QRegularExpression ndlRe("(\\d+):(\\d+)\\s+min");
-        QRegularExpressionMatch match = ndlRe.match(ndlStr);
+        QRegularExpressionMatch match = minSecRe().match(ndlStr);
 
         if (match.hasMatch()) {
             int minutes = match.captured(1).toInt();
@@ -715,8 +737,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("cns")) {
         QString cnsStr = attrs.value("cns").toString();
-        QRegularExpression cnsRe("(\\d+\\.?\\d*)\\s*%");
-        QRegularExpressionMatch match = cnsRe.match(cnsStr);
+        QRegularExpressionMatch match = percentRe().match(cnsStr);
 
         if (match.hasMatch()) {
             point.cns = match.captured(1).toDouble();
@@ -751,8 +772,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
 
     if (attrs.hasAttribute("stopdepth")) {
         QString stopDepthStr = attrs.value("stopdepth").toString();
-        QRegularExpression stopDepthRe("(\\d+\\.?\\d*)\\s+m");
-        QRegularExpressionMatch match = stopDepthRe.match(stopDepthStr);
+        QRegularExpressionMatch match = metersRe().match(stopDepthStr);
 
         if (match.hasMatch()) {
             point.ceiling = match.captured(1).toDouble();
@@ -775,8 +795,7 @@ void SubsurfaceParser::parseSampleElement(QXmlStreamReader &xml,
     // without stopdepth, so it carries forward independently of the ceiling
     if (attrs.hasAttribute("stoptime")) {
         QString stopTimeStr = attrs.value("stoptime").toString();
-        QRegularExpression stopTimeRe("(\\d+):(\\d+)\\s+min");
-        QRegularExpressionMatch match = stopTimeRe.match(stopTimeStr);
+        QRegularExpressionMatch match = minSecRe().match(stopTimeStr);
 
         if (match.hasMatch()) {
             int minutes = match.captured(1).toInt();

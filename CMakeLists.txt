@@ -43,19 +43,33 @@ set(PROJECT_SOURCES
     src/core/format_parsers/fit_parser.cpp
     src/core/config.cpp
     src/core/units.cpp
+    src/core/ffmpeg_probe.cpp
+    src/core/ffmpeg_info.cpp
+    src/core/video_probe.cpp
+    src/core/video_clip.cpp
+    src/core/clip_list_model.cpp
+    src/core/clip_thumbnail.cpp
+    src/core/color_grade.cpp
+    src/core/cube_lut.cpp
+    src/core/color_grade_export.cpp
     src/core/cell_data.cpp
     src/core/overlay_template.cpp
     src/ui/main_window.cpp
     src/ui/timeline.cpp
+    src/ui/color_grade_controller.cpp
     src/ui/cell_model.cpp
     src/generators/overlay_gen.cpp
     src/generators/template_undo_stack.cpp
     src/generators/overlay_image_provider.cpp
+    src/generators/lut_strip_image_provider.cpp
+    src/generators/clip_thumb_image_provider.cpp
     src/generators/profile_renderer.cpp
     src/generators/profile_gen.cpp
     src/generators/profile_image_provider.cpp
     src/generators/frame_cache.cpp
     src/export/export_math.cpp
+    src/export/ffmpeg_args.cpp
+    src/export/frame_compositor.cpp
     src/export/image_export.cpp
     src/core/update_checker.cpp
     src/core/whatsnew.cpp
@@ -74,21 +88,31 @@ set(PROJECT_HEADERS
     include/core/format_parsers/fit_parser.h
     include/core/config.h
     include/core/units.h
+    include/core/ffmpeg_probe.h
+    include/core/ffmpeg_info.h
+    include/core/video_probe.h
+    include/core/video_clip.h
+    include/core/clip_list_model.h
+    include/core/clip_thumbnail.h
     include/core/cell_data.h
     include/core/overlay_template.h
     include/core/video_overlay_layout.h
     include/ui/main_window.h
     include/ui/timeline.h
+    include/ui/color_grade_controller.h
     include/ui/cell_model.h
     include/generators/overlay_gen.h
     include/generators/template_undo_stack.h
     include/generators/overlay_image_provider.h
+    include/generators/lut_strip_image_provider.h
+    include/generators/clip_thumb_image_provider.h
     include/generators/i_frame_generator.h
     include/generators/profile_renderer.h
     include/generators/profile_gen.h
     include/generators/profile_image_provider.h
     include/generators/frame_cache.h
     include/export/export_math.h
+    include/export/frame_compositor.h
     include/export/image_export.h
     include/core/update_checker.h
     include/core/whatsnew.h

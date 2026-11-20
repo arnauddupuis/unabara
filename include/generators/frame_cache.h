@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QHash>
 #include <QList>
+#include <QMutex>
 
 class DiveData;
 class IFrameGenerator;
@@ -41,6 +42,12 @@ private:
     int m_maxEntries;
     quint64 m_epoch;
     QList<Entry> m_entries; // simple LRU; small N so linear scan is fine
+    // frameAt() runs on the Qt Quick image-loader threads while invalidate()
+    // runs on the GUI thread — m_entries/m_epoch need a lock. NEVER held
+    // across m_gen->generate(): a render can take tens of ms and would stall
+    // GUI-thread invalidations; the epoch-in-key design makes a mid-render
+    // invalidate harmless (the stale-epoch insert just never matches again).
+    QMutex m_mutex;
 };
 
 #endif // FRAME_CACHE_H

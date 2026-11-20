@@ -1,0 +1,7 @@
+{
+    "name": "Temperate Green (Shallow)",
+    "description": "Green coastal water above ~10 m: solid red recovery, a magenta push against the green cast, strong clarity against the haze. Calibrated against a reference edit of Pacific kelp-water footage at ~5 m (C6). For a dive crossing 10 m, pair with the Deep variant on the two depth anchors.",
+    "redRecovery": 0.7,
+    "waterTint": 0.45,
+    "clarity": 0.6
+}

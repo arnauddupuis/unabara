@@ -11,6 +11,7 @@
 
 // Include all the necessary headers
 #include "include/ui/main_window.h"
+#include "include/ui/color_grade_controller.h"
 #include "include/core/dive_data.h"
 #include "include/core/log_parser.h"
 #include "include/ui/timeline.h"
@@ -20,6 +21,7 @@
 #include "include/export/image_export.h"
 #include "include/export/video_export.h"
 #include "include/generators/overlay_image_provider.h"
+#include "include/generators/lut_strip_image_provider.h"
 #include "include/generators/profile_gen.h"
 #include "include/generators/profile_image_provider.h"
 #include "include/generators/frame_cache.h"
@@ -27,9 +29,54 @@
 #include "include/core/units.h"
 #include "include/core/update_checker.h"
 #include "include/core/whatsnew.h"
+#include "include/core/clip_list_model.h"
+#include "include/core/video_clip.h"
+#include "include/core/ffmpeg_info.h"
+#include "include/generators/clip_thumb_image_provider.h"
 
 // Global image provider
 OverlayImageProvider* g_imageProvider = nullptr;
+
+// Config-backed persistence for the clip model (video/clipStates +
+// video/diveSessions + video/overlayLayouts). Lives here so ClipListModel
+// stays Config-free and unit-testable with an in-memory store; Config's setters write through
+// (targeted key + sync, same discipline as setVideoOverlayLayout), and the
+// exit-hook saveConfig() re-serializes the same in-memory caches.
+class ConfigClipSessionStore : public ClipSessionStore
+{
+public:
+    QVariantMap loadClipState(const QString& path) const override
+    {
+        return Config::instance()->clipState(path);
+    }
+    void saveClipState(const QString& path, const QVariantMap& state) override
+    {
+        Config::instance()->setClipState(path, state);
+    }
+    QVariantMap loadSession(const QString& diveKey) const override
+    {
+        return Config::instance()->diveSession(diveKey);
+    }
+    void saveSession(const QString& diveKey, const QVariantMap& session) override
+    {
+        Config::instance()->setDiveSession(diveKey, session);
+    }
+    // Follow-up F: path + dive x resolution bucket keys in the one
+    // video/overlayLayouts blob; Config round-trips, the model interprets.
+    QVariantMap loadOverlayLayout(const QString& key) const override
+    {
+        return Config::instance()->storedVideoOverlayLayout(key);
+    }
+    QVariantMap loadLastOverlayLayout() const override
+    {
+        return Config::instance()->lastVideoOverlayLayout();
+    }
+    void saveOverlayLayout(const QStringList& keys, const QVariantMap& layout,
+                           bool updateLastUsed) override
+    {
+        Config::instance()->setVideoOverlayLayoutEntries(keys, layout, updateLastUsed);
+    }
+};
 
 int main(int argc, char *argv[])
 {
@@ -71,6 +118,10 @@ int main(int argc, char *argv[])
     qmlRegisterType<ImageExporter>("Unabara.Export", 1, 0, "ImageExporter");
     qmlRegisterType<VideoExporter>("Unabara.Export", 1, 0, "VideoExporter");
     qmlRegisterUncreatableMetaObject(Units::staticMetaObject, "Unabara.Core", 1, 0, "Units", "Units is a utility class");
+    // Uncreatable: instances come from ClipListModel; registration makes the
+    // SyncSource/ProbeState enums visible to QML (PR A2+ UI work).
+    qmlRegisterUncreatableType<VideoClip>("Unabara.Core", 1, 0, "VideoClip",
+                                          "VideoClip instances are created by ClipListModel");
     
     // Persist configuration on application quit. Config's destructor calls
     // saveConfig(), but the singleton is never explicitly deleted, so without
@@ -89,7 +140,59 @@ int main(int argc, char *argv[])
     // Create the main objects
     MainWindow mainWindow;
     LogParser logParser;
-    
+
+    // FFmpeg status bridge for the Settings tab and the export dialog's
+    // codec list. Its constructor pushes Config::ffmpegPath into FFmpegProbe
+    // (and re-pushes on change) and starts the async capability snapshot —
+    // construct it before anything that could resolve ffmpeg/ffprobe paths,
+    // so the persisted override is honored from the first lookup.
+    FfmpegInfo ffmpegInfo;
+
+    // Clip model for the video tab. The Timeline facade (instantiated in
+    // TimelineView.qml with clipModel: clipList) and VideoSyncPlayer follow
+    // its active clip. Follows the active dive so timecode auto-sync can
+    // resolve offsets against the dive start.
+    // Declared before clipList so it outlives the model: the model's
+    // destructor flushes debounce-pending clip states into the store.
+    ConfigClipSessionStore clipSessionStore;
+    ClipListModel clipList;
+    // Installed before the dive connection below so the very first import
+    // already restores that dive's stored session.
+    clipList.setSessionStore(&clipSessionStore);
+    QObject::connect(&mainWindow, &MainWindow::currentDiveChanged,
+                     &clipList, [&clipList, &mainWindow]() {
+                         clipList.setDive(mainWindow.currentDive());
+                     });
+
+    // Colour-grade controller (track C): follows the active clip and owns
+    // the deserialized grade. countChanged is tracked as well as
+    // activeIndexChanged because removing/restoring clips can swap the
+    // active clip OBJECT without moving the index (setClip no-ops on the
+    // same pointer, so the double subscription is cheap).
+    ColorGradeController colorGradeController;
+    auto syncGradeClip = [&colorGradeController, &clipList]() {
+        colorGradeController.setClip(clipList.activeClip());
+    };
+    QObject::connect(&clipList, &ClipListModel::activeIndexChanged,
+                     &colorGradeController, syncGradeClip);
+    QObject::connect(&clipList, &ClipListModel::countChanged,
+                     &colorGradeController, syncGradeClip);
+    syncGradeClip();
+    // C3 depth link: the controller resolves the grade at the dive's
+    // depth, so it follows the active dive (same pattern as clipList).
+    QObject::connect(&mainWindow, &MainWindow::currentDiveChanged,
+                     &colorGradeController, [&colorGradeController, &mainWindow]() {
+                         colorGradeController.setDive(mainWindow.currentDive());
+                     });
+    colorGradeController.setDive(mainWindow.currentDive());
+    // Anchor/readout depth strings are formatted in C++ with the
+    // configured unit system; refresh them when it flips. Connected here
+    // (not in the controller's constructor) so the controller only touches
+    // Config inside its text getters.
+    QObject::connect(Config::instance(), &Config::unitSystemChanged,
+                     &colorGradeController, &ColorGradeController::refreshDepthTexts);
+
+
     // Create the overlay generator and image provider
     OverlayGenerator* overlayGenerator = new OverlayGenerator();
     OverlayImageProvider* imageProvider = new OverlayImageProvider(overlayGenerator);
@@ -109,6 +212,25 @@ int main(int argc, char *argv[])
     ProfileImageProvider* profileImageProvider = new ProfileImageProvider(profileGenerator);
     engine.addImageProvider("profile", profileImageProvider);
     g_profileImageProvider = profileImageProvider;
+
+    // Hald-strip LUT provider for the colour-grade shader (track C).
+    // Serves the identity strip until the controller bakes an imported
+    // .cube into it (C4); the engine takes ownership. The sink seam keeps
+    // the controller (and the testlib) Quick-free; a null image resets the
+    // provider to identity, and installing the sink immediately pushes the
+    // current strip state, so this wiring is order-independent against the
+    // first clip load above.
+    LutStripImageProvider* lutStripProvider = new LutStripImageProvider();
+    engine.addImageProvider("lutstrip", lutStripProvider);
+    colorGradeController.setLutStripSink([lutStripProvider](const QImage& strip) {
+        lutStripProvider->setStrip(strip);
+    });
+
+    // First-frame thumbnails for the ClipStrip cards (follow-up C): async
+    // provider on its own small thread pool, so extractions never block the
+    // GUI thread, the image-loader thread or the clip probers. The engine
+    // takes ownership (its destructor kills/joins in-flight extractions).
+    engine.addImageProvider("clipthumb", new ClipThumbImageProvider());
 
     // Frame caches for the video-preview compositor. Tighter bound on the
     // profile cache since profile frames are larger (1920×400 by default).
@@ -224,6 +346,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("undoManager", undoManager);
     engine.rootContext()->setContextProperty("profileGenerator", profileGenerator);
     engine.rootContext()->setContextProperty("config", Config::instance());
+    engine.rootContext()->setContextProperty("clipList", &clipList);
+    engine.rootContext()->setContextProperty("colorGrade", &colorGradeController);
+    engine.rootContext()->setContextProperty("ffmpegInfo", &ffmpegInfo);
 
     // Expose version to QML
     engine.rootContext()->setContextProperty("appVersion", UNABARA_VERSION_STR);

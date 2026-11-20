@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QString>
 #include <QImage>
+#include <QDateTime>
+#include <QMutex>
 #include <QFont>
 #include <QColor>
 #include <QVector>
@@ -252,6 +254,11 @@ public:
     Q_INVOKABLE QStringList getAvailableTemplates();
     Q_INVOKABLE QString getTemplatePath(int index);
     Q_INVOKABLE int indexOfTemplatePath(const QString& filePath);
+    // THE path→display-name derivation for templates (file name minus the
+    // .utp extension, underscores as spaces): the template list's fallback
+    // when a file carries no templateName, main.qml's template-colors
+    // dialog, and the Video Inspector's placement scope hint all share it.
+    Q_INVOKABLE static QString templateDisplayName(const QString& filePath);
     Q_INVOKABLE void refreshTemplateList();
 
     // Hit-test for the Render-mode preview: returns the id of the topmost
@@ -343,6 +350,29 @@ private:
     QString m_templatePath;
     int m_templateWidth;
     int m_templateHeight;
+
+    // Decoded template background, filled EAGERLY on the GUI thread by
+    // updateTemplateDimensions() (the one site every m_templatePath writer
+    // goes through) so generateOverlay() never re-decodes the PNG per frame.
+    // The render path (image-provider threads) only READS it, under
+    // m_backgroundMutex — it never refreshes the member. `image` is the raw
+    // QImage(path) result (null = load failed; the failure is cached too) and
+    // `mtime` the on-disk file's modification time at decode (invalid for
+    // immutable :/ resources and missing files); a mismatch at render time
+    // means the file was overwritten externally, and that frame decodes
+    // locally exactly as before the cache existed.
+    struct BackgroundCache {
+        QString path;
+        QImage image;
+        QDateTime mtime;
+        qint64 size = -1; // mtime alone misses same-mtime overwrites (cp -p,
+                          // coarse FAT/SMB timestamps) — size widens the key
+    };
+    // {mtime, size} of the on-disk file; {invalid, -1} for immutable :/
+    // resources and missing files.
+    static QPair<QDateTime, qint64> backgroundFileStamp(const QString& path);
+    mutable QMutex m_backgroundMutex;
+    BackgroundCache m_background;
     QFont m_font;
     QColor m_labelColor;
     QColor m_valueColor;

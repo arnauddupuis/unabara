@@ -63,3 +63,6 @@ debug/*
 # Python
 
 *.pyc
+
+# Temp dev files
+*DONOTCOMMIT*

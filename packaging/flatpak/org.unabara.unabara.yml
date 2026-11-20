@@ -1,0 +1,124 @@
+app-id: org.unabara.unabara
+runtime: org.kde.Platform
+runtime-version: '6.8'
+sdk: org.kde.Sdk
+command: unabara
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --filesystem=host
+  - --device=dri
+
+# Build-time leftovers of the static codec/FFmpeg modules: only the
+# ffmpeg/ffprobe executables are needed at runtime.
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/*.a
+  - /share/man
+  - /share/doc
+  - /share/ffmpeg/examples
+
+# Module order matters for the .flatpak-builder cache: flatpak-builder
+# rebuilds every module after the first changed one, and the unabara dir
+# source changes on every commit, so it must stay LAST.
+#
+# FFmpeg CLI: org.freedesktop.Platform.ffmpeg-full ships libraries only (no
+# ffmpeg/ffprobe executables), so the CLI is built here, statically linked
+# against x264/x265/libvpx, and installed as /app/bin/ffmpeg + /app/bin/ffprobe
+# next to /app/bin/unabara. License: GPLv3 (--enable-gpl --enable-version3,
+# matching the Windows/macOS bundled builds).
+modules:
+  # Assembler for x264/x265/libvpx/FFmpeg SIMD code; build-only.
+  - name: nasm
+    cleanup:
+      - '*'
+    sources:
+      - type: archive
+        url: https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
+        sha256: 1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148
+
+  # x264 publishes no release tarballs; pinned by commit (head of the
+  # `stable` branch as of 2025-06-08). No `branch:` on purpose: with both set,
+  # flatpak-builder requires the branch head to still equal the commit, which
+  # breaks as soon as stable moves.
+  - name: x264
+    config-opts:
+      - --enable-static
+      - --enable-pic
+      - --disable-cli
+    sources:
+      - type: git
+        url: https://code.videolan.org/videolan/x264.git
+        commit: b35605ace3ddf7c1a5d67a2eb553f034aef41d55
+
+  - name: x265
+    buildsystem: cmake-ninja
+    subdir: source
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_SHARED=OFF
+      - -DENABLE_CLI=OFF
+      - -DENABLE_LIBNUMA=OFF
+      - -DENABLE_PIC=ON
+    sources:
+      - type: archive
+        url: https://downloads.videolan.org/pub/videolan/x265/x265_4.2.tar.gz
+        sha256: 40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1210
+
+  # libvpx's configure is not autotools and rejects unknown flags, so it is
+  # driven explicitly. Pinned by tag + commit (GitHub/googlesource archive
+  # tarballs are not guaranteed byte-stable, so no tarball sha256).
+  - name: libvpx
+    buildsystem: simple
+    build-commands:
+      - ./configure --prefix=/app --enable-pic --enable-static --disable-shared
+        --disable-examples --disable-tools --disable-docs --disable-unit-tests
+        --enable-vp9-highbitdepth
+      - make -j${FLATPAK_BUILDER_N_JOBS}
+      - make install
+    sources:
+      - type: git
+        url: https://chromium.googlesource.com/webm/libvpx
+        tag: v1.16.0
+        commit: 1024874c5919305883187e2953de8fcb4c3d7fa6
+
+  # Release tarball GPG signature checked against the FFmpeg release signing
+  # key (FCF9 86EA 15E6 E293 A564 4F10 B432 2F04 D676 58D8) when pinned.
+  - name: ffmpeg
+    config-opts:
+      - --enable-gpl
+      # version3 aligns this build's licence (GPLv3) with the BtbN
+      # Windows and martin-riedl macOS bundles — one licence story on
+      # all three platforms (decision 2026-10-09).
+      - --enable-version3
+      - --enable-libx264
+      - --enable-libx265
+      - --enable-libvpx
+      - --enable-static
+      - --disable-shared
+      - --enable-pic
+      - --pkg-config-flags=--static
+      - --disable-doc
+      - --disable-ffplay
+    post-install:
+      - install -Dm644 COPYING.GPLv3 /app/share/licenses/org.unabara.unabara/ffmpeg-LICENSE.txt
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-8.1.3.tar.xz
+        sha256: 7138d28c96d9d3e3af4ee3d8cad72741f8ffb40da90c1112235dea3ecd3178a3
+
+  - name: unabara
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: dir
+        # Relative to this manifest: the repository root.
+        path: ../..
+        skip:
+          - .git
+          - .flatpak-builder
+          - build-dir
+          - repo

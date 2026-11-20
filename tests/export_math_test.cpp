@@ -81,6 +81,8 @@ private slots:
     void outputTailExcerpt();
     void imageExporter_saveFailureRemovesWrittenFrames();
     void isPreDiveTime();
+    void sourceGridFrameLimit_data();
+    void sourceGridFrameLimit();
     void imageExporter_preDiveFramesAreTransparent();
 
 private:
@@ -580,6 +582,63 @@ void ExportMathTest::isPreDiveTime()
     QVERIFY(!ExportMath::isPreDiveTime(-0.0));
     QVERIFY(!ExportMath::isPreDiveTime(0.001));
     QVERIFY(!ExportMath::isPreDiveTime(99999.0)); // post-dive not gated
+}
+
+void ExportMathTest::sourceGridFrameLimit_data()
+{
+    QTest::addColumn<qint64>("nbFrames");
+    QTest::addColumn<bool>("vfr");
+    QTest::addColumn<double>("streamDuration");
+    QTest::addColumn<double>("avgFps");
+    QTest::addColumn<int>("fpsNum");
+    QTest::addColumn<int>("fpsDen");
+    QTest::addColumn<qint64>("expected");
+
+    // Constant rate: the probed frame count is the grid count, whatever the
+    // stream duration says (the pre-existing behaviour, unchanged).
+    QTest::newRow("cfr: frame count")
+        << Q_INT64_C(150) << false << 5.005 << 29.97 << 30000 << 1001 << Q_INT64_C(150);
+    QTest::newRow("cfr: unknown frame count = no cap")
+        << Q_INT64_C(-1) << false << 5.005 << 29.97 << 30000 << 1001 << Q_INT64_C(-1);
+
+    // Variable rate: nbFrames counts real frames at the AVERAGE rate and
+    // must not bound the nominal grid. 249 frames over 7.925 s nominally at
+    // 120 fps is 951 grid frames — capping at 249 exported 2.075 s of it.
+    QTest::newRow("vfr: stream duration on the nominal grid")
+        << Q_INT64_C(249) << true << 7.925 << 31.42 << 120 << 1 << Q_INT64_C(951);
+    // ffprobe's six decimals leave an exact multiple a hair short
+    // (5.933333 x 30 = 177.99999): still 178, not 177.
+    QTest::newRow("vfr: six-decimal duration is not floored a frame short")
+        << Q_INT64_C(80) << true << 5.933333 << 13.483 << 30 << 1 << Q_INT64_C(178);
+    // A genuine fraction of a frame is dropped, never rounded up into a
+    // frame the stream may not hold.
+    QTest::newRow("vfr: partial trailing frame is dropped")
+        << Q_INT64_C(80) << true << 5.95 << 13.4 << 30 << 1 << Q_INT64_C(178);
+    QTest::newRow("vfr: rational rate")
+        << Q_INT64_C(100) << true << 10.01 << 9.99 << 30000 << 1001 << Q_INT64_C(300);
+    // No stream duration (e.g. Matroska): estimate it from the real frames.
+    QTest::newRow("vfr: falls back to nbFrames / avgFps")
+        << Q_INT64_C(120) << true << -1.0 << 15.0 << 30 << 1 << Q_INT64_C(240);
+    QTest::newRow("vfr: nothing known = no cap")
+        << Q_INT64_C(-1) << true << -1.0 << -1.0 << 30 << 1 << Q_INT64_C(-1);
+    QTest::newRow("vfr: frame count without an average rate = no cap")
+        << Q_INT64_C(120) << true << -1.0 << -1.0 << 30 << 1 << Q_INT64_C(-1);
+    QTest::newRow("vfr: invalid nominal rate = no cap")
+        << Q_INT64_C(120) << true << 8.0 << 15.0 << 0 << 1 << Q_INT64_C(-1);
+}
+
+void ExportMathTest::sourceGridFrameLimit()
+{
+    QFETCH(qint64, nbFrames);
+    QFETCH(bool, vfr);
+    QFETCH(double, streamDuration);
+    QFETCH(double, avgFps);
+    QFETCH(int, fpsNum);
+    QFETCH(int, fpsDen);
+    QFETCH(qint64, expected);
+    QCOMPARE(ExportMath::sourceGridFrameLimit(nbFrames, vfr, streamDuration,
+                                              avgFps, fpsNum, fpsDen),
+             expected);
 }
 
 void ExportMathTest::imageExporter_preDiveFramesAreTransparent()

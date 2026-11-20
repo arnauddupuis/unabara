@@ -139,6 +139,7 @@ void VideoClip::applyProbeResult(const VideoProbe::Result& result)
     m_audioCodec = result.audioCodec;
     m_embeddedTimecode = result.timecodeSecondsOfDay;
     m_nbFrames = result.nbFrames;
+    m_videoStreamDuration = result.videoStreamDurationSeconds;
     emit probeDataChanged();
 
     // probeError shares probeState's NOTIFY, so emit when either changes.

@@ -26,6 +26,26 @@ int totalFrames(double startTime, double endTime, double frameRate);
 // returns startTime (totalFrames already clamps that case to one frame).
 double frameTime(double startTime, int frameIndex, double frameRate);
 
+// How many frames a source video stream can supply on a composited export's
+// frame grid — the clip's NOMINAL rate fpsNum/fpsDen (r_frame_rate), which
+// the filter graph conforms the footage to. -1 = unknown: do not cap.
+//
+// The composited export must not size its pipe beyond this: the clip's
+// duration is the FORMAT duration (longest stream), so a clip whose audio
+// outlasts its video would otherwise run the graph out of picture early and
+// report a short file as success.
+//
+// Constant frame rate: the probed frame count IS the grid count. Variable
+// frame rate: it is not — nbFrames counts real frames at the lower AVERAGE
+// rate, and capping the nominal grid by it cut exports short by the ratio
+// avg/nominal while still reporting success. There the bound is the video
+// stream's own duration laid on the grid (floored: never ask for a frame the
+// stream may not hold), falling back to nbFrames/avgFps when the container
+// reports no stream duration.
+qint64 sourceGridFrameLimit(qint64 nbFrames, bool vfr,
+                            double videoStreamDuration, double avgFps,
+                            int fpsNum, int fpsDen);
+
 // True when a frame's dive time lies before the dive start (t < 0, e.g. an
 // "imported video range" export whose clip starts before the dive). Such
 // frames must show NO overlay — parity with the tab-2 preview, which hides

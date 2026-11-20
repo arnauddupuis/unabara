@@ -133,6 +133,9 @@ public:
     // Probed video-stream frame count; -1 until a successful probe. Not
     // persisted (probe metadata is re-probed on restore).
     qint64 nbFrames() const { return m_nbFrames; }
+    // Video stream duration in seconds, -1 when the container reports none
+    // (see VideoProbe::Result::videoStreamDurationSeconds).
+    double videoStreamDuration() const { return m_videoStreamDuration; }
 
     double syncOffset() const { return m_syncOffset; }
     void setSyncOffset(double offset);
@@ -213,6 +216,7 @@ private:
     double m_embeddedTimecode = -1.0;
     double m_videoStartTime = 0.0;
     qint64 m_nbFrames = -1;
+    double m_videoStreamDuration = -1.0;
 
     double m_syncOffset = 0.0;
     SyncSource m_syncSource = Unsynced;

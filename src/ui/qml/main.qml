@@ -2236,16 +2236,26 @@ ApplicationWindow {
                                     return all
                                 }
                                 currentIndex: Math.max(0, model.indexOf(config ? config.videoCodec : "vp9"))
-                                // An interactive selection breaks the
-                                // currentIndex binding (standard ComboBox
-                                // behavior), so a probe snapshot or mode switch
-                                // landing while the dialog is open could
-                                // silently remap the stale index to a different
-                                // codec. Re-clamp against the new list
-                                // explicitly.
-                                onModelChanged: {
+                                // A new list (probe snapshot, mode switch)
+                                // makes the ComboBox keep its numeric index,
+                                // silently remapping it to a different
+                                // codec, so the index is re-derived
+                                // imperatively on every model change. That
+                                // JS write breaks the currentIndex binding
+                                // above for good — hence the second resync
+                                // channel, on the config signal: the
+                                // Settings tab can change the saved codec
+                                // behind this combo, whose currentText is
+                                // what the export uses.
+                                function syncToConfig() {
                                     var idx = model.indexOf(config ? config.videoCodec : "vp9")
                                     currentIndex = idx >= 0 ? idx : 0
+                                }
+                                onModelChanged: syncToConfig()
+                                Connections {
+                                    target: config
+                                    enabled: config !== null
+                                    function onVideoCodecChanged() { codecComboBox.syncToConfig() }
                                 }
                                 // Persist the preference eagerly (dialog
                                 // setting); the exporter is fed at export time.

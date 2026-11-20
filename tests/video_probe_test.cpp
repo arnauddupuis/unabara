@@ -168,6 +168,10 @@ private slots:
     void plainMp4();
     void rotatedPhoneClip();
     void vfrDetection();
+    void degenerateNominalRate_data();
+    void degenerateNominalRate();
+    void nominalFromAverage_data();
+    void nominalFromAverage();
     void dropFrameTimecode();
     void coverArtSkipped();
     void malformedJson_data();
@@ -192,6 +196,8 @@ void VideoProbeTest::goProStyle()
     QVERIFY(!r.vfr);
     QCOMPARE(r.nbFrames, Q_INT64_C(7225));
     QCOMPARE(r.durationSeconds, 120.5204);
+    // The video STREAM's own duration, kept apart from the format duration.
+    QCOMPARE(r.videoStreamDurationSeconds, 120.5204);
     QVERIFY(r.hasAudio);
     QCOMPARE(r.audioCodec, QStringLiteral("aac"));
     // tmcd stream timecode, frames ignored: 10:39:52.
@@ -234,6 +240,8 @@ void VideoProbeTest::plainMp4()
     QVERIFY(r.hasAudio);
     QCOMPARE(r.audioCodec, QStringLiteral("aac"));
     QCOMPARE(r.durationSeconds, 30.0);
+    // No stream-level duration in this file: unknown, not the format's.
+    QCOMPARE(r.videoStreamDurationSeconds, -1.0);
 }
 
 void VideoProbeTest::rotatedPhoneClip()
@@ -245,6 +253,92 @@ void VideoProbeTest::rotatedPhoneClip()
     QCOMPARE(r.rotation, 270);
     QCOMPARE(r.width, 1080);
     QCOMPARE(r.height, 1920);
+}
+
+void VideoProbeTest::degenerateNominalRate_data()
+{
+    QTest::addColumn<QString>("rFrameRate");
+    QTest::addColumn<QString>("avgFrameRate");
+    QTest::addColumn<int>("expectedNum");
+    QTest::addColumn<int>("expectedDen");
+    QTest::addColumn<bool>("expectedVfr");
+
+    // Irregular timestamps: ffprobe reports the stream TIMEBASE as
+    // r_frame_rate. Laying frames on that grid means a 90000 fps export.
+    QTest::newRow("90 kHz timebase, ~30 fps")
+        << "90000/1" << "240000/7984" << 30 << 1 << true;
+    QTest::newRow("90 kHz timebase, ~29.97 fps")
+        << "90000/1" << "2997/100" << 30000 << 1001 << true;
+    QTest::newRow("QuickTime 600 timescale, ~59.9 fps")
+        << "600/1" << "5990/100" << 60000 << 1001 << true;
+    QTest::newRow("millisecond timebase, odd average")
+        << "1000/1" << "273/10" << 273 << 10 << true;
+    // A real, plausible nominal rate is never touched — VFR or not.
+    QTest::newRow("vfr at a real 120 fps nominal")
+        << "120/1" << "9960/317" << 120 << 1 << true;
+    QTest::newRow("vfr at exactly the 240 fps ceiling")
+        << "240/1" << "200/1" << 240 << 1 << true;
+    QTest::newRow("constant 240 fps")
+        << "240/1" << "240/1" << 240 << 1 << false;
+    // No average to fall back on: left as reported (and not flagged VFR).
+    QTest::newRow("timebase with unknown average")
+        << "90000/1" << "0/0" << 90000 << 1 << false;
+}
+
+void VideoProbeTest::degenerateNominalRate()
+{
+    QFETCH(QString, rFrameRate);
+    QFETCH(QString, avgFrameRate);
+    QFETCH(int, expectedNum);
+    QFETCH(int, expectedDen);
+    QFETCH(bool, expectedVfr);
+
+    const QString json = QStringLiteral(R"JSON({
+        "streams": [ { "codec_name": "h264", "codec_type": "video",
+                       "width": 1920, "height": 1080, "pix_fmt": "yuv420p",
+                       "r_frame_rate": "%1", "avg_frame_rate": "%2",
+                       "nb_frames": "240", "duration": "7.983560",
+                       "disposition": { "attached_pic": 0 } } ],
+        "format": { "duration": "8.000000" }
+    })JSON").arg(rFrameRate, avgFrameRate);
+    const VideoProbe::Result r = VideoProbe::parseFfprobeJson(json.toUtf8());
+    QVERIFY(r.ok);
+    QCOMPARE(r.fpsNum, expectedNum);
+    QCOMPARE(r.fpsDen, expectedDen);
+    QCOMPARE(r.vfr, expectedVfr);
+}
+
+void VideoProbeTest::nominalFromAverage_data()
+{
+    QTest::addColumn<double>("avg");
+    QTest::addColumn<bool>("ok");
+    QTest::addColumn<int>("num");
+    QTest::addColumn<int>("den");
+
+    QTest::newRow("30.06 -> 30") << 30.06 << true << 30 << 1;
+    QTest::newRow("29.97 -> 30000/1001") << 29.97 << true << 30000 << 1001;
+    QTest::newRow("23.98 -> 24000/1001") << 23.98 << true << 24000 << 1001;
+    QTest::newRow("24.0 -> 24") << 24.0 << true << 24 << 1;
+    QTest::newRow("59.5 -> 60000/1001") << 59.5 << true << 60000 << 1001;
+    // Outside 2 % of every standard rate: the average itself, reduced.
+    QTest::newRow("27.3 -> 273/10") << 27.3 << true << 273 << 10;
+    QTest::newRow("13.793 -> 13793/1000") << 13.793 << true << 13793 << 1000;
+    QTest::newRow("15 -> 15/1") << 15.0 << true << 15 << 1;
+    QTest::newRow("zero") << 0.0 << false << 7 << 9;
+    QTest::newRow("negative") << -1.0 << false << 7 << 9;
+}
+
+void VideoProbeTest::nominalFromAverage()
+{
+    QFETCH(double, avg);
+    QFETCH(bool, ok);
+    QFETCH(int, num);
+    QFETCH(int, den);
+    int n = 7;
+    int d = 9; // sentinels: untouched on failure
+    QCOMPARE(VideoProbe::nominalFromAverage(avg, n, d), ok);
+    QCOMPARE(n, num);
+    QCOMPARE(d, den);
 }
 
 void VideoProbeTest::vfrDetection()

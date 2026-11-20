@@ -534,9 +534,14 @@ bool VideoExporter::exportComposite(DiveData* dive, VideoClip* clip,
     // stream: a clip whose audio outlasts its video would size the pipe
     // beyond the source video's frames — eof_action=endall then ends the
     // graph early, FFmpeg exits 0, and a short file would be reported as
-    // success. Bound by the probed video-stream frame count when known.
-    if (clip->nbFrames() > 0 && endFrame > clip->nbFrames())
-        endFrame = static_cast<int>(clip->nbFrames());
+    // success. Bound by what the video stream can supply on this grid, when
+    // known (frame count for constant-rate clips, stream duration for
+    // variable-rate ones — see ExportMath::sourceGridFrameLimit).
+    const qint64 sourceFrames = ExportMath::sourceGridFrameLimit(
+        clip->nbFrames(), clip->vfr(), clip->videoStreamDuration(),
+        clip->avgFps(), num, den);
+    if (sourceFrames > 0 && endFrame > sourceFrames)
+        endFrame = static_cast<int>(sourceFrames);
     if (endFrame <= startFrame)
         endFrame = startFrame + 1;
     const int totalFrames = endFrame - startFrame;

@@ -7,6 +7,8 @@
 #include <QRegularExpression>
 #include <QtGlobal>
 
+#include <cmath>
+
 namespace ExportMath {
 
 int totalFrames(double startTime, double endTime, double frameRate)
@@ -19,6 +21,30 @@ double frameTime(double startTime, int frameIndex, double frameRate)
     if (frameRate <= 0.0)
         return startTime;
     return startTime + frameIndex / frameRate;
+}
+
+qint64 sourceGridFrameLimit(qint64 nbFrames, bool vfr,
+                            double videoStreamDuration, double avgFps,
+                            int fpsNum, int fpsDen)
+{
+    if (!vfr)
+        return nbFrames > 0 ? nbFrames : -1;
+    if (fpsNum <= 0 || fpsDen <= 0)
+        return -1;
+
+    double pictureSeconds = videoStreamDuration;
+    if (pictureSeconds <= 0.0 && nbFrames > 0 && avgFps > 0.0)
+        pictureSeconds = nbFrames / avgFps;
+    if (pictureSeconds <= 0.0)
+        return -1;
+
+    // ffprobe prints durations with six decimals, so an exact frame multiple
+    // arrives a hair short (5.933333 s x 30 = 177.99999); the slack absorbs
+    // that without ever reaching the next frame at any real frame rate.
+    constexpr double kGridSlack = 1e-3;
+    const qint64 frames = static_cast<qint64>(
+        std::floor(pictureSeconds * fpsNum / fpsDen + kGridSlack));
+    return frames > 0 ? frames : -1;
 }
 
 bool isPreDiveTime(double diveTime)

@@ -9,6 +9,7 @@
 #include <QRegularExpression>
 
 #include <cmath>
+#include <numeric>
 
 namespace {
 
@@ -132,6 +133,39 @@ double VideoProbe::parseTimecodeToSecondsOfDay(const QString& timecode)
     return hours * 3600.0 + minutes * 60.0 + seconds;
 }
 
+bool VideoProbe::nominalFromAverage(double avgFps, int& fpsNum, int& fpsDen)
+{
+    if (!(avgFps > 0.0))
+        return false;
+
+    static constexpr struct { int num; int den; } kStandardRates[] = {
+        {24000, 1001}, {24, 1}, {25, 1}, {30000, 1001}, {30, 1},
+        {48, 1}, {50, 1}, {60000, 1001}, {60, 1}, {100, 1},
+        {120000, 1001}, {120, 1}, {240000, 1001}, {240, 1},
+    };
+    double bestError = 0.02; // snap only within 2 %
+    bool snapped = false;
+    for (const auto& rate : kStandardRates) {
+        const double fps = static_cast<double>(rate.num) / rate.den;
+        const double error = std::fabs(fps - avgFps) / fps;
+        if (error < bestError) {
+            bestError = error;
+            fpsNum = rate.num;
+            fpsDen = rate.den;
+            snapped = true;
+        }
+    }
+    if (snapped)
+        return true;
+
+    // Nothing standard nearby: the average itself, three decimals.
+    const int milli = qMax(1, qRound(avgFps * 1000.0));
+    const int divisor = std::gcd(milli, 1000);
+    fpsNum = milli / divisor;
+    fpsDen = 1000 / divisor;
+    return true;
+}
+
 VideoProbe::Result VideoProbe::parseFfprobeJson(const QByteArray& json)
 {
     Result r;
@@ -227,8 +261,15 @@ VideoProbe::Result VideoProbe::parseFfprobeJson(const QByteArray& json)
         const double nominal = r.fps();
         r.vfr = std::fabs(nominal - r.avgFps) / nominal > 0.005;
     }
+    // A timebase reported as the frame rate (see Result::fpsNum): fall back
+    // to the average. The clip stays flagged VFR — its timestamps are
+    // irregular whatever grid they are conformed to.
+    if (r.vfr && r.fps() > kMaxNominalFps)
+        nominalFromAverage(r.avgFps, r.fpsNum, r.fpsDen);
 
     r.nbFrames = jsonToLongLong(video.value(QStringLiteral("nb_frames")), -1);
+    r.videoStreamDurationSeconds =
+        jsonToDouble(video.value(QStringLiteral("duration")), -1.0);
     // Video stream start offset (0 when ffprobe reports none). Kept signed
     // and un-clamped: a negative start_time is passed through as-is and the
     // composite seek clamps at 0.

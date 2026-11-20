@@ -21,7 +21,14 @@ public:
 
         double durationSeconds = -1.0;
         // Nominal frame rate from r_frame_rate, kept as an exact rational —
-        // 30000/1001 must never round-trip through a double.
+        // 30000/1001 must never round-trip through a double. One exception:
+        // for clips with irregular timestamps ffprobe can report the stream
+        // TIMEBASE here (90000/1, 1000/1, 600/1) — not a frame rate at all.
+        // A variable-rate clip whose r_frame_rate exceeds kMaxNominalFps
+        // gets its nominal rate from avg_frame_rate instead, snapped to the
+        // nearest standard rate (see nominalFromAverage()); everything that
+        // lays frames on this grid — the composited export above all —
+        // would otherwise run at tens of thousands of frames per second.
         int fpsNum = 0;
         int fpsDen = 1;
         // avg_frame_rate as a double, for VFR detection only (-1 = unknown).
@@ -30,6 +37,13 @@ public:
         // (> 0.5% relative) — the variable-frame-rate phone-clip signature.
         bool vfr = false;
         qint64 nbFrames = -1;
+        // Video STREAM duration in seconds (-1 when the container reports
+        // none, e.g. Matroska). durationSeconds above is the FORMAT duration
+        // — the longest stream — so this is the one that says how much
+        // picture there is; ExportMath::sourceGridFrameLimit() needs it for
+        // variable-frame-rate clips, whose nbFrames is not on the nominal
+        // frame grid.
+        double videoStreamDurationSeconds = -1.0;
         // Video STREAM start_time in seconds (0 when absent). Not always 0:
         // e.g. muxers that shift all streams to keep AAC priming samples
         // non-negative give the video a positive start offset. The
@@ -65,6 +79,16 @@ public:
             return fpsDen > 0 ? static_cast<double>(fpsNum) / fpsDen : 0.0;
         }
     };
+
+    // Above this, an r_frame_rate on a variable-rate clip is taken to be a
+    // timebase rather than a frame rate (see Result::fpsNum).
+    static constexpr double kMaxNominalFps = 240.0;
+
+    // A usable nominal rate for an average frame rate: the nearest standard
+    // rate (23.976 … 240) when within 2 %, else the average itself to three
+    // decimals as a reduced rational. False (outputs untouched) for a
+    // non-positive average.
+    static bool nominalFromAverage(double avgFps, int& fpsNum, int& fpsDen);
 
     // Runs ffprobe (located via FFmpegProbe) on the file and parses the JSON.
     // Never throws; failures come back as ok=false with an error string.

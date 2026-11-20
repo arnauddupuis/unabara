@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QList>
 #include <QPointer>
+#include <QRectF>
 #include <QSet>
 #include <QUrl>
 #include <QVariantList>
@@ -327,6 +328,27 @@ private:
     // Persistence helpers (all no-ops while m_store is null or a restore is
     // in progress — the restore itself must never echo back into the store).
     static QString diveKey(const DiveData* dive);
+    // What video/clipStates actually receives: persistentClipState() plus
+    // "diveKey", the dive the state was saved under. syncOffset is relative
+    // to a dive's start, but the state is keyed by path alone — the tag is
+    // what lets a re-import tell "same dive, sync still valid" from "this
+    // file was last synced against another dive" (addClip()).
+    QVariantMap storedClipState(const VideoClip* clip) const;
+    // The ONE stored-state → clip mapping, shared by the session restore
+    // and a re-import: the store key is the authoritative path, and a stored
+    // sync comes back as SyncSource::Restored (which suppresses the timecode
+    // auto-sync after the re-probe) while a clip stored unsynced stays
+    // Unsynced. The sync is kept only when it belongs to the current dive:
+    // the state's "diveKey" tag must equal the current dive's key, and an
+    // empty key (no dive, or an undated dive — all of which would share it)
+    // never matches. A state with no tag at all predates the tag:
+    // `trustUntaggedSync` decides — true for the session restore (the
+    // session lists the clip under this dive, and dropping would wipe every
+    // upgrading user's syncs), false for a re-import (nothing says which
+    // dive that offset was for). A dropped sync imports Unsynced, so the
+    // timecode auto-sync runs against the current dive.
+    VideoClip* clipFromStoredState(const QString& path, QVariantMap state,
+                                   bool trustUntaggedSync);
     void saveClipStateNow(VideoClip* clip);
     void scheduleClipStateSave(VideoClip* clip);
     void saveSessionNow();
@@ -345,6 +367,30 @@ private:
     void joinOverlayBucket(VideoClip* clip, bool deferSeed);
     void seedDeferredOverlayBuckets();
     QList<VideoClip*> m_deferredBucketJoins;
+    // A template placement must survive the probe gap. A clip has no
+    // bucket key until its probe lands (every clip right after a session
+    // restore), so applyActiveTemplatePlacement() can only write such a
+    // clip's path entry — and the bucket it joins later still holds the
+    // pre-template rects, which used to win the join and silently undo the
+    // template load. The template's rects are therefore remembered here per
+    // bucketless clip, with a stamp from one counter that buckets share:
+    // joinOverlayBucket() applies them over the bucket (refreshing it and
+    // its already-joined siblings) unless something newer has reached that
+    // bucket since — a later template load or a user edit on a bucketed
+    // clip — in which case the bucket wins as usual. A bucket with no stamp
+    // only has its stored layout (older than any event of this list).
+    // Deliberately NOT extended to user edits on bucketless clips: those
+    // stay per-path and yield to the bucket at join, the long-standing
+    // contract (overlayLayoutProbeRejoinsBucket). Both containers are
+    // emptied in removeClip() / clearAllClips() — raw pointers, never stale.
+    struct PendingTemplatePlacement {
+        quint64 stamp = 0;
+        QRectF diveComputer;
+        QRectF diveProfile;
+    };
+    QHash<VideoClip*, PendingTemplatePlacement> m_pendingTemplatePlacements;
+    QHash<QString, quint64> m_bucketPlacementStamp;
+    quint64 m_placementStamp = 0;
 
     QList<VideoClip*> m_clips;
     int m_activeIndex = -1;

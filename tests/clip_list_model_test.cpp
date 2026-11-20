@@ -104,6 +104,11 @@ private slots:
     void reProbeAfterRestore();
     void offsetWritesDebouncedAndFlushed();
     void removalKeepsClipState();
+    void reimportRestoresClipState();
+    void reimportUnderAnotherDiveDropsSync();
+    void reimportNormalisationIsPersisted();
+    void sessionRestoreDropsAnotherDivesSync();
+    void undatedDiveNeverRestoresSync();
     void configClipStateRoundTrip();
 
     // Follow-up K: clips must never sit outside the dive
@@ -122,6 +127,7 @@ private slots:
     void overlayLayoutBroadcastSameBucketOnly();
     void overlayLayoutProbeRejoinsBucket();
     void overlayLayoutRestoreSeedsDeterministically();
+    void lastUsedLayoutIsRectsOnly();
     void configOverlayLayoutBlobCompat();
 
     // Per-template placement memory ("Overlay Positions", Loïc's request)
@@ -129,6 +135,10 @@ private slots:
     void templateLayoutKeyFormat();
     void overlayLayoutTemplateMemory();
     void applyTemplatePlacementAllBuckets();
+    void templatePlacementSurvivesLateProbe();
+    void userEditOutranksPendingTemplatePlacement();
+    void preProbeEditYieldsToPendingTemplatePlacement_data();
+    void preProbeEditYieldsToPendingTemplatePlacement();
     void seedTemplatePlacementOnSave();
 
 private:
@@ -155,6 +165,10 @@ private:
     // 30 s tryAcquire timeout keeps a failed test from deadlocking a worker.
     QSet<QString> m_gatedFiles;
     QSemaphore m_probeGate;
+    // A second, independently released gate — for tests that must decide
+    // which of two pending probes lands first.
+    QSet<QString> m_gatedFilesB;
+    QSemaphore m_probeGateB;
     MemorySessionStore m_store;
     QTemporaryDir m_settingsDir; // Config/QSettings redirect target
 };
@@ -208,7 +222,9 @@ void ClipListModelTest::init()
     m_model = new ClipListModel(this);
     m_stubResults.clear();
     m_gatedFiles.clear();
+    m_gatedFilesB.clear();
     while (m_probeGate.tryAcquire()) {} // drain leftover permits
+    while (m_probeGateB.tryAcquire()) {}
     m_store.clipStates.clear();
     m_store.sessions.clear();
     m_store.clipStateWrites = 0;
@@ -223,6 +239,7 @@ void ClipListModelTest::cleanup()
     // Unblock any still-gated probe worker before the model (and its future
     // watchers) go away.
     m_probeGate.release(8);
+    m_probeGateB.release(8);
     delete m_model;
     m_model = nullptr;
     delete m_dir;
@@ -249,6 +266,8 @@ void ClipListModelTest::installStubProber()
     m_model->setProberForTesting([this](const QString& path) {
         if (m_gatedFiles.contains(QFileInfo(path).fileName()))
             m_probeGate.tryAcquire(1, 30000);
+        if (m_gatedFilesB.contains(QFileInfo(path).fileName()))
+            m_probeGateB.tryAcquire(1, 30000);
         const auto it = m_stubResults.constFind(QFileInfo(path).fileName());
         if (it != m_stubResults.constEnd())
             return it.value();
@@ -921,6 +940,255 @@ void ClipListModelTest::removalKeepsClipState()
                  .value(QStringLiteral("clipPaths")).toStringList(), QStringList());
 }
 
+void ClipListModelTest::reimportRestoresClipState()
+{
+    // The other half of removalKeepsClipState: the kept state must actually
+    // come back on re-import (it is the stand-in for an undo of the
+    // removal), and the re-added clip's first edit must not wipe it.
+    m_model->setSessionStore(&m_store);
+
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(7, 30, 0)));
+    m_model->setDive(&dive);
+
+    // A timecode in the probe: an auto-sync would overwrite the restored
+    // offset if the re-imported clip came back as a fresh, unsynced one.
+    VideoProbe::Result stub = probeOf(1920, 1080);
+    stub.timecodeSecondsOfDay = 7 * 3600.0 + 45 * 60.0;
+    m_stubResults.insert(QStringLiteral("again.mp4"), stub);
+
+    const QString file = makeFile("again.mp4");
+    VideoClip* clip = addProbedClip(file);
+    QVERIFY(clip);
+    const QString path = clip->path();
+    QJsonObject grade;
+    grade.insert(QStringLiteral("enabled"), true);
+    grade.insert(QStringLiteral("marker"), QStringLiteral("my-grade"));
+    clip->setSyncOffset(77.0);
+    clip->setSyncSource(VideoClip::Manual);
+    clip->setDisplayName(QStringLiteral("Wreck pass"));
+    clip->setColorGrade(grade);
+    clip->setEnabled(false);
+
+    m_model->removeClip(0);
+    QCOMPARE(m_model->count(), 0);
+
+    VideoClip* again = addProbedClip(file);
+    QVERIFY(again);
+    QCOMPARE(again->path(), path);
+    QCOMPARE(again->syncOffset(), 77.0);
+    // Restored, not Manual: same convention as a session restore, and what
+    // kept the timecode auto-sync from running after the probe.
+    QCOMPARE(again->syncSource(), VideoClip::Restored);
+    QCOMPARE(again->displayName(), QStringLiteral("Wreck pass"));
+    QCOMPARE(again->colorGrade(), grade);
+    // An explicit import is live even though the clip left disabled.
+    QVERIFY(again->enabled());
+    QCOMPARE(m_model->activeClip(), again);
+    QCOMPARE(m_store.sessions.value(diveKeyFor(dive))
+                 .value(QStringLiteral("clipPaths")).toStringList(),
+             QStringList{ path });
+
+    // First persisted edit of the re-added clip: the stored sync and grade
+    // are still there (they used to be overwritten by the fresh clip's
+    // defaults at exactly this point).
+    again->setDisplayName(QStringLiteral("Wreck pass 2"));
+    const QVariantMap stored = m_store.clipStates.value(path);
+    QCOMPARE(stored.value(QStringLiteral("displayName")).toString(),
+             QStringLiteral("Wreck pass 2"));
+    QCOMPARE(stored.value(QStringLiteral("syncOffset")).toDouble(), 77.0);
+    QCOMPARE(stored.value(QStringLiteral("colorGrade")).toMap()
+                 .value(QStringLiteral("marker")).toString(),
+             QStringLiteral("my-grade"));
+}
+
+void ClipListModelTest::reimportUnderAnotherDiveDropsSync()
+{
+    // syncOffset is relative to a dive's start, but clip state is keyed by
+    // path alone. A file removed from one dive and imported into another
+    // ("wrong dive, let me redo that") must NOT inherit the first dive's
+    // offset — it comes in unsynced so the timecode auto-sync runs against
+    // the new dive. Its dive-independent state (name, grade) still returns.
+    m_model->setSessionStore(&m_store);
+
+    DiveData diveA;
+    diveA.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(7, 30, 0)));
+    DiveData diveB;
+    diveB.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(11, 0, 0)));
+
+    VideoProbe::Result stub = probeOf(1920, 1080);
+    stub.timecodeSecondsOfDay = 11 * 3600.0 + 4 * 60.0; // 4 min into dive B
+    m_stubResults.insert(QStringLiteral("moved.mp4"), stub);
+    const QString file = makeFile("moved.mp4");
+
+    m_model->setDive(&diveA);
+    VideoClip* clip = addProbedClip(file);
+    QVERIFY(clip);
+    const QString path = clip->path();
+    QJsonObject grade;
+    grade.insert(QStringLiteral("marker"), QStringLiteral("kept"));
+    clip->setSyncOffset(1234.0);
+    clip->setSyncSource(VideoClip::Manual);
+    clip->setColorGrade(grade);
+    m_model->removeClip(0);
+    // The state records which dive its sync belongs to.
+    QCOMPARE(m_store.clipStates.value(path).value(QStringLiteral("diveKey")).toString(),
+             diveKeyFor(diveA));
+
+    m_model->setDive(&diveB);
+    QCOMPARE(m_model->count(), 0);
+    VideoClip* moved = addProbedClip(file);
+    QVERIFY(moved);
+    QCOMPARE(moved->syncSource(), VideoClip::Timecode);
+    QCOMPARE(moved->syncOffset(), 4 * 60.0);
+    QCOMPARE(moved->colorGrade(), grade);
+    m_model->removeClip(0);
+
+    // A state written before the dive tag existed says nothing about which
+    // dive its offset belongs to: same conservative treatment.
+    QVariantMap legacy = m_store.clipStates.value(path);
+    legacy.remove(QStringLiteral("diveKey"));
+    legacy.insert(QStringLiteral("syncOffset"), 999.0);
+    legacy.insert(QStringLiteral("syncSource"), QStringLiteral("manual"));
+    m_store.clipStates.insert(path, legacy);
+    VideoClip* untagged = addProbedClip(file);
+    QVERIFY(untagged);
+    QCOMPARE(untagged->syncSource(), VideoClip::Timecode);
+    QCOMPARE(untagged->syncOffset(), 4 * 60.0);
+    QCOMPARE(untagged->colorGrade(), grade);
+}
+
+void ClipListModelTest::reimportNormalisationIsPersisted()
+{
+    // What a re-import makes of the stored state — a foreign dive's sync
+    // dropped, the clip enabled again — must be written back at once. Left
+    // in memory only, an untouched clip would get the OLD values back from
+    // the store at the next session restore (the sync of another dive, and
+    // the disabled flag).
+    m_model->setSessionStore(&m_store);
+
+    DiveData diveA;
+    diveA.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(7, 30, 0)));
+    DiveData diveB;
+    diveB.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(11, 0, 0)));
+    const QString file = makeFile("untouched.mp4"); // stub probe: no timecode
+
+    m_model->setDive(&diveA);
+    VideoClip* clip = addProbedClip(file);
+    QVERIFY(clip);
+    const QString path = clip->path();
+    clip->setSyncOffset(1234.0);
+    clip->setSyncSource(VideoClip::Manual);
+    clip->setEnabled(false);
+    m_model->removeClip(0);
+
+    m_model->setDive(&diveB);
+    VideoClip* moved = addProbedClip(file);
+    QVERIFY(moved);
+    QCOMPARE(moved->syncSource(), VideoClip::Unsynced);
+    QCOMPARE(moved->syncOffset(), 0.0);
+    QVERIFY(moved->enabled());
+
+    // No edit at all — the store already reflects the import.
+    const QVariantMap stored = m_store.clipStates.value(path);
+    QCOMPARE(stored.value(QStringLiteral("diveKey")).toString(), diveKeyFor(diveB));
+    QCOMPARE(stored.value(QStringLiteral("syncOffset")).toDouble(), 0.0);
+    QCOMPARE(stored.value(QStringLiteral("syncSource")).toString(),
+             QStringLiteral("unsynced"));
+    QCOMPARE(stored.value(QStringLiteral("enabled")).toBool(), true);
+
+    // "Restart" on dive B: the clip comes back as it was left.
+    m_model->setDive(nullptr);
+    m_model->setDive(&diveB);
+    QCOMPARE(m_model->count(), 1);
+    VideoClip* restored = m_model->clipAt(0);
+    QCOMPARE(restored->syncSource(), VideoClip::Unsynced);
+    QCOMPARE(restored->syncOffset(), 0.0);
+    QVERIFY(restored->enabled());
+}
+
+void ClipListModelTest::sessionRestoreDropsAnotherDivesSync()
+{
+    // One file listed in two dives' sessions: its single path-keyed state
+    // holds whichever dive's sync was saved last. Restoring the OTHER dive
+    // must not adopt it — a wrong offset, marked Restored, would also keep
+    // the timecode auto-sync from correcting it.
+    m_model->setSessionStore(&m_store);
+
+    DiveData diveA;
+    diveA.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(7, 30, 0)));
+    DiveData diveB;
+    diveB.setStartTime(QDateTime(QDate(2026, 6, 15), QTime(11, 0, 0)));
+    const QString file = makeFile("shared.mp4");
+
+    m_model->setDive(&diveA);
+    VideoClip* a = addProbedClip(file);
+    QVERIFY(a);
+    const QString path = a->path();
+    a->setSyncOffset(100.0);
+    a->setSyncSource(VideoClip::Manual);
+
+    m_model->setDive(&diveB); // A's session keeps the clip
+    VideoClip* b = addProbedClip(file);
+    QVERIFY(b);
+    QCOMPARE(b->syncSource(), VideoClip::Unsynced);
+    b->setSyncOffset(50.0);
+    b->setSyncSource(VideoClip::Manual);
+
+    m_model->setDive(&diveA);
+    QCOMPARE(m_model->count(), 1);
+    QCOMPARE(m_model->clipAt(0)->syncSource(), VideoClip::Unsynced);
+    QCOMPARE(m_model->clipAt(0)->syncOffset(), 0.0);
+
+    // The slot is single: leaving A saves the clip as A has it (unsynced),
+    // so B's own sync is gone too. Lost, never wrong — an unsynced clip is
+    // visible as such and the timecode auto-sync can still place it.
+    m_model->setDive(&diveB);
+    QCOMPARE(m_model->count(), 1);
+    QCOMPARE(m_model->clipAt(0)->syncSource(), VideoClip::Unsynced);
+
+    // A state from before the tag existed (every upgrading user's): the
+    // session restore keeps trusting it.
+    m_model->setDive(nullptr);
+    m_store.clipStates.insert(
+        path, QVariantMap{ { QStringLiteral("path"), path },
+                           { QStringLiteral("syncOffset"), 50.0 },
+                           { QStringLiteral("syncSource"), QStringLiteral("manual") },
+                           { QStringLiteral("enabled"), true } });
+    m_model->setDive(&diveB);
+    QCOMPARE(m_model->count(), 1);
+    QCOMPARE(m_model->clipAt(0)->syncSource(), VideoClip::Restored);
+    QCOMPARE(m_model->clipAt(0)->syncOffset(), 50.0);
+}
+
+void ClipListModelTest::undatedDiveNeverRestoresSync()
+{
+    // Dives without a start time have no identity (they all share the
+    // empty key, as does "no dive"), so a sync saved under one can never
+    // be told apart from another's: a re-import comes back unsynced. The
+    // dive-independent state still returns.
+    m_model->setSessionStore(&m_store);
+
+    DiveData undatedX;
+    DiveData undatedY;
+    const QString file = makeFile("undated.mp4");
+
+    m_model->setDive(&undatedX);
+    VideoClip* clip = addProbedClip(file);
+    QVERIFY(clip);
+    clip->setSyncOffset(321.0);
+    clip->setSyncSource(VideoClip::Manual);
+    clip->setDisplayName(QStringLiteral("Kept name"));
+    m_model->removeClip(0);
+
+    m_model->setDive(&undatedY);
+    VideoClip* again = addProbedClip(file);
+    QVERIFY(again);
+    QCOMPARE(again->syncSource(), VideoClip::Unsynced);
+    QCOMPARE(again->syncOffset(), 0.0);
+    QCOMPARE(again->displayName(), QStringLiteral("Kept name"));
+}
+
 void ClipListModelTest::configClipStateRoundTrip()
 {
 #ifndef Q_OS_LINUX
@@ -1589,6 +1857,34 @@ void ClipListModelTest::overlayLayoutRestoreSeedsDeterministically()
     QCOMPARE(c1->overlayLayout(), l2);
 }
 
+void ClipListModelTest::lastUsedLayoutIsRectsOnly()
+{
+    // The last-used layout is the fallback for a clip seen nowhere before
+    // (no bucket, no path entry, no template memory). Like the template
+    // entry one step above it, only its RECTS carry over: an overlay hidden
+    // on the last-edited clip must not arrive hidden on unrelated footage.
+    m_model->setSessionStore(&m_store);
+    m_store.lastLayout = layoutAt(0.44, /*profVisible=*/false).toVariantMap();
+
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 9), QTime(9, 0, 0)));
+    m_model->setDive(&dive);
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/NoMemory.utp"));
+    m_stubResults.insert(QStringLiteral("fresh.mp4"), probeOf(1920, 1080));
+    VideoClip* clip = addProbedClip(makeFile("fresh.mp4"));
+    QVERIFY(clip);
+
+    QCOMPARE(clip->overlayLayout().diveComputer.normalizedRect,
+             layoutAt(0.44).diveComputer.normalizedRect);
+    QCOMPARE(clip->overlayLayout().diveProfile.normalizedRect,
+             layoutAt(0.44).diveProfile.normalizedRect);
+    QVERIFY(clip->overlayLayout().diveProfile.visible);
+    QVERIFY(clip->overlayLayout().diveComputer.visible);
+    // The bucket this first joiner seeded carries the same thing.
+    QCOMPARE(m_store.layouts.value(m_model->overlayBucketKey(clip)),
+             layoutAt(0.44).toVariantMap());
+}
+
 void ClipListModelTest::configOverlayLayoutBlobCompat()
 {
 #ifndef Q_OS_LINUX
@@ -1810,6 +2106,167 @@ void ClipListModelTest::applyTemplatePlacementAllBuckets()
                  m_store.layouts.value(m_model->overlayBucketKey(hd1)))
                  .diveComputer.normalizedRect,
              tplL.diveComputer.normalizedRect);
+}
+
+void ClipListModelTest::templatePlacementSurvivesLateProbe()
+{
+    // Template loaded right after a dive switch, while the restored clip
+    // is still re-probing: the clip has no bucket key yet, so only its path
+    // entry can be written. When the probe lands, the bucket's stored
+    // layout predates the template load and must not win the join.
+    m_model->setSessionStore(&m_store);
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 4), QTime(9, 0, 0)));
+    const QString path = makeFile("late.mp4");
+    m_stubResults.insert(QStringLiteral("late.mp4"), probeOf(1920, 1080));
+    const QString bucket = QStringLiteral("dive:%1|1920x1080").arg(diveKeyFor(dive));
+    // Stored bucket: old rects, profile hidden for this dive's HD clips.
+    m_store.layouts.insert(bucket, layoutAt(0.10, /*profVisible=*/false).toVariantMap());
+    const VideoOverlayLayout tplL = layoutAt(0.60);
+    m_store.layouts.insert(QStringLiteral("tpl::/templates/T.utp"), tplL.toVariantMap());
+    m_store.sessions.insert(diveKeyFor(dive),
+                            QVariantMap{ { QStringLiteral("clipPaths"), QStringList{ path } },
+                                         { QStringLiteral("activePath"), path },
+                                         { QStringLiteral("gapPolicy"), 0 } });
+    m_gatedFiles.insert(QStringLiteral("late.mp4"));
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/T.utp"));
+
+    m_model->setDive(&dive);
+    QCOMPARE(m_model->count(), 1);
+    VideoClip* clip = m_model->clipAt(0);
+    const QVariantMap lastBefore = m_store.lastLayout;
+
+    m_model->applyActiveTemplatePlacement(); // the template load, probe pending
+    QCOMPARE(clip->overlayLayout().diveComputer.normalizedRect,
+             tplL.diveComputer.normalizedRect);
+
+    m_probeGate.release();
+    QTRY_COMPARE(clip->probeState(), VideoClip::Probed);
+
+    // Template rects kept; the bucket's visibility (clip state) adopted.
+    QCOMPARE(clip->overlayLayout().diveComputer.normalizedRect,
+             tplL.diveComputer.normalizedRect);
+    QCOMPARE(clip->overlayLayout().diveProfile.normalizedRect,
+             tplL.diveProfile.normalizedRect);
+    QCOMPARE(clip->overlayLayout().diveProfile.visible, false);
+    // The bucket was brought up to date, so a later joiner agrees...
+    QCOMPARE(m_store.layouts.value(bucket), clip->overlayLayout().toVariantMap());
+    // ...and none of it counted as a user edit.
+    QCOMPARE(m_store.lastLayout, lastBefore);
+    QCOMPARE(m_store.layouts.value(QStringLiteral("tpl::/templates/T.utp")),
+             tplL.toVariantMap());
+}
+
+void ClipListModelTest::userEditOutranksPendingTemplatePlacement()
+{
+    // Same race, but the user drags an overlay on an already-probed sibling
+    // between the template load and the late probe: that edit is the newest
+    // placement for the bucket, so the late clip adopts it instead of
+    // re-imposing the template rects it was holding.
+    m_model->setSessionStore(&m_store);
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 5), QTime(9, 0, 0)));
+    const QString p1 = makeFile("early.mp4");
+    const QString p2 = makeFile("late2.mp4");
+    m_stubResults.insert(QStringLiteral("early.mp4"), probeOf(1920, 1080));
+    m_stubResults.insert(QStringLiteral("late2.mp4"), probeOf(1920, 1080));
+    const QString bucket = QStringLiteral("dive:%1|1920x1080").arg(diveKeyFor(dive));
+    m_store.layouts.insert(bucket, layoutAt(0.10).toVariantMap());
+    m_store.layouts.insert(QStringLiteral("tpl::/templates/T.utp"),
+                           layoutAt(0.60).toVariantMap());
+    m_store.sessions.insert(diveKeyFor(dive),
+                            QVariantMap{ { QStringLiteral("clipPaths"), QStringList{ p1, p2 } },
+                                         { QStringLiteral("activePath"), p1 },
+                                         { QStringLiteral("gapPolicy"), 0 } });
+    m_gatedFiles.insert(QStringLiteral("late2.mp4"));
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/T.utp"));
+
+    m_model->setDive(&dive);
+    QCOMPARE(m_model->count(), 2);
+    VideoClip* early = m_model->clipAt(0);
+    VideoClip* late = m_model->clipAt(1);
+    QTRY_COMPARE(early->probeState(), VideoClip::Probed);
+
+    m_model->applyActiveTemplatePlacement();
+    QCOMPARE(late->overlayLayout().diveComputer.normalizedRect,
+             layoutAt(0.60).diveComputer.normalizedRect);
+    const VideoOverlayLayout edit = layoutAt(0.33);
+    m_model->commitOverlayLayout(early, edit.toVariantMap());
+
+    m_probeGate.release();
+    QTRY_COMPARE(late->probeState(), VideoClip::Probed);
+    QCOMPARE(late->overlayLayout(), edit);
+    QCOMPARE(early->overlayLayout(), edit);
+    QCOMPARE(m_store.layouts.value(bucket), edit.toVariantMap());
+}
+
+void ClipListModelTest::preProbeEditYieldsToPendingTemplatePlacement_data()
+{
+    QTest::addColumn<bool>("editedClipProbesFirst");
+    QTest::newRow("edited clip probes first") << true;
+    QTest::newRow("sibling probes first") << false;
+}
+
+void ClipListModelTest::preProbeEditYieldsToPendingTemplatePlacement()
+{
+    // Two restored same-resolution clips, both still probing. A template
+    // load places both; then the user edits one of them before its probe
+    // lands. A pre-probe edit is per-path and yields at join — the
+    // contract overlayLayoutProbeRejoinsBucket pins — so the template
+    // placement is what the bucket and both clips must end on, whichever
+    // probe lands first. Never the stale stored bucket, and never a mix
+    // (the edited clip's own rects used to be re-broadcast as if they were
+    // the template's).
+    QFETCH(bool, editedClipProbesFirst);
+
+    m_model->setSessionStore(&m_store);
+    DiveData dive;
+    dive.setStartTime(QDateTime(QDate(2026, 7, 6), QTime(9, 0, 0)));
+    const QString pe = makeFile("edited.mp4");
+    const QString ps = makeFile("sibling.mp4");
+    m_stubResults.insert(QStringLiteral("edited.mp4"), probeOf(1920, 1080));
+    m_stubResults.insert(QStringLiteral("sibling.mp4"), probeOf(1920, 1080));
+    const QString bucket = QStringLiteral("dive:%1|1920x1080").arg(diveKeyFor(dive));
+    m_store.layouts.insert(bucket, layoutAt(0.10).toVariantMap());
+    const VideoOverlayLayout tplL = layoutAt(0.60);
+    m_store.layouts.insert(QStringLiteral("tpl::/templates/T.utp"), tplL.toVariantMap());
+    m_store.sessions.insert(diveKeyFor(dive),
+                            QVariantMap{ { QStringLiteral("clipPaths"), QStringList{ pe, ps } },
+                                         { QStringLiteral("activePath"), pe },
+                                         { QStringLiteral("gapPolicy"), 0 } });
+    m_gatedFiles.insert(QStringLiteral("edited.mp4"));
+    m_gatedFilesB.insert(QStringLiteral("sibling.mp4"));
+    m_model->setActiveTemplatePath(QStringLiteral(":/templates/T.utp"));
+
+    m_model->setDive(&dive);
+    QCOMPARE(m_model->count(), 2);
+    VideoClip* edited = m_model->clipAt(0);
+    VideoClip* sibling = m_model->clipAt(1);
+
+    m_model->applyActiveTemplatePlacement();
+    const VideoOverlayLayout edit = layoutAt(0.33, /*profVisible=*/false);
+    m_model->commitOverlayLayout(edited, edit.toVariantMap());
+    QCOMPARE(edited->overlayLayout(), edit); // live until the probe lands
+
+    if (editedClipProbesFirst) {
+        m_probeGate.release();
+        QTRY_COMPARE(edited->probeState(), VideoClip::Probed);
+        // Straight to the template placement — no detour through the
+        // stale bucket while the sibling is still probing.
+        QCOMPARE(edited->overlayLayout(), tplL);
+        m_probeGateB.release();
+        QTRY_COMPARE(sibling->probeState(), VideoClip::Probed);
+    } else {
+        m_probeGateB.release();
+        QTRY_COMPARE(sibling->probeState(), VideoClip::Probed);
+        QCOMPARE(sibling->overlayLayout(), tplL);
+        m_probeGate.release();
+        QTRY_COMPARE(edited->probeState(), VideoClip::Probed);
+    }
+
+    QCOMPARE(edited->overlayLayout(), tplL);
+    QCOMPARE(sibling->overlayLayout(), tplL);
+    QCOMPARE(m_store.layouts.value(bucket), tplL.toVariantMap());
 }
 
 void ClipListModelTest::seedTemplatePlacementOnSave()

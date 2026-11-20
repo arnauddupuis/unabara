@@ -278,13 +278,24 @@ Item {
                         // the default preference.
                         model: ffmpegInfo.availableCodecs
                         currentIndex: Math.max(0, model.indexOf(config ? config.videoCodec : "vp9"))
-                        onModelChanged: {
+                        // Same two channels as the export dialog's codec
+                        // combo: the imperative re-derivation on a model
+                        // change breaks the binding above, so the config
+                        // signal resyncs it when the dialog changes the
+                        // saved codec.
+                        function syncToConfig() {
                             var idx = model.indexOf(config ? config.videoCodec : "vp9")
                             currentIndex = idx >= 0 ? idx : 0
                         }
+                        onModelChanged: syncToConfig()
                         onActivated: {
                             if (config)
                                 config.videoCodec = currentText
+                        }
+                        Connections {
+                            target: config
+                            enabled: config !== null
+                            function onVideoCodecChanged() { videoCodecCombo.syncToConfig() }
                         }
                     }
 

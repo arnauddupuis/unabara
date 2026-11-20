@@ -194,9 +194,32 @@ VideoClip* ClipListModel::addClip(const QString& path)
         return m_clips.at(existing);
     }
 
-    VideoClip* clip = new VideoClip(QFileInfo(path).absoluteFilePath(), this);
+    // Re-import: removeClip() keeps the path-keyed state precisely so the
+    // file comes back with its display name, colour grade and sync (there is
+    // no undo for clip removal — this is it). Without this read the kept
+    // state was never used, and the fresh clip's first edit overwrote it.
+    const QString absolutePath = QFileInfo(path).absoluteFilePath();
+    VideoClip* clip = nullptr;
+    if (m_store) {
+        QVariantMap state = m_store->loadClipState(absolutePath);
+        if (!state.isEmpty()) {
+            // An explicit import is always live, whatever the clip's
+            // enabled flag was when it left.
+            state.insert(QStringLiteral("enabled"), true);
+            clip = clipFromStoredState(absolutePath, state,
+                                       /*trustUntaggedSync=*/false);
+        }
+    }
+    const bool fromStoredState = clip != nullptr;
+    if (!clip)
+        clip = new VideoClip(absolutePath, this);
     const int row = m_clips.size();
     insertClipRow(clip);
+    // What the import made of the stored state (enabled again, a foreign
+    // dive's sync dropped) must reach the store now: left in memory only,
+    // the old values would come back at the next session restore.
+    if (fromStoredState)
+        saveClipStateNow(clip);
 
     emit countChanged();
     emit clipsChanged();
@@ -255,6 +278,7 @@ void ClipListModel::removeClip(int index)
     // is now due.
     m_lastOutside.remove(clip);
     m_deferredBucketJoins.removeAll(clip);
+    m_pendingTemplatePlacements.remove(clip);
     if (m_restorePending.remove(clip) && m_restorePending.isEmpty()) {
         scheduleOutsideDiveCheck();
         seedDeferredOverlayBuckets(); // the restore's last pending probe
@@ -650,12 +674,41 @@ QVariantMap ClipListModel::persistentClipState(const VideoClip* clip)
     return state;
 }
 
+QVariantMap ClipListModel::storedClipState(const VideoClip* clip) const
+{
+    QVariantMap state = persistentClipState(clip);
+    // Empty for no dive / an undated dive — still written, so "saved with
+    // no dive" stays distinguishable from "saved by a build without the tag".
+    state.insert(QStringLiteral("diveKey"), diveKey(m_dive));
+    return state;
+}
+
+VideoClip* ClipListModel::clipFromStoredState(const QString& path, QVariantMap state,
+                                              bool trustUntaggedSync)
+{
+    state.insert(QStringLiteral("path"), path); // key is authoritative
+    const QString tagKey = QStringLiteral("diveKey");
+    const QString current = diveKey(m_dive);
+    const bool syncIsForThisDive =
+        state.contains(tagKey)
+            ? (!current.isEmpty() && state.value(tagKey).toString() == current)
+            : trustUntaggedSync;
+    if (!syncIsForThisDive) {
+        state.remove(QStringLiteral("syncOffset"));
+        state.remove(QStringLiteral("syncSource"));
+    }
+    VideoClip* clip = VideoClip::fromVariantMap(state, this);
+    if (clip && clip->syncSource() != VideoClip::Unsynced)
+        clip->setSyncSource(VideoClip::Restored);
+    return clip;
+}
+
 void ClipListModel::saveClipStateNow(VideoClip* clip)
 {
     if (!m_store || m_restoring || !clip)
         return;
     m_pendingStateSaves.remove(clip); // this write supersedes a pending one
-    m_store->saveClipState(clip->path(), persistentClipState(clip));
+    m_store->saveClipState(clip->path(), storedClipState(clip));
 }
 
 void ClipListModel::scheduleClipStateSave(VideoClip* clip)
@@ -680,7 +733,7 @@ void ClipListModel::flushPendingClipStates()
         // took them out of the pending set, so a stale pointer here would
         // be a bug — but stay defensive, it's a deleteLater world.
         if (m_clips.contains(clip))
-            m_store->saveClipState(clip->path(), persistentClipState(clip));
+            m_store->saveClipState(clip->path(), storedClipState(clip));
     }
 }
 
@@ -739,6 +792,8 @@ void ClipListModel::clearAllClips()
     m_lastOutside.clear();
     m_restorePending.clear();
     m_deferredBucketJoins.clear();
+    m_pendingTemplatePlacements.clear();
+    m_bucketPlacementStamp.clear();
 
     if (m_clips.isEmpty())
         return;
@@ -792,17 +847,13 @@ void ClipListModel::restoreSessionForCurrentDive()
             ++missing;
             continue;
         }
-        QVariantMap state = m_store->loadClipState(path);
-        state.insert(QStringLiteral("path"), path); // key is authoritative
-        VideoClip* clip = VideoClip::fromVariantMap(state, this);
+        // The state is path-keyed, so a file that sits in two dives'
+        // sessions carries whichever dive's sync was saved last: the tag
+        // check drops it here when it is the other dive's.
+        VideoClip* clip = clipFromStoredState(path, m_store->loadClipState(path),
+                                              /*trustUntaggedSync=*/true);
         if (!clip)
             continue;
-        // A stored sync — whatever its original source — comes back as
-        // Restored, which suppresses the timecode auto-sync after the
-        // metadata re-probe. A clip stored unsynced stays Unsynced so the
-        // auto-sync can still do its job.
-        if (clip->syncSource() != VideoClip::Unsynced)
-            clip->setSyncSource(VideoClip::Restored);
         insertClipRow(clip);
         // Held out of the out-of-dive check until its re-probe lands (the
         // duration isn't persisted): one aggregated notification per
@@ -875,9 +926,13 @@ VideoOverlayLayout ClipListModel::resolveOverlayLayout(const VideoClip* clip) co
         if (!tpl.isEmpty())
             return templateRectsFromMap(tpl);
     }
+    // Last-used placement: the same rects-only read as the template entry
+    // above, for the same reason — it is the fallback for a clip seen
+    // nowhere before, and an overlay hidden on the last-edited clip must
+    // not arrive hidden on an unrelated dive's footage.
     const QVariantMap last = m_store->loadLastOverlayLayout();
     if (!last.isEmpty())
-        return VideoOverlayLayout::fromVariantMap(last);
+        return templateRectsFromMap(last);
     return VideoOverlayLayout();
 }
 
@@ -887,18 +942,47 @@ void ClipListModel::joinOverlayBucket(VideoClip* clip, bool deferSeed)
     if (bucket.isEmpty() || !m_store)
         return; // no resolution / no dive identity: stays per-path
     const QVariantMap stored = m_store->loadOverlayLayout(bucket);
-    if (!stored.isEmpty()) {
-        // The bucket wins over whatever the clip resolved per-path.
-        clip->setOverlayLayout(VideoOverlayLayout::fromVariantMap(stored));
-        return;
-    }
-    if (deferSeed) {
+    if (stored.isEmpty() && deferSeed) {
+        // A pending template placement stays recorded: it is consumed by
+        // the real join in seedDeferredOverlayBuckets().
         if (!m_deferredBucketJoins.contains(clip))
             m_deferredBucketJoins.append(clip);
         return;
     }
+    // A template placement this clip received while it had no bucket (see
+    // m_pendingTemplatePlacements): consumed by this join.
+    const PendingTemplatePlacement pending = m_pendingTemplatePlacements.take(clip);
+    if (!stored.isEmpty()) {
+        // The bucket wins over whatever the clip resolved per-path...
+        VideoOverlayLayout layout = VideoOverlayLayout::fromVariantMap(stored);
+        if (pending.stamp > m_bucketPlacementStamp.value(bucket, 0)) {
+            // ...except for a template placement newer than anything that
+            // has reached the bucket: its rects go over the bucket's, with
+            // applyActiveTemplatePlacement()'s own writer rules — not a
+            // user edit (last-used untouched), visible flags left alone,
+            // and already-joined siblings follow.
+            layout.diveComputer.normalizedRect = pending.diveComputer;
+            layout.diveProfile.normalizedRect = pending.diveProfile;
+            m_store->saveOverlayLayout(QStringList{ bucket },
+                                       layout.toVariantMap(), false);
+            m_bucketPlacementStamp.insert(bucket, pending.stamp);
+            for (VideoClip* other : std::as_const(m_clips)) {
+                if (other == clip || overlayBucketKey(other) != bucket)
+                    continue;
+                VideoOverlayLayout merged = other->overlayLayout();
+                merged.diveComputer.normalizedRect = pending.diveComputer;
+                merged.diveProfile.normalizedRect = pending.diveProfile;
+                other->setOverlayLayout(merged);
+            }
+        }
+        clip->setOverlayLayout(layout);
+        return;
+    }
     // First joiner seeds the bucket with its own resolved layout. Not a
-    // user edit, so the last-used layout is left alone.
+    // user edit, so the last-used layout is left alone. The seed is left
+    // unstamped on purpose: a sibling still holding the same template
+    // placement then re-asserts it, so the outcome does not depend on
+    // which probe landed first.
     m_store->saveOverlayLayout(QStringList{ bucket },
                                clip->overlayLayout().toVariantMap(), false);
 }
@@ -932,6 +1016,10 @@ void ClipListModel::commitOverlayLayout(VideoClip* clip, const QVariantMap& layo
 
     const QString bucket = overlayBucketKey(clip);
     if (!bucket.isEmpty()) {
+        // This edit is now the newest thing in the bucket: a template
+        // placement a still-unprobed sibling is holding must not override
+        // it at join (see m_pendingTemplatePlacements).
+        m_bucketPlacementStamp.insert(bucket, ++m_placementStamp);
         // Live re-broadcast to every same-bucket sibling (the list only
         // ever holds the current dive's clips, so same key = same dive and
         // same display resolution). Enabled or not: a disabled clip
@@ -1010,14 +1098,27 @@ void ClipListModel::applyActiveTemplatePlacement()
     // unbucketed clip's path — updateLastUsed=false, like the other
     // non-user-edit writers (joinOverlayBucket, seedTemplatePlacement).
     QSet<QString> savedBuckets;
+    const quint64 stamp = ++m_placementStamp;
     for (VideoClip* clip : std::as_const(m_clips)) {
         VideoOverlayLayout merged = clip->overlayLayout();
         merged.diveComputer.normalizedRect = tpl.diveComputer.normalizedRect;
         merged.diveProfile.normalizedRect = tpl.diveProfile.normalizedRect;
         clip->setOverlayLayout(merged);
+        const QString bucket = overlayBucketKey(clip);
+        // No bucket yet (unprobed): the path write below is all that can
+        // be persisted now, and the bucket this clip joins once its probe
+        // lands still holds the pre-template rects — remember the
+        // placement so the join carries it (m_pendingTemplatePlacements).
+        if (bucket.isEmpty()) {
+            m_pendingTemplatePlacements.insert(
+                clip, PendingTemplatePlacement{ stamp,
+                                                tpl.diveComputer.normalizedRect,
+                                                tpl.diveProfile.normalizedRect });
+        } else {
+            m_bucketPlacementStamp.insert(bucket, stamp);
+        }
         if (m_restoring)
             continue;
-        const QString bucket = overlayBucketKey(clip);
         if (bucket.isEmpty()) {
             m_store->saveOverlayLayout(QStringList{ clip->path() },
                                        merged.toVariantMap(), false);

@@ -40,6 +40,7 @@
 #include "include/core/ffmpeg_probe.h"
 #include "include/core/video_clip.h"
 #include "include/core/video_probe.h"
+#include "include/export/export_math.h"
 #include "include/export/ffmpeg_args.h"
 #include "include/export/frame_compositor.h"
 #include "include/export/video_export.h"
@@ -241,6 +242,7 @@ private slots:
     void compositeEndToEnd_data();
     void compositeEndToEnd();
     void compositeFfmpegFailureCleansUp();
+    void compositeVariableFrameRateFullLength();
     void overlayOnlyPreDiveFramesAreBlank();
 
     // Part 3 — colour-grade export integration (PR C5), QSKIP without
@@ -957,6 +959,109 @@ void CompositeExportTest::compositeFfmpegFailureCleansUp()
     // ever in this fresh directory.
     const QStringList left = QDir(outDir.path()).entryList(QDir::Files | QDir::NoDotAndDotDot);
     QVERIFY2(left.isEmpty(), qPrintable(left.join(QLatin1String(", "))));
+}
+
+void CompositeExportTest::compositeVariableFrameRateFullLength()
+{
+    // A variable-frame-rate clip (the phone-footage signature): nominal
+    // r_frame_rate 30, but only every 3rd frame kept after the first
+    // second, so the stream holds 80 real frames over ~5.8 s (average
+    // ~13.8 fps). The export runs on the NOMINAL grid, so the whole clip is
+    // ~174 frames. Capping that grid by the stream's real frame count (80)
+    // exported the first 2.67 s only and still reported success.
+    if (!FFmpegProbe::instance()->isAvailable())
+        QSKIP("FFmpeg not found — VFR composite test skipped");
+    if (FFmpegProbe::instance()->ffprobePath().isEmpty())
+        QSKIP("ffprobe not found — VFR composite test skipped");
+    if (!FFmpegProbe::instance()->hasEncoder(QStringLiteral("libx264")))
+        QSKIP("FFmpeg lacks libx264 — VFR composite test skipped");
+
+    // mp4, not NUT: the container must report a video-stream duration and
+    // frame count, like camera files do. Audio (6.5 s) outlasts the video,
+    // so the format duration alone would oversize the export — the reason
+    // the source-length bound exists in the first place.
+    const QString vfrPath = m_workDir.filePath(QStringLiteral("vfr_source.mp4"));
+    {
+        QProcess proc;
+        proc.start(FFmpegProbe::instance()->ffmpegPath(),
+                   {QStringLiteral("-y"), QStringLiteral("-hide_banner"),
+                    QStringLiteral("-f"), QStringLiteral("lavfi"),
+                    QStringLiteral("-i"),
+                    QStringLiteral("color=c=gray:s=%1x%2:r=30:d=6").arg(kSrcW).arg(kSrcH),
+                    QStringLiteral("-f"), QStringLiteral("lavfi"),
+                    QStringLiteral("-i"),
+                    QStringLiteral("sine=frequency=440:sample_rate=44100:duration=6.5"),
+                    QStringLiteral("-vf"), QStringLiteral("select='lt(n,30)+not(mod(n,3))'"),
+                    QStringLiteral("-fps_mode"), QStringLiteral("vfr"),
+                    QStringLiteral("-c:v"), QStringLiteral("libx264"),
+                    QStringLiteral("-pix_fmt"), QStringLiteral("yuv420p"),
+                    QStringLiteral("-c:a"), QStringLiteral("aac"),
+                    vfrPath});
+        QVERIFY2(proc.waitForFinished(60000) && proc.exitCode() == 0,
+                 qPrintable(QString::fromUtf8(proc.readAllStandardError())));
+    }
+
+    VideoClip clip(vfrPath);
+    clip.applyProbeResult(VideoProbe::probe(vfrPath));
+    QCOMPARE(clip.probeState(), VideoClip::Probed);
+    // The fixture is what the test claims it is.
+    QVERIFY(clip.vfr());
+    QCOMPARE(clip.fpsNum(), 30);
+    QCOMPARE(clip.fpsDen(), 1);
+    QCOMPARE(clip.nbFrames(), Q_INT64_C(80));
+    QVERIFY2(clip.videoStreamDuration() > 5.5 && clip.videoStreamDuration() < 6.0,
+             qPrintable(QString::number(clip.videoStreamDuration())));
+    // The format duration follows the longer audio track.
+    QVERIFY(clip.durationSeconds() > clip.videoStreamDuration() + 0.4);
+    const qint64 expectedFrames = ExportMath::sourceGridFrameLimit(
+        clip.nbFrames(), true, clip.videoStreamDuration(), clip.avgFps(), 30, 1);
+    // The video stream's length on the 30 fps grid: more than twice the
+    // real frame count, and short of the audio-inflated format duration.
+    QVERIFY2(expectedFrames >= 165 && expectedFrames <= 180,
+             qPrintable(QString::number(expectedFrames)));
+    clip.setSyncOffset(0.0);
+
+    VideoOverlayLayout layout;
+    layout.diveComputer = OverlayPlacement{true, QRectF(0, 0, 1, 1)};
+    layout.diveProfile.visible = false;
+    clip.setOverlayLayout(layout);
+
+    DiveData dive;
+    dive.setDiveName(QStringLiteral("VfrCompositeTest"));
+    FrameCodeGenerator stub;
+    QTemporaryDir outDir;
+    QVERIFY(outDir.isValid());
+
+    VideoExporter exporter;
+    exporter.setBaseDirectory(outDir.path());
+    exporter.setVideoCodec(QStringLiteral("h264"));
+    exporter.setVideoQuality(QStringLiteral("standard"));
+
+    QSignalSpy finishedSpy(&exporter, &VideoExporter::exportFinished);
+    QSignalSpy errorSpy(&exporter, &VideoExporter::exportError);
+    QSignalSpy cancelledSpy(&exporter, &VideoExporter::exportCancelled);
+
+    // Whole clip, the way the dialog and the batch queue ask for it.
+    QVERIFY(exporter.exportComposite(&dive, &clip, &stub, nullptr, 0.0,
+                                     clip.durationSeconds()));
+    QTRY_VERIFY_WITH_TIMEOUT(
+        finishedSpy.count() > 0 || errorSpy.count() > 0 || cancelledSpy.count() > 0,
+        60000);
+    QVERIFY2(errorSpy.isEmpty(),
+             qPrintable(errorSpy.isEmpty() ? QString()
+                                           : errorSpy.first().first().toString()));
+    QCOMPARE(finishedSpy.count(), 1);
+    QVERIFY(finishedSpy.first().at(0).toBool());
+    QCOMPARE(qint64(stub.generatedFrames), expectedFrames);
+
+    // The container holds the full length on the nominal grid: every frame
+    // the exporter streamed, not the 80 the stream physically carries.
+    const QString outputPath = finishedSpy.first().at(1).toString();
+    const QMap<QString, QString> v = probeStream(
+        outputPath, QStringLiteral("v:0"),
+        QStringLiteral("stream=nb_read_frames,r_frame_rate"));
+    QCOMPARE(v.value(QStringLiteral("nb_read_frames")).toLongLong(), expectedFrames);
+    QCOMPARE(v.value(QStringLiteral("r_frame_rate")), QStringLiteral("30/1"));
 }
 
 void CompositeExportTest::overlayOnlyPreDiveFramesAreBlank()
